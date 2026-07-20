@@ -1,25 +1,25 @@
-import Link from "next/link";
+import { Suspense } from "react";
+import GenerateClient from "./generate/client";
 
-export default function HomePage() {
+// Home IS the chat experience (same as /generate).
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; nodeId?: string }>;
+}) {
+  const params = await searchParams;
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 py-16 text-center">
-      <h1 className="font-serif text-heading text-4xl md:text-5xl leading-tight mb-4">
-        Equity compensation, explained.
-      </h1>
-      <p className="text-body text-lg mb-8 max-w-md">
-        AI-powered reference for stock plan professionals.
-      </p>
-      <Link
-        href="/generate"
-        className="inline-flex items-center px-6 py-3 rounded-lg font-medium text-accent-on transition-opacity hover:opacity-90"
-        style={{
-          backgroundColor: "var(--accent-solid)",
-          textDecoration: "none",
-          minHeight: "44px",
-        }}
-      >
-        Ask a question →
-      </Link>
-    </div>
+    <Suspense
+      fallback={
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="h-32 rounded-lg bg-[var(--surface-1)] animate-pulse" />
+        </div>
+      }
+    >
+      <GenerateClient
+        initialQuery={params.q ?? ""}
+        initialNodeId={params.nodeId}
+      />
+    </Suspense>
   );
 }

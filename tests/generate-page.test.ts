@@ -126,26 +126,26 @@ describe("ArtifactResult source contains required strings", () => {
     expect(src).toContain('"use client"');
   });
 
-  it("has three tab labels: Text, PDF, Quick-share", () => {
-    expect(src).toContain('"Text"');
-    expect(src).toContain('"PDF"');
-    expect(src).toContain("Quick-share");
+  it("is text-first (renders the answer markdown, no tab bar)", () => {
+    expect(src).toContain("SimpleMarkdown");
+    expect(src).not.toContain('role="tablist"');
   });
 
-  it("has copy button using getCopyLabel", () => {
+  it("has a copy action using getCopyLabel", () => {
     expect(src).toContain("getCopyLabel");
   });
 
-  it("has 'Based on' citation label", () => {
-    expect(src).toContain("Based on");
+  it("has 'Sources' citation label", () => {
+    expect(src).toContain("Sources");
   });
 
-  it("has 'Open PDF' button", () => {
-    expect(src).toContain("Open PDF");
+  it("has a PDF action", () => {
+    expect(src).toContain("handleOpenPdf");
+    expect(src).toContain('"PDF"');
   });
 
-  it("has email action", () => {
-    expect(src).toContain("Email this");
+  it("has an email action", () => {
+    expect(src).toContain("handleEmailSubmit");
   });
 
   it("has 'no email sent' success message", () => {

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter } from "next/font/google";
 import "./globals.css";
-import DraftStrip from "@/components/DraftStrip";
 import AppShell from "@/components/AppShell";
 
 const instrumentSerif = Instrument_Serif({
@@ -33,13 +32,12 @@ export default function RootLayout({
         <meta name="robots" content="noindex" />
       </head>
       <body className="bg-bg text-body font-sans min-h-screen flex flex-col">
-        <DraftStrip />
         <AppShell>
-          <main className="flex-1 pb-20">
+          <main className="flex-1 w-full">
             {children}
           </main>
         </AppShell>
-        <footer className="fixed bottom-16 left-0 right-0 px-4 py-2 text-center text-xs text-muted bg-bg border-t border-[var(--border)] z-10">
+        <footer className="px-4 py-4 text-center text-xs text-muted border-t border-[var(--border)]">
           This is an AI-generated draft that has not been reviewed by a professional. It is educational only and is not tax, legal, or investment advice. US only.
         </footer>
       </body>
