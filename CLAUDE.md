@@ -9,7 +9,7 @@
 3. Only text generation is env-switched: `LLM_PROVIDER=mock|groq|anthropic`.
 4. No database. Vector index = `data/vectors.bin` + `data/chunks.json`. Logs = JSONL / console.
 5. Never render raw-scrape text verbatim. Never quote or closely paraphrase scrape-tier chunks.
-6. Every page: draft strip + disclaimer + `<meta name="robots" content="noindex">`. No NASPP marks.
+6. Every page: disclaimer + `<meta name="robots" content="noindex">`. The site header shows the AUTHORIZED NASPP | Qapita co-brand lockup — official marks in `public/brand/` (naspp.png, qapita.png — both transparent, white knocked out) wired via `components/brand/Logos.tsx`, sitting directly on the dark bar with a separator. NASPP branding/content is NOT otherwise reproduced anywhere else.
 7. Windows dev box: use `tsx`, `node:path`, `fast-glob`; no bash-isms in scripts.
 8. Use `next-mdx-remote/rsc` (NOT @next/mdx). Use `@react-pdf/renderer` (NOT Playwright).
 9. All inputs/textareas fixed 16px (prevents iOS zoom). Tap targets >= 44x44px.
@@ -17,10 +17,10 @@
 
 ## Design tokens (CSS variables, wire into Tailwind)
 ```
---bg #0A0A0B    --surface-1 #121214   --surface-2 #17171A
---border #26262A  --border-strong #33333A
---text-head #F0EEE8  --text-primary #C9C9CF  --text-body #A6A6AD  --text-muted #85858E
---accent #5FAE9E  --accent-solid #2F6A5B  --accent-on #EAF3F0  --accent-line #3E8576
+--bg #0A0A0B    --surface-1 #1A1A1F   --surface-2 #24242B
+--border #3A3A44  --border-strong #55555F
+--text-head #F0EEE8  --text-primary #D4D4DA  --text-body #B6B6BE  --text-muted #9A9AA5
+--accent #5FAE9E  --accent-solid #357A69  --accent-on #EAF3F0  --accent-line #4E9E8C
 --draft #D6A85C  --certified #7FB972  --danger #D97070
 ```
 Fonts: Instrument Serif 400 (headings, never below 20px) + Inter 400/500 (body/UI).

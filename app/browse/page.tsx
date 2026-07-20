@@ -29,7 +29,7 @@ export default function BrowsePage() {
             <Link
               key={p.id}
               href={`/p/${p.slug}`}
-              className="block rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-5 hover:border-[var(--accent)] transition-colors"
+              className="q-card-link block p-5"
               style={{ textDecoration: "none" }}
             >
               <div className="flex items-baseline justify-between gap-3 mb-1">

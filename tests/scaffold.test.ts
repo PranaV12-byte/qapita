@@ -18,18 +18,18 @@ describe("globals.css CSS tokens", () => {
 
   const tokens: [string, string][] = [
     ["--bg", "#0A0A0B"],
-    ["--surface-1", "#121214"],
-    ["--surface-2", "#17171A"],
-    ["--border", "#26262A"],
-    ["--border-strong", "#33333A"],
+    ["--surface-1", "#1A1A1F"],
+    ["--surface-2", "#24242B"],
+    ["--border", "#3A3A44"],
+    ["--border-strong", "#55555F"],
     ["--text-head", "#F0EEE8"],
-    ["--text-primary", "#C9C9CF"],
-    ["--text-body", "#A6A6AD"],
-    ["--text-muted", "#85858E"],
+    ["--text-primary", "#D4D4DA"],
+    ["--text-body", "#B6B6BE"],
+    ["--text-muted", "#9A9AA5"],
     ["--accent", "#5FAE9E"],
-    ["--accent-solid", "#2F6A5B"],
+    ["--accent-solid", "#357A69"],
     ["--accent-on", "#EAF3F0"],
-    ["--accent-line", "#3E8576"],
+    ["--accent-line", "#4E9E8C"],
     ["--draft", "#D6A85C"],
     ["--certified", "#7FB972"],
     ["--danger", "#D97070"],
@@ -140,8 +140,8 @@ describe("Route files exist", () => {
   });
 });
 
-// 8. No NASPP marks
-describe("No NASPP marks", () => {
+// 8. NASPP appears ONLY in the authorized co-brand lockup (CLAUDE.md rule #6)
+describe("NASPP marks confined to the brand lockup", () => {
   function getAllTsxFiles(dir: string): string[] {
     const results: string[] = [];
     if (!fs.existsSync(dir)) return results;
@@ -157,18 +157,25 @@ describe("No NASPP marks", () => {
     return results;
   }
 
-  it("no .tsx files in app/ or components/ contain 'NASPP'", () => {
+  // The one sanctioned location for the NASPP mark.
+  const ALLOWED = path.normalize("components/brand/Logos.tsx");
+
+  it("no .tsx outside components/brand/Logos.tsx contains 'NASPP'", () => {
     const appFiles = getAllTsxFiles(path.join(root, "app"));
     const compFiles = getAllTsxFiles(path.join(root, "components"));
     const allFiles = [...appFiles, ...compFiles];
 
     const hits: string[] = [];
     for (const file of allFiles) {
+      const rel = path.relative(root, file);
+      if (path.normalize(rel) === ALLOWED) continue;
       const content = fs.readFileSync(file, "utf-8");
-      if (content.includes("NASPP")) {
-        hits.push(path.relative(root, file));
-      }
+      if (content.includes("NASPP")) hits.push(rel);
     }
     expect(hits).toEqual([]);
+  });
+
+  it("the brand lockup does carry the NASPP mark", () => {
+    expect(readFile("components/brand/Logos.tsx")).toContain("NASPP");
   });
 });

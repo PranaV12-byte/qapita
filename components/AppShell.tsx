@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import SearchOverlay from "@/components/search/SearchOverlay";
+import { BrandLockup } from "@/components/brand/Logos";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -45,15 +46,9 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <>
       {/* Top bar */}
-      <header className="sticky top-0 z-40 bg-surface-1 border-b border-[var(--border)]">
-        <div className="mx-auto w-full max-w-5xl px-4 md:px-6 h-12 flex items-center">
-          <Link
-            href="/"
-            className="font-serif text-heading text-xl tracking-tight hover:opacity-80 transition-opacity"
-            style={{ textDecoration: "none" }}
-          >
-            Q4N$P
-          </Link>
+      <header className="shrink-0 z-40 bg-surface-1 border-b border-[var(--border)]">
+        <div className="w-full px-4 md:px-6 h-14 flex items-center">
+          <BrandLockup />
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6 ml-auto">
@@ -61,7 +56,7 @@ export default function AppShell({ children }: AppShellProps) {
               type="button"
               onClick={() => setSearchOpen(true)}
               aria-label="Search"
-              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-body)] hover:border-[var(--border-strong)] transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-body)] hover:border-[var(--accent)] transition-colors"
             >
               <svg
                 width="15"
@@ -163,7 +158,7 @@ export default function AppShell({ children }: AppShellProps) {
           />
           <div className="absolute top-0 left-0 bottom-0 w-3/4 max-w-xs bg-surface-1 border-r border-[var(--border)] p-4 flex flex-col">
             <div className="flex items-center mb-4">
-              <span className="font-serif text-heading text-lg">Q4N$P</span>
+              <BrandLockup compact />
               <button
                 type="button"
                 aria-label="Close menu"

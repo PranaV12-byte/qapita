@@ -100,8 +100,8 @@ describe("GenerateClient source contains required strings", () => {
     expect(src).toContain("Please describe what you need help with.");
   });
 
-  it("imports ScenarioChips", () => {
-    expect(src).toContain("ScenarioChips");
+  it("shows the empty-state hero", () => {
+    expect(src).toContain("What can I help you explain?");
   });
 
   it("imports ArtifactResult", () => {

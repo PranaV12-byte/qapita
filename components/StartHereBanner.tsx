@@ -33,7 +33,7 @@ export default function StartHereBanner() {
   };
 
   return (
-    <div className="w-full mb-6 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] px-4 py-3 text-sm">
+    <div className="w-full mb-6 flex items-center gap-3 rounded-xl border border-[var(--border)] border-l-2 border-l-[var(--accent-line)] bg-[var(--surface-1)] px-4 py-3 text-sm">
       <span className="text-[var(--text-body)]">
         New to equity compensation?{" "}
         <Link

@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { getNode } from "@/lib/content/tree";
-import ScenarioChips from "@/components/ScenarioChips";
 import ArtifactResult from "@/components/ArtifactResult";
 import StartHereBanner from "@/components/StartHereBanner";
 import {
@@ -127,12 +126,8 @@ export default function GenerateClient({
 
   const handleSubmit = () => doSubmit(query);
 
-  const handleScenarioSelect = (scenarioId: string, label: string) => {
-    doSubmit(label, scenarioId);
-  };
-
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 flex flex-col min-h-[calc(100vh-8rem)]">
+    <div className="mx-auto w-full max-w-2xl px-4 flex flex-col min-h-full">
       {/* Thread / empty state */}
       {!hasThread ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center py-10">
@@ -141,10 +136,13 @@ export default function GenerateClient({
               <StartHereBanner />
             </div>
           )}
-          <h1 className="font-serif text-heading text-3xl md:text-4xl leading-tight mb-8">
+          <h1 className="font-serif text-heading text-3xl md:text-4xl leading-tight">
             What can I help you explain?
           </h1>
-          <ScenarioChips onSelect={handleScenarioSelect} disabled={loading} />
+          <p className="mt-3 text-[var(--text-muted)]">
+            Ask about any equity-comp topic and I&apos;ll draft a clear,
+            share-ready explanation.
+          </p>
         </div>
       ) : (
         <div className="flex-1 py-8 space-y-8">
@@ -152,7 +150,7 @@ export default function GenerateClient({
             <div key={t.id} className="space-y-4">
               <QuestionBubble text={t.query} />
               {t.result.fallbackUsed && (
-                <div className="p-4 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+                <div className="p-4 rounded-lg border border-[var(--border)] border-l-2 border-l-[var(--accent-line)] bg-[var(--surface-2)]">
                   <p className="text-sm text-[var(--text-body)]">
                     We couldn&apos;t confidently answer that from our library, so
                     here&apos;s the closest curated scenario:{" "}
@@ -198,7 +196,7 @@ export default function GenerateClient({
 
           {/* Error */}
           {error && (
-            <div className="p-6 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]">
+            <div className="p-6 rounded-xl border border-[var(--border)] border-l-2 border-l-[var(--danger)] bg-[var(--surface-2)]">
               {offline ? (
                 <p className="text-sm text-[var(--text-body)]">
                   You appear to be offline. Generating an answer needs a
@@ -229,7 +227,7 @@ export default function GenerateClient({
       )}
 
       {/* Composer (pinned to the bottom of the viewport) */}
-      <div className="sticky bottom-0 bg-bg border-t border-[var(--border)] pt-3 pb-3">
+      <div className="sticky bottom-0 bg-bg pt-2 pb-3">
         {nodeId && nodeTitle && (
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs px-3 py-1 rounded-full border border-[var(--accent)] text-[var(--accent)]">
@@ -251,7 +249,7 @@ export default function GenerateClient({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
-            rows={hasThread ? 1 : 3}
+            rows={1}
             disabled={loading}
             className="w-full bg-transparent text-[var(--text-body)] px-4 pt-4 pb-2 resize-none focus:outline-none placeholder:text-[var(--text-muted)]"
             style={{ fontSize: "16px" }}

@@ -35,7 +35,7 @@ export default function StartHerePage() {
               <Link
                 key={card.slug}
                 href={href}
-                className="block rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-5 hover:border-[var(--accent)] transition-colors"
+                className="q-card-link block p-5"
                 style={{ textDecoration: "none" }}
               >
                 <div className="text-xs text-[var(--text-muted)] mb-2">

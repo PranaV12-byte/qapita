@@ -183,36 +183,6 @@ export default function ArtifactResult({
 
   return (
     <div>
-      {/* Copy — top-right of the answer */}
-      <div className="flex justify-end mb-1">
-        <button
-          onClick={handleCopy}
-          aria-live="polite"
-          className={
-            "inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm transition-colors " +
-            (copied
-              ? "text-[var(--accent)]"
-              : "text-[var(--text-muted)] hover:text-[var(--text-body)]")
-          }
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="9" y="9" width="13" height="13" rx="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
-          {getCopyLabel(copied)}
-        </button>
-      </div>
-
       {/* Answer text — the primary content */}
       <SimpleMarkdown text={bodyMarkdown} />
 
@@ -243,8 +213,32 @@ export default function ArtifactResult({
         </div>
       )}
 
-      {/* Secondary export actions */}
+      {/* Actions — at the bottom of the answer */}
       <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-wrap items-center gap-2">
+        <button
+          onClick={handleCopy}
+          aria-live="polite"
+          className={
+            actionBtn +
+            (copied ? " !text-[var(--accent)] !border-[var(--accent)]" : "")
+          }
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          {getCopyLabel(copied)}
+        </button>
         <button onClick={handleOpenPdf} disabled={pdfLoading} className={actionBtn}>
           <svg
             width="15"

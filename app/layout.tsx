@@ -32,15 +32,15 @@ export default function RootLayout({
       <head>
         <meta name="robots" content="noindex" />
       </head>
-      <body className="bg-bg text-body font-sans min-h-screen flex flex-col">
+      <body className="bg-bg text-body font-sans h-[100dvh] flex flex-col overflow-hidden">
         <LensProvider>
           <AppShell>
-            <main className="flex-1 w-full">
+            <main className="flex-1 w-full min-h-0 overflow-y-auto">
               {children}
             </main>
           </AppShell>
         </LensProvider>
-        <footer className="px-4 py-4 text-center text-xs text-muted border-t border-[var(--border)]">
+        <footer className="shrink-0 px-4 py-3 text-center text-xs text-body bg-surface-1 border-t border-strong">
           This is an AI-generated draft that has not been reviewed by a professional. It is educational only and is not tax, legal, or investment advice. US only.
         </footer>
       </body>

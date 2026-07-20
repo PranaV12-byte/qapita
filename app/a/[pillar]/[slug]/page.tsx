@@ -4,12 +4,10 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import PortalShell from "@/components/portal/PortalShell";
 import Breadcrumb from "@/components/article/Breadcrumb";
-import StatusBadge from "@/components/article/StatusBadge";
 import PlainLanguageCallout from "@/components/article/PlainLanguageCallout";
 import Sources from "@/components/article/Sources";
 import FaqAccordion from "@/components/article/FaqAccordion";
 import RelatedNodes from "@/components/article/RelatedNodes";
-import LensToggle from "@/components/lens/LensToggle";
 import { mdxComponents } from "@/components/mdx/mdxComponents";
 import { ALL_NODES, getPillar } from "@/lib/content/tree";
 import { loadArticle } from "@/lib/content/loader";
@@ -59,10 +57,6 @@ export default async function ArticlePage({
       />
 
       <header className="mb-6">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <StatusBadge status={frontmatter.status} />
-          <LensToggle />
-        </div>
         <h1 className="font-serif text-heading text-3xl leading-tight mb-1">
           {frontmatter.title}
         </h1>
