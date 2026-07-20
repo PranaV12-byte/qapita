@@ -1,0 +1,90 @@
+---
+id: "2.2"
+pillar: 2
+slug: "vesting"
+title: "Vesting"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "Vesting is the process by which an equity award recipient earns irrevocable ownership of shares or options over time, typically conditioned on continued employment. Understanding vesting schedules, cliff periods, acceleration provisions, and the distinction between time-based and performance-based vesting is essential for both plan administrators and participants."
+sources:
+  - label: "IRC § 83(a) — inclusion in gross income"
+  - label: "ASC 718 — Compensation: Stock Compensation"
+  - label: "Treasury Regulation § 1.83-3(b) — substantial risk of forfeiture"
+  - label: "SEC Regulation S-K Item 402 — executive compensation disclosure"
+reviewedBy: null
+faqs:
+  - q: "What is a cliff vesting period and how does it differ from ratable vesting?"
+    a: "Cliff vesting means no shares vest until a specified period has elapsed, at which point all shares (or a large tranche) vest at once. A one-year cliff is standard for US equity grants: nothing vests for the first twelve months, then 25% vests on the one-year anniversary. Ratable vesting (also called pro-rata or graded vesting) means shares vest in equal installments over regular intervals—for example, 1/48th per month for a four-year monthly vesting schedule. Most grants combine both: a one-year cliff followed by monthly or quarterly ratable vesting for the remaining three years."
+  - q: "What does 'double-trigger acceleration' mean?"
+    a: "Double-trigger acceleration requires two separate events to occur for unvested equity to accelerate: (1) a change in control (the first trigger) and (2) an involuntary termination or constructive dismissal within a specified period after the change in control (the second trigger). Single-trigger acceleration vests upon the change in control alone. Double-trigger is far more common because acquirers prefer to retain key employees, and single-trigger acceleration often conflicts with deal negotiations."
+  - q: "How are performance conditions treated differently from time-based vesting for tax purposes?"
+    a: "Under Treasury Regulation § 1.83-3(b), a substantial risk of forfeiture exists when rights to property are conditioned on the future performance of substantial services. Performance conditions that require achieving specific metrics create a substantial risk of forfeiture. For RSAs with performance conditions, income is deferred until the condition is met unless an 83(b) election is filed. For RSUs with performance conditions, delivery—and thus taxation—is deferred until performance is certified, regardless of whether an 83(b) election is available."
+updatedAt: "2026-07-12"
+related: ["2.1", "2.3", "3.2"]
+---
+
+## The purpose of vesting
+
+Vesting schedules serve several functions simultaneously. For the company, vesting creates retention incentives—employees who leave before their shares vest forfeit unvested equity. For tax purposes, vesting (or the lifting of a substantial risk of forfeiture) determines when many equity awards become taxable under IRC § 83. For accounting, the vesting period generally defines the requisite service period over which compensation cost is recognized under ASC 718.
+
+## Time-based vesting schedules
+
+The dominant vesting structure for US equity grants is a four-year schedule with a one-year cliff. Under this structure:
+
+- Nothing vests for the first 12 months of service.
+- On the first anniversary of the grant (or start date, depending on the plan), 25% of the award vests at once—this is the "cliff."
+- The remaining 75% vests ratably over the following three years, typically in monthly or quarterly increments.
+
+Variations are common. Early-stage startups may use three-year or two-year schedules. Public companies sometimes use annual vesting for refresher grants (25% per year with no cliff). Some companies use back-weighted schedules where fewer shares vest in early years and more in later years, to strengthen long-term retention.
+
+### Vesting commencement dates
+
+The vesting schedule ordinarily begins on one of three dates:
+- **Grant date:** Most common. Vesting begins on the date the board approves the award.
+- **Start date (or anniversary date):** Vesting begins on the employee's hire date or most recent service anniversary, regardless of the grant date.
+- **Vesting commencement date:** A specific date specified in the award agreement, sometimes set before the grant date to credit prior service.
+
+Administrators should note that the grant date and vesting commencement date can be different, and the plan document should specify which triggers the cliff and each subsequent vesting date.
+
+## Performance-based vesting
+
+Performance share units (PSUs) and many restricted stock awards vest based on achievement of performance metrics rather than (or in addition to) time. Common performance metrics include:
+
+- **Relative total shareholder return (rTSR):** Performance measured against a peer group or index. If the company's stock outperforms 75% of the peer group, employees might receive 150% of the target award.
+- **Revenue or EPS growth:** Absolute or relative financial targets over a 1–3 year performance period.
+- **Operational metrics:** Customer growth, product milestones, or other non-financial targets.
+
+Performance awards typically have a target number of shares (100%) and a payout range (0%–200%, for example). The actual number of shares that vest depends on measured performance against the target at the end of the performance period.
+
+### Certification and settlement
+
+Vesting of performance awards does not occur automatically at period end. The Compensation Committee or board must formally certify achievement of the performance metrics and determine the payout multiplier. This certification step is legally required to establish when the forfeiture restriction lapses and the award vests for tax and accounting purposes.
+
+## Acceleration provisions
+
+Award agreements frequently include provisions that accelerate vesting under specified circumstances:
+
+### Single-trigger acceleration
+All unvested equity vests upon a change in control, regardless of what happens to the employee. Single-trigger is rare in current practice because acquiring companies typically want unvested equity to retain employees post-deal.
+
+### Double-trigger acceleration
+The most common structure: a portion of unvested equity accelerates only if a change in control occurs AND the employee is involuntarily terminated (or resigns for "good reason") within a specified post-close period, often 12–24 months. This protects employees from losing unvested equity due to a deal while preserving the acquirer's ability to use equity as a retention tool.
+
+### Disability and death acceleration
+Plans commonly accelerate vesting—partially or fully—upon the death or permanent disability of the participant. The definition of "disability" in the plan document controls; administrators should reference it precisely rather than relying on informal characterizations.
+
+## Tracking vesting and maintaining accurate records
+
+For each grant, the plan administration system must record:
+- Award type, grant date, vesting commencement date
+- Full vesting schedule (cliff date, monthly/quarterly increment amounts, full vest date)
+- Any acceleration provisions applicable to the grant
+- Termination date, if applicable, and the resulting accelerated or forfeited tranche split
+
+Errors in vesting records can lead to tax withholding mistakes (vesting at wrong amounts on wrong dates), incorrect ASC 718 expense recognition, and disputes with employees who believe they vested more than they did. Periodic reconciliation of the plan administration system against the ledger is a critical control.
+
+## Early exercise and 83(b) elections
+
+Some option plans allow "early exercise"—exercising unvested stock options before they vest. Early-exercised shares are typically restricted: the company holds a repurchase right over unvested shares at the original exercise price, which lapses as the underlying vesting schedule is satisfied.
+
+Early exercise combined with an IRC § 83(b) election allows option holders (most commonly founders) to start the long-term capital gains clock at the time of exercise. The 83(b) election must be filed with the IRS within 30 days of the exercise date. The income recognized at the 83(b) election is the spread at exercise—which for early-exercise of options shortly after grant is often zero or very small if the exercise price equals FMV.

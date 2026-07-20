@@ -1,0 +1,72 @@
+---
+id: "1.3"
+pillar: 1
+slug: "rsus-rsas"
+title: "RSUs & RSAs"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "Restricted stock units (RSUs) are unfunded promises to deliver shares upon vesting, while restricted stock awards (RSAs) are actual share transfers subject to forfeiture conditions. RSUs are the dominant award type for public companies because they require no purchase price, no Section 409A complexity at grant, and trigger income only when shares are actually delivered."
+sources:
+  - label: "IRC § 83 — Property transferred in connection with performance of services"
+  - label: "Treasury Regulation § 1.83-3 — Meaning of terms"
+  - label: "IRC § 83(b) — Election to include in gross income in year of transfer"
+  - label: "SEC Form 4 — Statement of changes in beneficial ownership"
+reviewedBy: null
+faqs:
+  - q: "Why do most public companies grant RSUs instead of RSAs?"
+    a: "RSUs are unfunded promises—no shares are transferred until vesting—so recipients have no taxable event at grant and no purchase price to pay. RSAs transfer shares immediately, which creates a taxable event at grant unless an 83(b) election is filed. RSUs sidestep 409A concerns at grant (because there is no option exercise price), avoid Section 162(m) complications more cleanly, and simplify administration because no 83(b) election is needed. For private companies, RSAs with low FMV at grant can be advantageous if employees can file an 83(b) to lock in a low-cost basis."
+  - q: "What happens to unvested RSUs when I leave the company?"
+    a: "Unvested RSUs are forfeited upon termination unless the plan or award agreement provides otherwise. Some plans include accelerated vesting provisions for death, disability, or change in control, and some employment agreements negotiate partial acceleration on involuntary termination. The administrator should review both the plan document and the award agreement to determine the applicable vesting schedule and any acceleration provisions before processing a termination."
+  - q: "Can RSUs be paid in cash instead of shares?"
+    a: "Yes. RSUs can be settled in shares, cash equal to the FMV of shares, or a combination. Cash-settled RSUs are classified as liability awards under ASC 718 and must be remeasured at each reporting date, which creates ongoing mark-to-market accounting. Share-settled RSUs are equity-classified and measured once at grant date. Cash-settled RSUs are far less common for publicly traded companies because of this accounting complexity."
+updatedAt: "2026-07-12"
+related: ["2.2", "3.2", "3.3"]
+---
+
+## RSUs versus RSAs: the core distinction
+
+The terms "restricted stock unit" and "restricted stock award" are frequently confused, but they describe fundamentally different instruments.
+
+A **restricted stock award (RSA)** is an actual transfer of shares at the time of grant. The shares are "restricted" because they are subject to a vesting schedule: unvested shares remain subject to forfeiture if the recipient leaves before satisfying the conditions. The recipient owns the shares immediately upon grant and has all shareholder rights—including voting and dividends—from day one, but those rights are contingent on remaining employed through the vesting period.
+
+A **restricted stock unit (RSU)** is not a share—it is a contractual promise to deliver shares (or cash) at a future date, contingent on the recipient remaining employed through the vesting period. Until vesting, the recipient is an unsecured creditor of the company and has no shareholder rights. The RSU converts into actual shares only when the vesting condition is satisfied and shares are delivered.
+
+## Tax treatment at grant
+
+**RSAs:** Because RSAs involve an actual transfer of property, IRC § 83 applies immediately at grant. The excess of FMV over any purchase price paid is ordinary income in the year the property becomes substantially vested. If the stock is subject to a vesting schedule, the ordinary income is ordinarily recognized each year as installments vest.
+
+However, the recipient can elect under IRC § 83(b) to include the full excess of FMV over purchase price in income at grant rather than as the property vests. This election must be filed with the IRS within 30 days of the grant date—no extensions are permitted. If FMV at grant is very low (as with early-stage private company stock), an 83(b) election can lock in a low income inclusion and start the long-term capital gain clock running immediately.
+
+**RSUs:** RSUs are not taxable at grant because they are unfunded, unsecured promises. There is nothing of present value to tax. Under the economic benefit doctrine, taxation does not occur until the RSU delivers actual property with ascertainable value.
+
+## Tax treatment at vesting and delivery
+
+For RSUs, the taxable event is delivery of shares—typically the date the vesting condition is satisfied and shares are transferred to the participant's brokerage account. At that moment, the FMV of the shares delivered is ordinary compensation income, subject to federal income tax withholding and FICA taxes.
+
+For RSAs (where no 83(b) was filed), each vesting tranche triggers ordinary income equal to the FMV of the shares on the vesting date, less any purchase price paid. The employer withholds taxes on each vesting event.
+
+## Withholding mechanics for RSUs
+
+When RSU shares vest and are delivered, the employer must satisfy its withholding obligation. The predominant method for public company RSUs is:
+
+**Net share withholding (sell-to-cover):** On the vesting date, the plan administrator instructs the broker to withhold a number of shares equal in value to the tax withholding amount. The company reacquires those shares at FMV and uses the proceeds to pay the tax. The participant receives the remaining net shares in their brokerage account.
+
+Supplemental withholding rates apply to RSU income: 22% federal for amounts up to $1 million in the year and 37% for amounts over $1 million. State withholding varies by jurisdiction. Employees whose effective marginal rate exceeds the supplemental rate will owe additional tax at filing and should be advised to increase estimated tax payments or W-4 withholding.
+
+## Double-trigger RSUs at private companies
+
+Private companies commonly grant RSUs with a double-trigger vesting structure. A double-trigger RSU requires two conditions to be satisfied before shares are delivered: (1) time-based vesting (the employee remains employed through the schedule), and (2) a liquidity event (the company completes an IPO, direct listing, or acquisition).
+
+This structure is used because RSU delivery at a private company would force employees to pay income tax on illiquid shares—shares they cannot sell to fund the tax. By adding a liquidity trigger, delivery is deferred until a market exists for the shares.
+
+Without the liquidity trigger, RSUs at private companies would violate Section 409A if structured as standard RSUs. The liquidity event is one of the permissible payment triggers under Section 409A, making the double-trigger structure compliant. When the company goes public, the previously unvested time-based tranche and the newly satisfied liquidity trigger both fire, and employees may face a large income recognition event as years of accumulated RSUs deliver simultaneously.
+
+## RSA mechanics for early-stage companies
+
+RSAs are common at early-stage companies and for founder stock. The structure involves purchasing shares (often at par value or a low price reflecting early-stage FMV) subject to a vesting schedule that gives the company repurchase rights over unvested shares at the original purchase price.
+
+The 83(b) election is almost always advisable for founders receiving RSAs at a very low FMV, because it converts future appreciation from ordinary income into capital gain. The 30-day filing window is strict and is frequently missed by founders who do not have legal counsel at the moment of grant. Administrators should build a reminder into the grant workflow whenever RSAs are issued.
+
+## Dividend equivalents on RSUs
+
+Because RSU holders are not shareholders, they do not receive actual dividends on unvested units. However, plan documents may provide for "dividend equivalents"—additional units or cash credits that accumulate based on dividends declared on the underlying shares. These credits are typically paid or settled at the same time as the underlying units vest. Dividend equivalents can constitute deferred compensation under Section 409A if not structured carefully.

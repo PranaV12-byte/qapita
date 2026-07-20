@@ -1,0 +1,87 @@
+---
+id: "3.1"
+pillar: 3
+slug: "option-taxation"
+title: "Option taxation (ISO/NSO, AMT)"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "Stock options are taxed differently depending on whether they are ISOs or NSOs. NSOs generate ordinary income and payroll taxes at exercise, with any post-exercise gain taxed as capital gain. ISOs generate no ordinary income at exercise for regular tax purposes, but the exercise spread is an AMT preference item that can create significant alternative minimum tax liability."
+sources:
+  - label: "IRC § 422 — Incentive stock options"
+  - label: "IRC § 83 — Property transferred in connection with performance of services"
+  - label: "IRC § 55 — Alternative minimum tax imposed"
+  - label: "IRC § 56(b)(3) — Incentive stock options (AMT)"
+  - label: "IRC § 53 — Credit for prior year minimum tax liability"
+reviewedBy: null
+faqs:
+  - q: "What is the AMT and when does it apply to ISO exercises?"
+    a: "The alternative minimum tax (AMT) is a parallel tax system designed to ensure that taxpayers with large deductions or preference items pay at least a minimum amount of tax. When an employee exercises an ISO and holds the shares past December 31 of the exercise year, the spread at exercise (FMV minus exercise price) is added to alternative minimum taxable income (AMTI) as a preference item under IRC § 56(b)(3). If the resulting tentative minimum tax under IRC § 55 exceeds the regular tax, the employee owes AMT for that year."
+  - q: "Is there any way to recover AMT paid on ISO exercises?"
+    a: "Yes. AMT paid because of ISO exercises generates a minimum tax credit (MTC) under IRC § 53. This credit can be used to reduce regular tax in future years when regular tax exceeds the tentative minimum tax. The credit is 'dollar for dollar' against regular tax but cannot create a refund. If the ISO shares are later sold in a qualifying disposition, the regular tax on that gain typically exceeds the tentative minimum tax, allowing the MTC to be applied. In years when significant AMT was paid and the stock has declined substantially, recovery of the credit can take many years."
+  - q: "If I exercise NSOs, what taxes do I owe?"
+    a: "The spread at NSO exercise (FMV on exercise date minus exercise price) is ordinary income subject to federal income tax at your marginal rate, Social Security tax (up to the annual wage base), and Medicare tax (1.45% on all wages, plus an additional 0.9% on wages over $200,000 for single filers). Your employer must withhold on this income and remit withholding taxes. Any gain or loss after the exercise date is capital gain or loss based on how long you hold the shares from the exercise date."
+updatedAt: "2026-07-12"
+related: ["1.1", "1.2", "3.3"]
+---
+
+## The two option types and their tax frameworks
+
+Stock options granted in employment contexts are either incentive stock options (ISOs), governed by IRC § 422, or non-qualified stock options (NSOs), governed by the general principles of IRC § 83. The fundamental distinction is when and how the option spread is taxed:
+
+- **NSOs:** Spread is ordinary income at exercise. Subject to income tax, Social Security, and Medicare. Company gets a deduction. Straightforward.
+- **ISOs:** No ordinary income at exercise (for regular tax purposes). Instead, the spread is an AMT preference item. If you hold qualifying-disposition requirements, the entire gain from exercise price to sale price is long-term capital gain.
+
+## NSO taxation in detail
+
+### At grant
+No taxable event. NSOs without a readily ascertainable FMV (the vast majority) are not taxable when granted.
+
+### At exercise
+The spread—FMV on the exercise date minus the exercise price—is ordinary compensation income. If the spread is $50 per share and you exercise 1,000 shares, you have $50,000 of ordinary income. This appears on your W-2 and is subject to:
+- Federal income tax at your marginal rate (up to 37% in 2024–2025)
+- Social Security tax at 6.2% on wages up to the Social Security wage base ($168,600 in 2024)
+- Medicare at 1.45% (plus an additional 0.9% if total wages exceed $200,000 for single filers, or $250,000 for married filing jointly)
+
+Your employer must withhold supplemental income tax (22% flat for most employees; 37% for wages above $1 million in the year).
+
+### After exercise
+Your cost basis in the shares is the FMV on the exercise date. Gain or loss from that basis to the eventual sale price is capital gain or loss. Holding the shares for more than 12 months from exercise generates long-term capital gain; selling within 12 months is short-term gain at ordinary rates.
+
+## ISO taxation in detail
+
+### At grant
+No taxable event. Same as NSOs.
+
+### At exercise—regular tax
+Under IRC § 422, no ordinary income is recognized when an ISO is exercised. The option holder receives shares without any W-2 income. The employer does not withhold FICA or income tax.
+
+### At exercise—AMT
+Under IRC § 56(b)(3), the ISO spread is an adjustment to alternative minimum taxable income. The spread increases your AMTI, and the AMT is calculated on AMTI after the AMT exemption. For 2024, the AMT exemption is $85,700 for single filers and $133,300 for married filing jointly, phasing out at higher AMTI levels.
+
+If your tentative minimum tax (AMTI × 26% up to $220,700; 28% above) exceeds your regular tax, you owe the difference as AMT. Large ISO spreads in high-valuation years can generate substantial AMT bills even before the employee has sold any shares—creating a situation where taxes are owed on paper gains.
+
+### Qualifying disposition
+If you hold ISO shares for more than two years from the grant date AND more than one year from the exercise date, any sale is a qualifying disposition. The entire gain from exercise price to sale price is long-term capital gain. There is no ordinary income. The employer does not report a W-2 inclusion (although Form 3921 must still be filed).
+
+### Disqualifying disposition
+If you sell ISO shares before meeting both holding periods, the ordinary income component equals the lesser of:
+- The spread at exercise (FMV at exercise minus exercise price), or
+- The actual gain realized (sale price minus exercise price)
+
+This ordinary income is reported on your W-2 in the year of sale (not the year of exercise), and all remaining gain is capital gain.
+
+## The AMT credit
+
+AMT paid because of ISO adjustments—not because of other AMT preference items—generates a minimum tax credit (MTC) under IRC § 53. The credit carryforward reduces regular tax in future years when regular tax exceeds the tentative minimum tax.
+
+**Example:** An employee pays $20,000 of AMT in Year 1 due to an ISO exercise. In Year 2, her regular tax liability is $35,000 and her tentative minimum tax is $10,000. She can apply $25,000 of MTC (the excess of regular over tentative minimum tax) to reduce her Year 2 regular tax from $35,000 to $10,000. The remaining MTC carries to Year 3 and beyond.
+
+## Planning strategies for ISO exercises
+
+**Exercise early in the year.** If you plan to hold for a qualifying disposition, exercising in January gives you the full year to decide whether to sell before December 31 without creating a disqualifying disposition in the exercise year.
+
+**Model AMT before exercising.** Use the current year's AMT exemption and phaseout thresholds to estimate whether an exercise will trigger AMT. Factors include your W-2 income, deductions, and the size of the ISO spread.
+
+**Consider a partial same-year sale.** If the AMT bill would be unmanageable, selling some ISO shares before December 31 of the exercise year creates a disqualifying disposition on those shares (eliminating their AMT preference) while preserving the qualifying-disposition path for the remaining shares.
+
+**Track cost basis for both regular tax and AMT.** For AMT purposes, the cost basis of ISO shares is the FMV at exercise (not the exercise price), because the spread was already included in AMTI. Keeping two sets of records avoids double-taxation when the shares are eventually sold.

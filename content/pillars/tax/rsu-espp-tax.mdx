@@ -1,0 +1,107 @@
+---
+id: "3.2"
+pillar: 3
+slug: "rsu-espp-tax"
+title: "RSU & ESPP tax"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "RSUs create ordinary income at vesting equal to the FMV of shares delivered, subject to income tax withholding and FICA. ESPPs create a more complex tax picture: qualifying dispositions split gain between ordinary income and capital gain, while disqualifying dispositions convert the purchase discount to ordinary income. Administrators must understand both to process withholding correctly and generate accurate W-2 and 1099 reporting."
+sources:
+  - label: "IRC § 83(a) — Property transferred in connection with performance of services"
+  - label: "IRC § 423 — Employee stock purchase plans"
+  - label: "IRS Publication 525 — Taxable and Nontaxable Income"
+  - label: "IRS Form W-2 Instructions — Box 12 code V"
+  - label: "IRS Form 3922 — Transfer of Stock Acquired Through an Employee Stock Purchase Plan"
+reviewedBy: null
+faqs:
+  - q: "How is the tax withheld when RSUs vest?"
+    a: "The most common method is net share withholding (also called 'sell-to-cover'). On the vesting date, the plan administrator instructs the broker to withhold enough shares to cover the tax liability and remit the proceeds to the employer. The participant receives the remaining net shares. The withheld shares are reacquired by the company at FMV, and the company uses those proceeds to pay the IRS. Alternatively, some employers allow participants to pay withholding in cash, or use a same-day sale (selling all shares, with tax taken from proceeds)."
+  - q: "When does ESPP income show up on my W-2?"
+    a: "For qualifying ESPP dispositions, ordinary income appears on the W-2 in the year of sale, not the year of purchase. The company learns of the sale from the broker through participant notifications or Form 1099-B data matching. For disqualifying dispositions, the ordinary income (the spread at purchase) is also reported in the year of sale. Administrators should build a process for participants to notify the company of ESPP sales so W-2 adjustments can be made accurately."
+  - q: "Do RSU withholding rates match the employee's actual tax rate?"
+    a: "Not necessarily. RSU income is typically withheld at the federal supplemental rate—22% for income up to $1 million in the year, 37% above $1 million. An employee whose marginal rate is 32% will have insufficient withholding and may owe a balance at filing. Employers can offer supplemental withholding elections to help employees match withholding to their actual rate, and the IRS permits withholding at actual rates if both employer and employee agree."
+updatedAt: "2026-07-12"
+related: ["1.3", "1.4", "3.4"]
+---
+
+## RSU taxation: timing and mechanics
+
+Restricted stock units generate ordinary income when shares are delivered to the participant—in most cases, the vesting date. At the moment of delivery, the full fair market value of shares delivered is compensation income under IRC § 83(a), included in gross income in the year of delivery.
+
+### The vesting taxable event
+
+When RSU shares vest, the administrator must:
+1. Determine the FMV of the shares on the vesting date (closing market price for public company shares).
+2. Calculate the withholding obligation: FMV × number of shares vesting × applicable withholding rates.
+3. Execute the chosen withholding method (typically net share withholding).
+4. Report the income through payroll.
+
+The income recognized equals the number of shares vesting multiplied by the FMV on the vesting date. This amount is subject to:
+- **Federal income tax withholding:** 22% supplemental rate on amounts up to $1 million in the year; 37% above.
+- **Social Security tax:** 6.2% on wages up to the annual wage base.
+- **Medicare tax:** 1.45% on all wages, plus 0.9% additional Medicare tax on wages exceeding $200,000 for single filers.
+- **State income tax:** Varies by state. Multi-state employees may owe tax in multiple states based on where they worked during the vesting period.
+
+### W-2 reporting
+
+RSU income is included in Box 1 (Total Wages) and Box 3 and Box 5 (Social Security and Medicare wages) of Form W-2. The value of RSUs (gross income before tax withholding) must also be reported in Box 12 with Code V (for restricted stock, the gross income from RSU delivery).
+
+## Net share withholding in practice
+
+Net share withholding is the dominant RSU withholding method for public companies. Here is how the transaction flows:
+
+1. On the vesting date, the plan administration system identifies the vesting grant and calculates the tax withholding amount.
+2. The administrator instructs the custodian broker to withhold X shares (where X = withholding amount / FMV per share, rounded up).
+3. The broker reacquires those shares at the current market price.
+4. The broker remits the proceeds to the employer (or to the IRS via the employer's payroll tax account).
+5. The remaining shares are delivered to the participant's brokerage account.
+
+The participant receives a net share quantity. From the participant's perspective, they see shares appear in their account on vest date, with a cost basis equal to the FMV on that date (because the ordinary income has already been recognized on that day).
+
+## Post-vesting capital gain
+
+After shares are delivered at vesting, the participant's basis is the FMV on the delivery date. Any appreciation or depreciation from that point is capital gain or loss:
+- If held more than 12 months from delivery, long-term capital gain rates apply (0%, 15%, or 20% depending on taxable income).
+- If sold within 12 months, short-term gain at ordinary income rates.
+- If shares decline in value after vesting, the participant has a capital loss—but cannot recover the income taxes already paid on the vesting-date FMV.
+
+## ESPP taxation: qualifying versus disqualifying dispositions
+
+ESPP tax treatment splits into two regimes depending on whether the participant meets both statutory holding periods:
+- More than **2 years** from the first day of the offering period (the "offering date"), AND
+- More than **1 year** from the purchase date.
+
+### Qualifying disposition
+
+When both holding periods are satisfied, the tax treatment is favorable:
+
+**Ordinary income:** The lesser of:
+(a) The actual discount from the offering-date price: (Offering-date FMV − Purchase price) × shares sold, or
+(b) Total gain realized: (Sale price − Purchase price) × shares sold.
+
+**Long-term capital gain:** Any remaining gain above the ordinary income component.
+
+**Example:** Offering date FMV $20, purchase price $17 (85% × $20), sale price $35 two years later.
+- Ordinary income = lesser of ($20 − $17) × shares or ($35 − $17) × shares = $3/share ordinary income.
+- Long-term capital gain = ($35 − $20) × shares = $15/share.
+- W-2 reporting in the year of sale.
+
+### Disqualifying disposition
+
+When shares are sold before satisfying either holding period (typically an immediate-sale after purchase):
+
+**Ordinary income:** The spread at purchase = (FMV on purchase date − Purchase price) × shares sold. This is regardless of whether the shares are sold at a loss afterward.
+
+**Capital gain or loss:** Sale price minus FMV on purchase date. Short-term if held less than 12 months from purchase; long-term if held more than 12 months.
+
+**Example:** Offering date FMV $20, purchase date FMV $28, purchase price $17 (85% × $20), same-day sale at $28.
+- Ordinary income = ($28 − $17) × shares = $11/share.
+- Capital gain = $0 (sold at purchase-date FMV).
+
+### W-2 and withholding for ESPP
+
+Unlike RSU vesting, ESPP purchases themselves do not trigger withholding—participants purchase shares using after-tax payroll deductions. The withholding obligation arises only when a disqualifying disposition is reported:
+- If a disqualifying disposition occurs, the ordinary income element must be reported on the participant's W-2. Some administrators handle this through a supplemental payroll run in the year the disqualifying disposition is reported.
+- Qualifying disposition ordinary income is also reported on W-2 in the year of sale but typically without withholding.
+
+The Form 3922 (filed by the company in the year of purchase) provides participants with the data needed to correctly compute their tax at the time of sale: offering date, purchase date, offering-date FMV, purchase-date FMV, and purchase price.

@@ -1,0 +1,100 @@
+---
+id: "3.3"
+pillar: 3
+slug: "cap-gains-83b"
+title: "Capital gains, holding periods & 83(b)"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "Capital gains on equity compensation are taxed at preferential rates if shares are held long enough—more than 12 months generally qualifies for long-term rates, but ISO qualifying dispositions add a second 2-year holding period from grant. The Section 83(b) election allows recipients of restricted property to elect immediate ordinary income recognition in exchange for starting the long-term capital gains clock at grant."
+sources:
+  - label: "IRC § 1(h) — Maximum capital gains rate"
+  - label: "IRC § 1222 — Other terms relating to capital gains and losses"
+  - label: "IRC § 83(b) — Election to include in gross income in year of transfer"
+  - label: "Treasury Regulation § 1.83-2 — Election to include in gross income in year of transfer"
+  - label: "Rev. Proc. 2012-29 — Section 83(b) election safe harbor"
+reviewedBy: null
+faqs:
+  - q: "What is the 30-day window for filing an 83(b) election, and is it strictly enforced?"
+    a: "Yes, the 30-day window is a hard statutory deadline under IRC § 83(b). The election must be filed with the IRS no later than 30 days after the date property was transferred. There is no mechanism for late filing, no exception for reasonable cause, and no extension. Courts and the IRS have consistently enforced this deadline strictly. Missing the 30-day window permanently forecloses the 83(b) election for that grant, and the recipient must recognize income as property vests rather than at the time of transfer."
+  - q: "How does the holding period work for capital gains on RSU shares?"
+    a: "For shares received at RSU vesting, the holding period for capital gains purposes begins on the date shares are delivered—the vesting date. Shares sold within 12 months of delivery generate short-term capital gain taxed at ordinary rates. Shares sold after more than 12 months generate long-term capital gain taxed at preferential rates (0%, 15%, or 20% based on taxable income). There is no connection between the RSU grant date and the holding period."
+  - q: "When should someone consider filing an 83(b) election?"
+    a: "An 83(b) election makes sense when three conditions are present: (1) the current FMV of the property is low relative to its expected future value, (2) the excess of FMV over the purchase price (if any) is small enough that the immediate income inclusion is manageable, and (3) the recipient expects significant appreciation. Founders receiving restricted stock at incorporation, employees exercising stock options early at low spreads, and key hires joining an early-stage company at low FMV are the most common candidates. The election is rarely beneficial for vesting RSUs at public companies because shares have full market value on vest."
+updatedAt: "2026-07-12"
+related: ["1.1", "1.3", "3.1"]
+---
+
+## Capital gains: the basic framework
+
+Capital gains on equity compensation arise when an employee sells shares for more than their cost basis. The federal tax rates depend on how long the taxpayer held the shares:
+
+**Short-term capital gain:** Shares held for 12 months or less from the date of acquisition. Taxed at the taxpayer's ordinary income rates (up to 37% in 2024).
+
+**Long-term capital gain:** Shares held for more than 12 months. Taxed at preferential rates:
+- 0% for taxable income up to approximately $47,025 (single) / $94,050 (MFJ) in 2024.
+- 15% for most taxpayers above those thresholds.
+- 20% for high-income taxpayers (income above approximately $518,900 single / $583,750 MFJ in 2024).
+- The 3.8% net investment income tax (NIIT) under IRC § 1411 applies to capital gains of taxpayers with modified adjusted gross income above $200,000 (single) / $250,000 (MFJ), effectively raising the top rate to 23.8%.
+
+## Holding period rules by award type
+
+**NSO shares:** The holding period begins on the exercise date. Shares sold within 12 months of exercise generate short-term capital gain; after 12 months, long-term.
+
+**ISO shares — qualifying disposition:** The holding period begins on the exercise date for the one-year test, but the grant date also applies for the two-year test. Both must be satisfied. If both are met, the entire gain (sale price minus exercise price) is long-term capital gain.
+
+**ISO shares — disqualifying disposition:** The holding period for the capital gain component begins on the exercise date. The ordinary income component (lesser of spread at exercise or total gain) is not subject to capital gains rates.
+
+**RSU shares:** The holding period begins on the delivery date (the date the shares are released into the participant's account at vesting). There is no connection to the grant date.
+
+**RSA shares (no 83(b) election):** The holding period begins on the vesting date for each tranche. The cost basis for each tranche is the FMV on the date that tranche vested.
+
+**RSA shares (83(b) election filed):** The holding period begins on the transfer date (grant date). The cost basis is the amount of income recognized under the 83(b) election, plus any purchase price paid.
+
+## The Section 83(b) election
+
+Under IRC § 83(b), a recipient of property subject to a substantial risk of forfeiture may elect to include the value of that property in income immediately at the time of transfer, rather than waiting until the property vests. Filing this election converts future appreciation from ordinary income into capital gain and starts the long-term holding period clock at the transfer date.
+
+### What the election covers
+The 83(b) election is available for restricted property—most commonly:
+- Restricted stock awards (RSAs) purchased at or below FMV
+- Shares acquired through early exercise of stock options (before vesting)
+- Founders' stock subject to repurchase rights
+
+The election is **not** available for RSUs, because RSUs are not transfers of property—they are unfunded promises. The underlying property (shares) is not transferred until vesting, at which point the 83(b) window has not yet begun.
+
+### How to file
+
+Under Treasury Regulation § 1.83-2 and the safe harbor in Rev. Proc. 2012-29, the election must include:
+- The name, address, and taxpayer identification number of the taxpayer
+- A description of the property transferred
+- The date of transfer and the taxable year for which the election is made
+- The nature of any restrictions on the property
+- The FMV of the property at the time of transfer, determined without regard to restrictions other than those that will never lapse
+- The amount paid for the property
+- A statement that copies have been provided to the employer
+
+The election must be filed with the IRS service center where the taxpayer files their return, postmarked or submitted no later than 30 days after the transfer date. A copy must be attached to the taxpayer's return for the year of transfer. A copy must also be provided to the employer.
+
+### Tax consequences
+
+If an 83(b) election is filed:
+- The excess of FMV over purchase price is ordinary income in the year of transfer.
+- The holding period begins on the transfer date.
+- All future appreciation is capital gain (short-term or long-term depending on how long shares are held from transfer).
+- If the property is subsequently forfeited (e.g., the employee leaves before vesting), the forfeiture loss is a capital loss limited to the purchase price—the ordinary income recognized at the time of election is not recoverable.
+
+### When the election makes sense
+
+The 83(b) election is most valuable when:
+1. The FMV at grant equals or closely approximates the purchase price, so the ordinary income recognized at election is minimal (ideally zero).
+2. The stock is expected to appreciate significantly over the vesting period.
+3. The recipient will hold shares long enough to qualify for long-term capital gain treatment from the grant date.
+
+For a founder receiving shares at par value ($0.0001 per share) at incorporation, an 83(b) election generates zero ordinary income and starts the long-term capital gain clock immediately. Years later, when the company is worth significantly more, all appreciation from the founding date is long-term capital gain.
+
+### When the election does NOT make sense
+
+- When FMV significantly exceeds the purchase price and would generate a large immediate tax bill.
+- When the stock is unlikely to appreciate (or may decline).
+- When the recipient cannot hold the stock long enough to benefit from long-term rates.
+- For RSU holders, who are ineligible to file the election.

@@ -1,0 +1,88 @@
+---
+id: "6.1"
+pillar: 6
+slug: "design-pool-sizing"
+title: "Plan design & share pool sizing"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "Designing an equity incentive plan requires balancing competitive grant levels against dilution to existing stockholders. The initial share reserve must be large enough to fund near-term grants but not so large that it generates adverse proxy advisory votes. Key decisions include pool size, evergreen provisions, award mix, per-person limits, and ISO sub-limits."
+sources:
+  - label: "IRC § 422(b)(1) — Stockholder approval requirement for ISOs"
+  - label: "SEC Regulation S-K Item 201(d) — Securities authorized for issuance under equity compensation plans"
+  - label: "ISS Equity Plan Scorecard (EPSC) methodology"
+  - label: "NYSE Listed Company Manual § 303A.08 — Shareholder approval of equity compensation plans"
+  - label: "NASDAQ Listing Rule 5635(c) — Equity compensation plans"
+reviewedBy: null
+faqs:
+  - q: "How large should the initial share reserve be for an equity incentive plan?"
+    a: "Most equity incentive plans for early-stage companies are sized to cover approximately 10–15% of fully diluted shares outstanding at the time of adoption, with the expectation of annual refreshes. For pre-IPO companies, the pool is commonly set at a level that allows for 12–24 months of anticipated grants based on the hiring plan. Proxy advisors evaluate post-IPO plan sizes based on a combination of share pool (as a percentage of fully diluted shares), three-year burn rate, and plan cost as a percentage of market cap—all of which ISS evaluates through its Equity Plan Scorecard."
+  - q: "What is an evergreen provision?"
+    a: "An evergreen provision (also called an 'automatic share replenishment' clause) automatically increases the plan's share reserve each year by a specified amount—typically a fixed number of shares or a percentage of shares outstanding. Common evergreen provisions add 4–5% of total shares outstanding annually. Evergreen provisions reduce the administrative burden of seeking stockholder approval every few years but draw proxy advisor scrutiny if they are large or open-ended. ISS often scores plans with large evergreens negatively absent offsetting factors."
+  - q: "What is the ISO sub-limit and why does it matter?"
+    a: "ISO rules under IRC § 422 require that the plan specify the aggregate number of shares that may be issued as ISOs. Most plans include a dedicated ISO sub-limit equal to the entire plan reserve (all shares are ISO-eligible) or a specific number. If a company wishes to use ISOs strategically, the ISO sub-limit must be large enough to accommodate anticipated grants. Some companies set the ISO sub-limit to a lower number when the company is predominantly granting RSUs and does not expect heavy ISO usage."
+updatedAt: "2026-07-12"
+related: ["6.2", "6.3", "6.5"]
+---
+
+## The anatomy of an equity incentive plan
+
+An equity incentive plan (EIP) is the legal document that authorizes the company to grant equity awards to employees, directors, and consultants. For public companies, it is approved by stockholders and governs all grants until it expires or is replaced. The plan document specifies the pool of shares available, who can receive grants, what types of awards can be granted, the maximum award per person, and the administrative and governance framework.
+
+The core design decisions for a plan are:
+1. **Share pool size:** How many shares are authorized for issuance?
+2. **Award types:** Which award types are permitted (options, RSUs, RSAs, SARs, PSUs)?
+3. **Per-person limits:** Maximum shares that can be granted to any one person in a year?
+4. **ISO sub-limit:** How many shares are eligible for ISO treatment?
+5. **Evergreen provision:** Does the pool automatically refresh each year?
+6. **Fungibility:** Do different award types consume shares at the same rate?
+7. **Recapture provisions:** Are shares returned to the pool when awards are forfeited, expire, or are cancelled?
+
+## Share pool sizing at IPO
+
+Companies going public typically size their equity plan reserve based on several inputs:
+
+**Competitive benchmarking:** What do companies at a comparable stage in the same industry typically authorize as a percentage of fully diluted shares? For technology companies, 10–12% of fully diluted shares at IPO is a common starting point.
+
+**Hiring plan:** How many shares will the company need to recruit and retain employees over the next 12–24 months? The CFO and HR team typically model expected grant activity by level and department.
+
+**Proxy advisor guidelines:** ISS and Glass Lewis use quantitative models to evaluate whether a plan has "excessive" potential dilution. ISS's Equity Plan Scorecard (EPSC) evaluates plan costs, burn rates, and plan features together. A company that exceeds ISS's acceptable cost threshold will typically receive an "Against" recommendation from ISS on the plan vote, which influences many institutional shareholders.
+
+**Shareholder sensitivity to dilution:** Growth-stage companies that grant equity broadly may find investors more tolerant of larger pools, while mature companies with limited grant activity face more scrutiny.
+
+## The fully diluted share count
+
+"Fully diluted shares outstanding" typically refers to basic shares plus all shares issuable under outstanding options (using the treasury stock method), outstanding RSUs (at target for PSUs), shares reserved for ESPP, and the requested new shares under the plan being voted on. Some proxy advisory firms use a "potential dilution" denominator that includes the full pool, not just the treasury-stock method count.
+
+The plan share request is typically presented to stockholders as a percentage of both basic shares outstanding and fully diluted shares. A request for 10% of fully diluted shares is viewed more favorably than the same request stated as 15% of basic shares outstanding.
+
+## Fungibility ratios
+
+Some plans treat different award types as consuming shares at different rates from the pool:
+- **Full-value awards** (RSUs, RSAs, PSUs) are typically counted as consuming 1.5x or 2x shares from the pool relative to options. This reflects the greater economic value of full-value awards.
+- **Options and SARs** are typically counted at 1x.
+
+For example, if a plan has a 2:1 fungibility ratio, granting 100,000 RSUs consumes 200,000 shares from the plan reserve, while granting 100,000 options consumes only 100,000 shares.
+
+## Share recycling provisions
+
+Most modern equity plans include share recycling provisions that return shares to the pool when:
+- An option expires unexercised or is cancelled
+- An RSU is forfeited before vesting
+- An award lapses
+
+However, proxy advisors (particularly ISS) scrutinize certain recycling provisions negatively:
+- **Shares withheld for taxes:** Some plans allow shares withheld for tax withholding on RSU vesting to be returned to the pool. ISS treats this as a liberal recycling provision and scores it negatively.
+- **Shares used to pay an option exercise price:** Similarly viewed negatively.
+- **Net exercises:** Shares not actually issued in a net exercise (the "phantom" shares) should not be recycled back into the pool if the company wants a clean scorecard.
+
+## Per-person limits and Section 162(m)
+
+Prior to the 2017 Tax Cuts and Jobs Act, plan per-person limits were essential for qualifying performance awards under Section 162(m) for deductibility. The TCJA eliminated the performance-based exception, making the $1 million deduction limit under Section 162(m) nearly universal for covered employees.
+
+Per-person limits still serve governance and proxy-advisor purposes. Plans typically specify an annual per-person limit on the number of shares that can be granted (e.g., 2 million options or 1 million RSUs per person per year) to demonstrate that the plan is not designed to concentrate all awards in a single person.
+
+## Pre-IPO planning: 409A valuations and option pools
+
+For private companies, plan design intersects directly with Section 409A. Options must be granted at FMV, which requires a 409A valuation (a formal independent appraisal). The plan pool size is also a factor in 409A valuations because the option pool is included as a dilutive element in the valuation model.
+
+Expanding the option pool before a financing round is a common practice because the post-money valuation (which includes the expanded pool) is typically higher than the pre-money valuation, making the dilution from the pool expansion less visible per-share. This is sometimes called the "option pool shuffle."

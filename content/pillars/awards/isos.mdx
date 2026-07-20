@@ -1,0 +1,80 @@
+---
+id: "1.1"
+pillar: 1
+slug: "isos"
+title: "Incentive stock options (ISOs)"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "Incentive stock options (ISOs) are a type of employee stock option that can qualify for favorable tax treatment under IRC Section 422. Unlike NSOs, ISOs generate no ordinary income at exercise—instead, the spread at exercise is an AMT preference item, and qualifying dispositions are taxed at long-term capital gains rates."
+sources:
+  - label: "IRC § 422 — Incentive stock options"
+  - label: "IRS Publication 525 — Taxable and Nontaxable Income"
+  - label: "IRS Form 3921 — Exercise of an Incentive Stock Option"
+  - label: "Treasury Regulation § 1.422-2"
+reviewedBy: null
+faqs:
+  - q: "What happens if I exercise ISOs and then sell within the same year?"
+    a: "If you sell ISO shares before satisfying the holding period requirements (more than 2 years from the grant date AND more than 1 year from the exercise date), it is a disqualifying disposition. The spread at exercise becomes ordinary income in the year of sale, not the year of exercise, and you report it on your W-2. Any additional gain above the exercise-date FMV is capital gain."
+  - q: "How does the $100,000 ISO limit work?"
+    a: "Under IRC § 422(d), the aggregate grant-date fair market value of stock underlying ISOs that first become exercisable in any calendar year cannot exceed $100,000 per employee. Options above that threshold in any single year are treated as NSOs for that excess amount. Plan administrators must track annual vesting schedules across all grants to apply this limit correctly."
+  - q: "Do ISOs affect my alternative minimum tax?"
+    a: "Yes. When you exercise an ISO and hold the shares past year-end, the spread (FMV at exercise minus exercise price) is an AMT preference item under IRC § 56(b)(3). You add it to your AMTI and may owe AMT in the exercise year. If you later make a qualifying disposition, you receive an AMT credit that can offset regular tax in future years."
+updatedAt: "2026-07-12"
+related: ["1.2", "3.1", "3.3"]
+---
+
+## What ISOs are and why they exist
+
+Incentive stock options are a form of equity compensation authorized by Congress in the Economic Recovery Tax Act of 1981 and now governed by IRC Section 422. Congress created a preferential tax structure for ISOs to encourage broad employee ownership and long-term investment in employer stock. The core tax benefit is straightforward: employees who receive ISOs and satisfy specific holding requirements pay capital gains rates on their eventual profit, rather than the ordinary income rates that apply to most compensation.
+
+ISOs can only be granted by corporations (not partnerships or LLCs taxed as partnerships) to their employees—directors and independent contractors are ineligible. The option must be granted under a written plan approved by stockholders within twelve months of the plan's adoption, and it must specify the aggregate number of shares that may be issued and the class of employees eligible to receive grants.
+
+## Key statutory requirements under IRC § 422
+
+For an option to qualify as an ISO, it must satisfy each of these requirements at grant:
+
+**Exercise price at or above FMV.** The exercise price must equal or exceed the stock's fair market value on the grant date. For companies whose stock is not publicly traded, this generally requires a Section 409A valuation. For more than 10% stockholders, the exercise price must be at least 110% of FMV.
+
+**Ten-year maximum term.** The option may not have a term exceeding ten years from the grant date. For 10%-or-more stockholders, the maximum term is five years.
+
+**$100,000 annual vesting limit.** Based on grant-date FMV, no more than $100,000 worth of ISOs may first become exercisable in any calendar year per employee. Amounts exceeding this limit in a given year are automatically reclassified as NSOs.
+
+**Non-transferability.** ISOs cannot be transferred other than by death. The option must be exercisable only by the employee during the employee's lifetime.
+
+**Employment requirement.** The option must be exercised while the employee is employed by the corporation (or a parent or subsidiary) or within three months of termination, except in cases of death (where the period extends to 12 months) or disability.
+
+## Tax treatment: the qualifying disposition
+
+The ISO's key tax benefit materializes only when a qualifying disposition occurs. A qualifying disposition requires two simultaneous holding periods:
+- The shares must be held more than **two years** from the grant date, and
+- The shares must be held more than **one year** from the exercise date.
+
+When both tests are met at sale, the entire gain from the original exercise price to the sale price is treated as long-term capital gain. No ordinary income arises at grant or at exercise.
+
+**Example:** An employee receives an ISO with a $10 exercise price when the stock trades at $10. Four years later, she exercises when the stock is at $40. Two years after that, she sells at $60. She has no ordinary income at grant, no ordinary income at exercise, and reports a $50 long-term capital gain ($60 sale price minus $10 exercise price) in the year of sale.
+
+## Disqualifying dispositions
+
+A disqualifying disposition occurs when shares acquired through ISO exercise are sold or transferred before satisfying the holding periods. Common triggers include selling within one year of exercise, giving shares away, or selling in the same year of exercise.
+
+When a disqualifying disposition occurs, the employee must include ordinary income equal to the lesser of: (a) the FMV of the stock on the exercise date minus the exercise price, or (b) the amount realized on sale minus the exercise price. This ordinary income is reported by the employer on Form W-2 and must be included in wages for payroll tax purposes in the year of the disqualifying sale—not the year of exercise.
+
+Any gain above the ordinary income component (i.e., sale price minus FMV at exercise) is capital gain, with the holding period determined by how long the shares were actually held from exercise to sale.
+
+## The AMT complication
+
+The most significant administrative complexity for ISOs is the alternative minimum tax. Under IRC § 56(b)(3), when an employee exercises an ISO and does not sell the shares in the same calendar year, the spread at exercise (FMV minus exercise price) is an AMT preference item. This amount is added to the employee's alternative minimum taxable income (AMTI) and may trigger AMT liability in the exercise year.
+
+The AMT credit mitigates this over time: AMT paid because of ISO exercises generates a minimum tax credit under IRC § 53 that can offset regular tax in subsequent years when regular tax exceeds the tentative minimum tax. However, the credit cannot create a refund, so it may take several years to fully utilize.
+
+Plan administrators should inform employees that early in each year, before stock prices move significantly, is often the lowest-AMT-risk time to exercise ISOs. Employees with large unrealized spreads should be directed to a tax advisor to model AMT exposure before exercising.
+
+## Post-termination rules
+
+After an employee terminates, ISOs must be exercised within three months to retain their ISO character. If the exercise window in the stock option agreement is longer (for example, many plans give 90 days but some give up to 10 years for vested options), options not exercised within three months of termination convert to NSOs. The administrator should track termination dates carefully and notify departing employees of this deadline in their termination documentation.
+
+For disability terminations, the post-termination exercise window extends to 12 months. For death, the estate or beneficiaries have 12 months following the date of death.
+
+## Form 3921 reporting
+
+Corporations must file IRS Form 3921 for each employee who exercises an ISO during the calendar year. The form reports the grant date, exercise date, exercise price, FMV at exercise, and the number of shares transferred. This form is due to the IRS by February 28 (paper) or March 31 (electronic) of the following year, and a copy must be furnished to the employee by January 31. Failure to file carries penalties under IRC § 6722.
