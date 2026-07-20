@@ -24,6 +24,11 @@ export async function loadArticle(
   return { frontmatter, content };
 }
 
+/** True if a published MDX article exists for this pillar/slug. */
+export function articleExists(pillarSlug: string, slug: string): boolean {
+  return fs.existsSync(path.join(CONTENT_ROOT, pillarSlug, `${slug}.mdx`));
+}
+
 export async function loadAllArticles(): Promise<LoadedArticle[]> {
   const results: LoadedArticle[] = [];
 

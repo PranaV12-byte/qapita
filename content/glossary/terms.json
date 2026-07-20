@@ -1,0 +1,266 @@
+[
+  {
+    "term": "Incentive stock option (ISO)",
+    "slug": "iso",
+    "definition": "An ISO is a statutory stock option governed by IRC Section 422 that can only be granted to employees and receives favorable tax treatment when specific holding requirements are met. No regular income tax is due at grant or exercise, though the spread at exercise is an adjustment item for the alternative minimum tax. If the shares are held long enough, the entire gain is taxed as long-term capital gain.",
+    "appearsIn": ["1.1", "3.1"]
+  },
+  {
+    "term": "Non-qualified stock option (NSO)",
+    "slug": "nso",
+    "definition": "An NSO is any stock option that does not meet the statutory requirements of an ISO under IRC Section 422. At exercise, the difference between the fair market value and the exercise price is taxed as ordinary compensation income and is subject to payroll withholding. NSOs may be granted to employees, directors, contractors, and other service providers.",
+    "appearsIn": ["1.2", "3.1"]
+  },
+  {
+    "term": "Restricted stock unit (RSU)",
+    "slug": "rsu",
+    "definition": "An RSU is a company promise to deliver shares (or cash of equal value) once vesting conditions are satisfied. The holder owns no shares and has no shareholder rights until settlement occurs. At settlement, the fair market value of the delivered shares is taxed as ordinary income subject to withholding.",
+    "appearsIn": ["1.3", "3.2"]
+  },
+  {
+    "term": "Restricted stock award (RSA)",
+    "slug": "rsa",
+    "definition": "An RSA is an outright grant of actual shares that are subject to forfeiture until vesting conditions are met. Because the shares are issued at grant, the recipient may make an 83(b) election to be taxed on the value at grant rather than at each vesting date. Absent that election, ordinary income is recognized as the restrictions lapse.",
+    "appearsIn": ["1.3", "3.3"]
+  },
+  {
+    "term": "Employee stock purchase plan (ESPP)",
+    "slug": "espp",
+    "definition": "An ESPP lets employees buy company stock through accumulated payroll deductions, often at a discount of up to 15 percent. A plan qualified under IRC Section 423 offers potential favorable tax treatment and may include a lookback that sets the price against the lower of the offering date or purchase date value. Discounts and gains are taxed depending on how long shares are held after purchase.",
+    "appearsIn": ["1.4", "3.2"]
+  },
+  {
+    "term": "Performance stock unit (PSU)",
+    "slug": "psu",
+    "definition": "A PSU is an equity award that vests only if defined performance goals are achieved over a measurement period, such as revenue, total shareholder return, or earnings targets. The number of shares ultimately delivered can range above or below the target based on actual results. PSUs are common in executive pay because they tie rewards to company outcomes.",
+    "appearsIn": ["1.5", "6.3"]
+  },
+  {
+    "term": "Stock appreciation right (SAR)",
+    "slug": "sar",
+    "definition": "A SAR gives the holder the right to receive the increase in a stock's value over a base price, paid in cash or shares, without having to purchase the underlying stock. It delivers upside similar to an option but requires no cash outlay to exercise. SARs are frequently settled net so that only the appreciation is delivered.",
+    "appearsIn": ["1.6", "2.4"]
+  },
+  {
+    "term": "Phantom stock",
+    "slug": "phantom-stock",
+    "definition": "Phantom stock is a cash-settled award that tracks the value of company shares without issuing actual equity. Participants receive a payout tied to share value, and sometimes dividend equivalents, upon a defined event or schedule. Because no real stock changes hands, payouts are generally taxed as ordinary compensation income.",
+    "appearsIn": ["1.6", "3.2"]
+  },
+  {
+    "term": "Vesting",
+    "slug": "vesting",
+    "definition": "Vesting is the process by which a recipient earns the nonforfeitable right to an equity award over time or upon meeting conditions. Awards commonly vest based on continued service, achievement of performance goals, or a combination of both. Unvested portions are typically forfeited if the service relationship ends.",
+    "appearsIn": ["2.2", "1.3"]
+  },
+  {
+    "term": "Cliff vesting",
+    "slug": "cliff-vesting",
+    "definition": "A cliff is an initial period during which no portion of an award vests, followed by a lump vesting event once the cliff is reached. A common structure is a one-year cliff on a four-year schedule, where 25 percent vests at the first anniversary. If service ends before the cliff, the entire award is usually forfeited.",
+    "appearsIn": ["2.2", "6.1"]
+  },
+  {
+    "term": "Graded vesting",
+    "slug": "graded-vesting",
+    "definition": "Graded vesting is a schedule in which an award vests in successive increments over time, such as monthly, quarterly, or annually. Each tranche is treated as earned as it vests. Under ASC 718, companies may recognize expense for graded awards using either a straight-line or accelerated attribution approach depending on the award's terms.",
+    "appearsIn": ["2.2", "4.2"]
+  },
+  {
+    "term": "Grant date",
+    "slug": "grant-date",
+    "definition": "The grant date is when the company and recipient reach a mutual understanding of the key terms of an award, and the company becomes committed to issue it. It establishes the measurement date for accounting fair value under ASC 718 and typically sets the reference for the exercise price. Board or committee approval usually fixes this date.",
+    "appearsIn": ["2.1", "4.1"]
+  },
+  {
+    "term": "Exercise price (strike price)",
+    "slug": "exercise-price",
+    "definition": "The exercise price, or strike price, is the fixed per-share amount a holder must pay to buy stock under an option. To avoid deferred compensation penalties under IRC Section 409A, options are generally priced at no less than the fair market value on the grant date. For private companies, that value is usually supported by a 409A valuation.",
+    "appearsIn": ["2.3", "3.7"]
+  },
+  {
+    "term": "Spread (bargain element)",
+    "slug": "spread",
+    "definition": "The spread, or bargain element, is the difference between the fair market value of the stock at exercise and the exercise price paid. For NSOs this amount is ordinary income at exercise, while for ISOs it is an AMT preference item. The spread represents the built-in gain captured when an option is exercised.",
+    "appearsIn": ["2.3", "3.1"]
+  },
+  {
+    "term": "Fair market value (FMV)",
+    "slug": "fair-market-value",
+    "definition": "Fair market value is the price at which stock would change hands between a willing buyer and seller with reasonable knowledge and no compulsion. For public companies it is typically the market trading price, while private companies rely on an independent valuation. FMV drives exercise pricing, taxable income measurement, and withholding calculations.",
+    "appearsIn": ["2.3", "6.5"]
+  },
+  {
+    "term": "409A valuation",
+    "slug": "409a-valuation",
+    "definition": "A 409A valuation is an independent appraisal of a private company's common stock fair market value used to set option exercise prices. Following the process creates a rebuttable presumption that the price is reasonable, protecting against IRC Section 409A penalties. Valuations are generally refreshed at least annually or after a material event such as a financing round.",
+    "appearsIn": ["6.5", "3.7"]
+  },
+  {
+    "term": "83(b) election",
+    "slug": "83b-election",
+    "definition": "An 83(b) election lets a recipient of restricted property choose to be taxed on its value at grant rather than as it vests. It must be filed with the IRS within 30 days of the transfer and can convert future appreciation into capital gain and start the holding period early. The election carries risk because taxes paid are not refunded if the property is later forfeited.",
+    "appearsIn": ["3.3", "1.3"]
+  },
+  {
+    "term": "Alternative minimum tax (AMT)",
+    "slug": "amt",
+    "definition": "The AMT is a parallel federal tax system that limits certain benefits and can apply when it exceeds the regular tax. Exercising an ISO and holding the shares creates an AMT adjustment equal to the spread, which can trigger tax even though no regular income is recognized. Taxpayers may later recover some AMT paid through a minimum tax credit.",
+    "appearsIn": ["3.1", "1.1"]
+  },
+  {
+    "term": "Disqualifying disposition",
+    "slug": "disqualifying-disposition",
+    "definition": "A disqualifying disposition occurs when ISO shares are sold before satisfying the required holding periods, namely two years from grant and one year from exercise. The bargain element generally becomes ordinary income in the year of sale, and any remaining gain is capital gain. This forfeits the favorable tax treatment ISOs would otherwise provide.",
+    "appearsIn": ["3.1", "1.1"]
+  },
+  {
+    "term": "Qualifying disposition",
+    "slug": "qualifying-disposition",
+    "definition": "A qualifying disposition is a sale of ISO shares that meets both statutory holding periods: more than two years after grant and more than one year after exercise. When satisfied, the entire gain over the exercise price is taxed as long-term capital gain for regular tax purposes. ESPP shares under a Section 423 plan have their own qualifying disposition rules.",
+    "appearsIn": ["3.1", "3.2"]
+  },
+  {
+    "term": "Holding period",
+    "slug": "holding-period",
+    "definition": "The holding period is the length of time an asset is owned, which determines whether a gain is short-term or long-term for capital gains purposes. Holding more than one year generally qualifies gains for lower long-term rates. For statutory equity awards, specific holding periods also govern whether favorable tax treatment applies.",
+    "appearsIn": ["3.3", "3.6"]
+  },
+  {
+    "term": "Capital gains",
+    "slug": "capital-gains",
+    "definition": "Capital gain is the profit from selling a capital asset such as stock for more than its cost basis. Gains on assets held longer than one year are taxed at preferential long-term rates, while shorter holdings are taxed as ordinary income. In equity compensation, the capital gain is measured from the basis established when the award was taxed as income.",
+    "appearsIn": ["3.3", "3.6"]
+  },
+  {
+    "term": "Ordinary income",
+    "slug": "ordinary-income",
+    "definition": "Ordinary income is compensation and other income taxed at regular graduated rates rather than preferential capital gains rates. Most equity awards generate ordinary income when they are exercised, vest, or settle, based on the value received. This income is generally subject to income and payroll tax withholding.",
+    "appearsIn": ["3.2", "3.4"]
+  },
+  {
+    "term": "Sell-to-cover",
+    "slug": "sell-to-cover",
+    "definition": "Sell-to-cover is a settlement method in which just enough vested shares are sold on the open market to fund the taxes due, with the remaining shares retained by the holder. It is commonly used for RSUs so employees keep equity exposure while satisfying withholding. The sale generates cash directed to the required tax payments.",
+    "appearsIn": ["3.4", "2.4"]
+  },
+  {
+    "term": "Net share settlement",
+    "slug": "net-share-settlement",
+    "definition": "Net share settlement is a method where the company withholds a portion of the shares otherwise deliverable to cover taxes or the exercise cost, delivering only the net shares. It avoids an open-market sale and reduces the total shares issued. This approach is common for RSUs and for net-settled options and SARs.",
+    "appearsIn": ["2.4", "3.4"]
+  },
+  {
+    "term": "Cashless exercise",
+    "slug": "cashless-exercise",
+    "definition": "A cashless exercise lets an option holder exercise without paying cash upfront by simultaneously selling shares to fund the exercise price and taxes. A broker typically executes the sale and remits proceeds, delivering the remaining shares or cash to the holder. It provides liquidity to exercise when the holder lacks available cash.",
+    "appearsIn": ["2.3", "7.4"]
+  },
+  {
+    "term": "Blackout period",
+    "slug": "blackout-period",
+    "definition": "A blackout period is a window during which insiders and certain employees are prohibited from trading company securities, often around earnings releases. These restrictions help prevent trading while material nonpublic information is present. Companies enforce blackouts through insider trading policies and pre-clearance procedures.",
+    "appearsIn": ["5.3", "7.5"]
+  },
+  {
+    "term": "10b5-1 plan",
+    "slug": "10b5-1-plan",
+    "definition": "A Rule 10b5-1 plan is a written trading arrangement adopted when an insider is not aware of material nonpublic information, setting predetermined instructions for future trades. When properly established, it provides an affirmative defense against insider trading claims. SEC rules impose cooling-off periods and other conditions before trades under a plan can begin.",
+    "appearsIn": ["5.3", "5.2"]
+  },
+  {
+    "term": "Lock-up period",
+    "slug": "lock-up-period",
+    "definition": "A lock-up is a contractual restriction, common after an IPO, that prevents insiders and early holders from selling shares for a set time, often around 180 days. Underwriters require lock-ups to support an orderly market for the newly public stock. Once the lock-up expires, previously restricted holders may sell subject to securities law limits.",
+    "appearsIn": ["2.5", "5.7"]
+  },
+  {
+    "term": "Section 16",
+    "slug": "section-16",
+    "definition": "Section 16 of the Securities Exchange Act governs directors, officers, and greater-than-ten-percent shareholders of public companies. It requires them to report their holdings and transactions on Forms 3, 4, and 5 and allows recovery of short-swing profits from purchases and sales within six months. These rules promote transparency in insider trading activity.",
+    "appearsIn": ["5.2", "5.4"]
+  },
+  {
+    "term": "Form 3921",
+    "slug": "form-3921",
+    "definition": "Form 3921 is an IRS information return companies file to report each ISO exercise during the year. It provides the employee and the IRS with details such as the grant date, exercise date, exercise price, and fair market value at exercise. This information helps taxpayers calculate AMT adjustments and cost basis.",
+    "appearsIn": ["5.6", "3.1"]
+  },
+  {
+    "term": "Form 3922",
+    "slug": "form-3922",
+    "definition": "Form 3922 is an IRS information return filed to report the first transfer of stock acquired under a qualified Section 423 ESPP. It records dates and values from the offering and purchase, which employees use to determine income and basis when they sell. Companies furnish a copy to participating employees.",
+    "appearsIn": ["5.6", "3.2"]
+  },
+  {
+    "term": "Form S-8",
+    "slug": "form-s-8",
+    "definition": "Form S-8 is a simplified SEC registration statement public companies use to register shares issued under employee benefit and equity plans. It becomes effective automatically upon filing and allows plan participants to receive registered shares. Companies must deliver a plan prospectus to participants covering the offered securities.",
+    "appearsIn": ["5.1", "5.5"]
+  },
+  {
+    "term": "Rule 701",
+    "slug": "rule-701",
+    "definition": "Rule 701 is a federal exemption that lets private companies issue securities to employees and certain service providers under written compensatory plans without full registration. Sales are capped by formulas tied to assets, outstanding securities, or aggregate price, and larger issuances trigger enhanced disclosure. It is the primary path private companies use to grant equity awards.",
+    "appearsIn": ["5.1", "6.1"]
+  },
+  {
+    "term": "Rule 144",
+    "slug": "rule-144",
+    "definition": "Rule 144 provides a safe harbor for reselling restricted and control securities into the public market without registration. It conditions resale on holding periods, adequate public information, and, for affiliates, volume limits and filing requirements. It is often how insiders and early investors legally sell shares after a company goes public.",
+    "appearsIn": ["5.7", "2.5"]
+  },
+  {
+    "term": "ASC 718",
+    "slug": "asc-718",
+    "definition": "ASC 718 is the U.S. accounting standard governing share-based payment awards. It requires companies to measure awards at grant-date fair value and recognize that cost as expense over the service or vesting period. The standard also addresses forfeitures, modifications, and the distinction between equity and liability classification.",
+    "appearsIn": ["4.1", "4.2"]
+  },
+  {
+    "term": "Grant-date fair value",
+    "slug": "grant-date-fair-value",
+    "definition": "Grant-date fair value is the accounting value of an award measured on the grant date under ASC 718. For options and SARs it is typically estimated with an option-pricing model such as Black-Scholes or a lattice model, while full-value awards use the underlying share value. This amount forms the basis for the compensation expense recognized over the vesting period.",
+    "appearsIn": ["4.1", "4.2"]
+  },
+  {
+    "term": "Treasury stock method",
+    "slug": "treasury-stock-method",
+    "definition": "The treasury stock method is a technique for calculating the dilutive effect of options and similar awards in diluted earnings per share. It assumes proceeds from exercise, plus certain unrecognized amounts, are used to repurchase shares at the average market price. Only the net incremental shares are added to the diluted share count.",
+    "appearsIn": ["4.4", "6.4"]
+  },
+  {
+    "term": "Double-trigger acceleration",
+    "slug": "double-trigger-acceleration",
+    "definition": "Double-trigger acceleration causes an award to vest only when two events occur: a change in control and a qualifying termination of employment within a defined window afterward. This structure protects employees during acquisitions while discouraging windfalls when jobs continue. It contrasts with single-trigger vesting, which accelerates on the transaction alone.",
+    "appearsIn": ["2.5", "6.1"]
+  },
+  {
+    "term": "Clawback",
+    "slug": "clawback",
+    "definition": "A clawback is a policy or provision allowing a company to recover previously paid or vested compensation under specified circumstances. Listing standards implementing the Dodd-Frank Act require public companies to recoup certain incentive pay from executives following an accounting restatement. Clawbacks may also apply for misconduct or violations of restrictive covenants.",
+    "appearsIn": ["7.5", "5.4"]
+  },
+  {
+    "term": "Overhang",
+    "slug": "overhang",
+    "definition": "Overhang measures the potential dilution to shareholders from equity compensation, generally expressed as outstanding and available awards relative to total shares. Investors and proxy advisors watch overhang to gauge how much ownership could shift to employees. High overhang can raise concern about excessive dilution.",
+    "appearsIn": ["6.2", "6.4"]
+  },
+  {
+    "term": "Burn rate",
+    "slug": "burn-rate",
+    "definition": "Burn rate is the annual rate at which a company grants equity awards, usually shown as shares granted in a year divided by shares outstanding. It indicates how quickly a company consumes its share reserve. Proxy advisors benchmark burn rate against industry norms when evaluating equity plan proposals.",
+    "appearsIn": ["6.2", "6.4"]
+  },
+  {
+    "term": "Cost basis",
+    "slug": "cost-basis",
+    "definition": "Cost basis is the amount used to measure gain or loss when shares are sold, generally the purchase price plus any income already recognized and taxed. For equity awards, basis usually equals the exercise price or purchase price plus any ordinary income reported at exercise, vesting, or settlement. Accurate basis tracking prevents the same income from being taxed twice.",
+    "appearsIn": ["3.6", "3.2"]
+  },
+  {
+    "term": "Supplemental wage withholding",
+    "slug": "supplemental-wage-withholding",
+    "definition": "Supplemental wages such as equity award income can be subject to a flat federal withholding rate, with a higher mandatory rate applying to amounts above a statutory threshold in a year. Employers apply these rates to income from RSU vesting, NSO exercises, and similar events. Because the flat rate may differ from a person's actual marginal rate, withholding can be higher or lower than the eventual tax.",
+    "appearsIn": ["3.4", "3.2"]
+  }
+]

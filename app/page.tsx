@@ -19,6 +19,7 @@ export default async function HomePage({
       <GenerateClient
         initialQuery={params.q ?? ""}
         initialNodeId={params.nodeId}
+        showBanner
       />
     </Suspense>
   );

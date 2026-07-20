@@ -1,0 +1,50 @@
+---
+id: "3.4"
+pillar: 3
+slug: "payroll-withholding"
+title: "Payroll & withholding mechanics"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "When equity compensation becomes taxable, it is treated as wages and runs through payroll. Employers withhold federal income tax at supplemental rates, apply Social Security and Medicare taxes, and must deposit those amounts to the IRS on strict deadlines."
+sources:
+  - label: "IRC § 3402 — Income tax collected at source"
+  - label: "IRS Publication 15 (Circular E), Employer's Tax Guide"
+  - label: "Treas. Reg. § 31.3402(g)-1 — Supplemental wages"
+  - label: "IRC § 3121 — FICA wage definitions"
+reviewedBy: null
+faqs:
+  - q: "Why was so much withheld when my RSUs vested?"
+    a: "Equity income is supplemental wages. Federal income tax is generally withheld at a flat 22% (37% on amounts above $1M in a year), plus Social Security, Medicare, and any state tax. The 22% flat rate can be lower than your true marginal bracket, which sometimes means too little is withheld rather than too much."
+  - q: "Do Social Security and Medicare apply to RSUs?"
+    a: "Yes. FICA generally applies when RSUs vest and the income is no longer subject to a substantial risk of forfeiture, even if shares are not sold. Social Security applies up to the annual wage base; Medicare applies to all wages, with an extra 0.9% above high-earner thresholds."
+  - q: "What is sell-to-cover versus net settlement?"
+    a: "Both cover the tax bill at vest. Sell-to-cover sells enough vested shares on the market to raise cash for withholding. Net settlement (share withholding) has the company retain shares equal to the tax and deliver only the remainder, so no market sale occurs."
+updatedAt: "2026-07-20"
+related: ["3.2", "3.1", "2.4"]
+---
+
+## Equity income is wages
+
+When equity compensation becomes taxable — RSUs at vest, NSOs at exercise, a disqualifying ESPP or ISO disposition — the resulting spread is compensation and flows through payroll like any paycheck. The employer reports it on Form W-2 and must withhold federal income tax, Social Security, and Medicare.
+
+## Supplemental wage withholding
+
+Equity income is a "supplemental wage" (pay other than regular salary). Under IRS rules, employers most commonly withhold federal income tax at a flat rate: 22% on supplemental wages up to $1,000,000 in a calendar year, and a mandatory 37% on the portion above $1,000,000. Because 22% may sit below an employee's actual marginal rate, high earners frequently find that withholding falls short of what they owe, so estimated payments or extra withholding may be needed to avoid an underpayment.
+
+## FICA taxes and timing
+
+Separately, FICA applies. Social Security tax is withheld on wages up to the annual wage base; Medicare has no cap. An additional 0.9% Medicare tax applies to wages over statutory thresholds ($200,000 for a single filer at the employer-withholding level). For RSUs, FICA is generally due when the award vests and is no longer subject to a substantial risk of forfeiture — this can occur even though the employee has not sold any shares and has received no cash.
+
+## Funding the withholding
+
+Because vesting produces a tax bill without cash, companies use mechanisms to fund it. Sell-to-cover automatically sells a portion of the newly vested shares on the open market and remits the proceeds. Net settlement (share withholding) instead has the company withhold shares with a value equal to the required tax and deliver only the net shares, avoiding a market transaction.
+
+<Advanced>
+
+## Professional detail
+
+Deposit timing is governed by IRS rules and can be aggressive for large equity events. Employers are either monthly or semiweekly depositors based on their lookback-period liability, but the next-day deposit rule requires that once accumulated undeposited employment taxes reach $100,000, the deposit is due by the next business day.
+
+A single large vest or coordinated exercise can trigger this $100,000 threshold on its own, forcing an expedited deposit regardless of the employer's normal schedule. Late deposits expose the employer to graduated failure-to-deposit penalties, so payroll and equity teams typically coordinate closely around known vesting dates and secondary-liquidity events.
+
+</Advanced>

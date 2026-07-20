@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Serif, Inter } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+import { LensProvider } from "@/components/lens/LensProvider";
 
 const instrumentSerif = Instrument_Serif({
   weight: "400",
@@ -32,11 +33,13 @@ export default function RootLayout({
         <meta name="robots" content="noindex" />
       </head>
       <body className="bg-bg text-body font-sans min-h-screen flex flex-col">
-        <AppShell>
-          <main className="flex-1 w-full">
-            {children}
-          </main>
-        </AppShell>
+        <LensProvider>
+          <AppShell>
+            <main className="flex-1 w-full">
+              {children}
+            </main>
+          </AppShell>
+        </LensProvider>
         <footer className="px-4 py-4 text-center text-xs text-muted border-t border-[var(--border)]">
           This is an AI-generated draft that has not been reviewed by a professional. It is educational only and is not tax, legal, or investment advice. US only.
         </footer>

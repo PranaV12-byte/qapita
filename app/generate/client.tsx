@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { getNode } from "@/lib/content/tree";
 import ScenarioChips from "@/components/ScenarioChips";
 import ArtifactResult from "@/components/ArtifactResult";
+import StartHereBanner from "@/components/StartHereBanner";
 import {
   DEFAULT_PLACEHOLDER,
   getNodePlaceholder,
@@ -30,6 +31,7 @@ type Turn = { id: number; query: string; result: ApiResponse };
 type Props = {
   initialQuery?: string;
   initialNodeId?: string;
+  showBanner?: boolean;
 };
 
 function QuestionBubble({ text }: { text: string }) {
@@ -45,6 +47,7 @@ function QuestionBubble({ text }: { text: string }) {
 export default function GenerateClient({
   initialQuery = "",
   initialNodeId,
+  showBanner = false,
 }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [nodeId, setNodeId] = useState<string | undefined>(initialNodeId);
@@ -133,6 +136,11 @@ export default function GenerateClient({
       {/* Thread / empty state */}
       {!hasThread ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center py-10">
+          {showBanner && (
+            <div className="w-full max-w-md">
+              <StartHereBanner />
+            </div>
+          )}
           <h1 className="font-serif text-heading text-3xl md:text-4xl leading-tight mb-8">
             What can I help you explain?
           </h1>

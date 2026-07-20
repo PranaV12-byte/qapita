@@ -1,0 +1,52 @@
+---
+id: "3.6"
+pillar: 3
+slug: "cost-basis-reporting"
+title: "Cost basis & reporting"
+status: "generated"
+audience: ["admin", "participant"]
+summaryPlain: "Brokers report the sale of equity-comp shares on Form 1099-B, but the basis they report often omits the compensation income already taxed through your W-2. Left uncorrected, this causes the same income to be taxed twice; a Form 8949 adjustment fixes it."
+sources:
+  - label: "IRC § 6045 — Returns of brokers"
+  - label: "IRS Form 8949 and Schedule D instructions"
+  - label: "IRC § 6039 — Returns for ISO exercises and ESPP transfers"
+  - label: "IRS Instructions for Forms 3921 and 3922"
+reviewedBy: null
+faqs:
+  - q: "Why does my 1099-B cost basis look too low?"
+    a: "For shares acquired through equity compensation, brokers are generally allowed to report only the amount you paid (often just the exercise or purchase price) as basis. The compensation income already added to your W-2 is not included, so the reported basis understates your true basis."
+  - q: "How do I avoid being taxed twice on the same income?"
+    a: "Report the sale on Form 8949 using the broker's proceeds, then adjust to your correct basis, which includes the compensation income taxed on your W-2. This prevents the equity spread from being taxed once as wages and again as capital gain."
+  - q: "What are Forms 3921 and 3922 for?"
+    a: "Form 3921 documents an ISO exercise, and Form 3922 documents the first transfer of shares purchased under a qualified ESPP. They are informational records that help you and the IRS compute basis and holding periods; they do not themselves report taxable income."
+updatedAt: "2026-07-20"
+related: ["3.4", "3.1", "2.4"]
+---
+
+## The reporting chain
+
+Selling shares acquired through equity compensation generates two documents. Compensation income — the spread taxed at vest, exercise, or a disqualifying disposition — appears in your wages on Form W-2. The later sale of those shares appears on Form 1099-B, which your broker files and sends to you.
+
+## The double-taxation trap
+
+The core problem is that these two forms are not reconciled by the broker. Under the cost-basis reporting rules, brokers generally report to the IRS only the amount you actually paid for equity-comp shares — often just the option exercise price or ESPP purchase price. They are not required to include the compensation income that was already added to your W-2. As a result, the basis on the 1099-B is understated.
+
+If you simply copy that low basis onto your return, your reported capital gain is inflated by the exact amount already taxed as wages — so the same dollars are taxed twice. This is one of the most common and costly equity-comp filing errors.
+
+## Correcting it on Form 8949
+
+The fix is a basis adjustment on Form 8949. You start with the broker's reported proceeds and reported basis, then adjust the basis upward to your true, full basis: the amount paid plus the compensation income recognized on your W-2. The corrected gain or loss then flows to Schedule D. Brokerage supplemental statements often show the adjusted basis to help, even when the 1099-B itself does not.
+
+## W-2 versus 1099-B
+
+Keeping the roles straight matters: the W-2 captures the ordinary compensation element, while the 1099-B captures the capital gain or loss on disposition measured from full basis. Confusing the two is what produces the double count.
+
+<Advanced>
+
+## Professional detail
+
+Two information returns support basis and holding-period tracking. Form 3921 is issued for each ISO exercise, capturing the exercise date, exercise price, and fair market value at exercise — data needed for both regular tax basis and alternative minimum tax calculations. Form 3922 is issued on the first transfer of stock acquired under a qualified ESPP, capturing purchase-date and grant-date values used to determine the compensation element on a later sale.
+
+Neither form reports income by itself. Instead they arm the taxpayer to compute basis correctly, distinguish qualifying from disqualifying dispositions, and support the Form 8949 adjustment that avoids double taxation.
+
+</Advanced>

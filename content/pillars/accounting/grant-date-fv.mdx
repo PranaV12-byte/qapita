@@ -1,0 +1,47 @@
+---
+id: "4.1"
+pillar: 4
+slug: "grant-date-fv"
+title: "Grant-date fair value"
+status: "generated"
+audience: ["admin"]
+summaryPlain: "Under ASC 718, equity awards are measured at their fair value on the grant date, and that amount fixes the total compensation cost for most awards. Options and similar instruments are valued with an option-pricing model, while full-value awards such as RSUs start from the share price."
+sources:
+  - label: "ASC 718 — Compensation—Stock Compensation"
+  - label: "ASC 820 — Fair Value Measurement"
+  - label: "SEC Staff Accounting Bulletin No. 107 / 110"
+reviewedBy: null
+faqs:
+  - q: "Why is fair value measured only once, at grant?"
+    a: "For equity-classified awards, ASC 718 uses a grant-date measurement objective. The fair value determined on the grant date becomes the total cost recognized over the service period and is not remeasured for later changes in the stock price. Liability-classified awards are the exception and are remeasured each period."
+  - q: "Which pricing model should we use for options?"
+    a: "ASC 718 does not mandate a specific model. A closed-form model such as Black-Scholes-Merton is common for plain-vanilla options, while a lattice or binomial model better captures features like early exercise behavior or graded vesting. The choice should reflect the award's substantive characteristics."
+  - q: "How are market conditions valued?"
+    a: "Market conditions (for example, a total-shareholder-return target) are built directly into the grant-date fair value, typically using a Monte Carlo simulation. Because the condition is reflected in fair value, expense is recognized even if the target is never met, provided the requisite service is rendered."
+updatedAt: "2026-07-20"
+related: ["4.2", "4.4", "6.5"]
+---
+
+## Measuring fair value at the grant date
+
+ASC 718 requires share-based payments to employees to be measured at fair value on the grant date, the point at which the employer and employee reach a mutual understanding of the award's key terms and the employer becomes contingently obligated to issue shares. For equity-classified awards, this grant-date measurement is definitive: the resulting amount establishes the total compensation cost, which is then attributed to expense over the service period and is not adjusted for subsequent movements in the share price.
+
+The measurement approach depends on the instrument. Full-value awards such as restricted stock units are generally valued at the market price of the underlying share on the grant date, reduced by the present value of any dividends the holder will not receive during the vesting period. Stock options and stock appreciation rights, which have no intrinsic value at grant when issued at the money, must be valued with an option-pricing model because their worth derives from the possibility of future appreciation.
+
+## Option-pricing models and their inputs
+
+Two families of models are used in practice. Closed-form models, most commonly Black-Scholes-Merton, produce a single value from a fixed set of inputs and suit straightforward options. Lattice (binomial) models step through time and can accommodate assumptions that change over the option's life, dynamic early-exercise behavior, and vesting that occurs in tranches. ASC 718 permits either, provided the model is consistent with fair-value measurement principles and reflects the award's substantive terms.
+
+The principal inputs are the expected term (the period the option is expected to remain outstanding, which is shorter than the contractual term because employees tend to exercise early), expected volatility of the share price, the risk-free interest rate drawn from the government yield curve for a matching horizon, and the expected dividend yield. The exercise price and current share price complete the set. Each assumption must be supportable; the SEC staff has offered guidance on estimating expected term and volatility, particularly for companies with limited trading history.
+
+<Advanced>
+
+## Professional detail
+
+Expected volatility may be estimated from historical share-price volatility, implied volatility from traded options, or a blend, with the estimation period generally matched to the expected term. Newly public or thinly traded companies often reference a peer group of comparable public companies.
+
+For awards with market conditions, a Monte Carlo simulation projects many possible price paths and averages the resulting payoffs, embedding the probability of achieving the condition into a single grant-date fair value. That value is expensed over the derived or explicit service period regardless of the eventual outcome, so no reversal occurs if the market target is missed once service is complete.
+
+Nonvested full-value awards carrying a right to nonforfeitable dividends are valued without the dividend-yield reduction, since the holder economically receives those distributions.
+
+</Advanced>

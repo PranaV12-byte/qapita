@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx scripts/ingest/build.ts && next build",
+    "build": "tsx scripts/ingest/build.ts && tsx scripts/ingest/build-search.ts && next build",
     "build:index": "tsx scripts/ingest/build.ts",
+    "build:search": "tsx scripts/ingest/build-search.ts",
     "classify": "tsx scripts/ingest/classify.ts",
     "apply-classification": "tsx scripts/ingest/apply-classification.ts",
     "start": "next start",

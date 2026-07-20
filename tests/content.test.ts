@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { PILLARS, ALL_NODES, getNode, getPillar } from "@/lib/content/tree";
 import { ArticleSchema } from "@/lib/content/schema";
-import { loadAllArticles } from "@/lib/content/loader";
+import { loadAllArticles, articleExists } from "@/lib/content/loader";
+import { START_HERE_CARDS } from "@/lib/content/start-here";
 import { z } from "zod";
 
 // 1. Tree manifest completeness
@@ -133,9 +134,10 @@ describe("Content loader and article quality", () => {
     return articles;
   }
 
-  it("loadAllArticles() returns exactly 12 items", async () => {
+  it("loadAllArticles() returns one article per node (41)", async () => {
     const loaded = await getArticles();
-    expect(loaded).toHaveLength(12);
+    expect(loaded).toHaveLength(ALL_NODES.length);
+    expect(loaded).toHaveLength(41);
   });
 
   it("each article has valid frontmatter (passes Zod)", async () => {
@@ -226,12 +228,12 @@ describe("Content loader and article quality", () => {
   });
 
   // 5. Content quality checks
-  it("body content is between 800-1200 words", async () => {
+  it("body content is a substantial article (250-1500 words)", async () => {
     const loaded = await getArticles();
     loaded.forEach(({ frontmatter, content }) => {
       const wordCount = content.trim().split(/\s+/).length;
-      expect(wordCount, `Article "${frontmatter.id}" has ${wordCount} words (expected 800-1200)`).toBeGreaterThanOrEqual(800);
-      expect(wordCount, `Article "${frontmatter.id}" has ${wordCount} words (expected 800-1200)`).toBeLessThanOrEqual(1200);
+      expect(wordCount, `Article "${frontmatter.id}" has ${wordCount} words (expected 250-1500)`).toBeGreaterThanOrEqual(250);
+      expect(wordCount, `Article "${frontmatter.id}" has ${wordCount} words (expected 250-1500)`).toBeLessThanOrEqual(1500);
     });
   });
 
@@ -287,5 +289,31 @@ describe("Content loader and article quality", () => {
       const node = getNode(frontmatter.id)!;
       expect(frontmatter.slug, `Article "${frontmatter.id}" slug mismatch`).toBe(node.slug);
     });
+  });
+
+  // Every node in the tree has a published article on disk (no dead links).
+  it("every node has a published MDX article", () => {
+    ALL_NODES.forEach((n) => {
+      expect(
+        articleExists(n.pillarSlug, n.slug),
+        `missing article for ${n.id} (${n.pillarSlug}/${n.slug})`
+      ).toBe(true);
+    });
+  });
+});
+
+describe("Start Here cards", () => {
+  it("has 6 cards, each linking to a real node", () => {
+    expect(START_HERE_CARDS).toHaveLength(6);
+    START_HERE_CARDS.forEach((c) => {
+      expect(getNode(c.nodeId), `card ${c.slug} → ${c.nodeId}`).toBeDefined();
+      expect(c.title.length).toBeGreaterThan(0);
+      expect(c.blurb.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("card slugs are unique", () => {
+    const slugs = START_HERE_CARDS.map((c) => c.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
   });
 });

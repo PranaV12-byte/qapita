@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import SearchOverlay from "@/components/search/SearchOverlay";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -27,6 +28,19 @@ interface AppShellProps {
 export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Cmd/Ctrl-K opens search anywhere.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <>
@@ -43,6 +57,31 @@ export default function AppShell({ children }: AppShellProps) {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6 ml-auto">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-body)] hover:border-[var(--border-strong)] transition-colors"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              Search
+              <kbd className="text-[10px] border border-[var(--border)] rounded px-1 text-[var(--text-muted)]">
+                ⌘K
+              </kbd>
+            </button>
             {navLinks.map((l) => (
               <Link
                 key={l.href}
@@ -60,13 +99,36 @@ export default function AppShell({ children }: AppShellProps) {
             ))}
           </nav>
 
-          {/* Mobile menu button */}
+          {/* Mobile actions */}
+          <div className="md:hidden ml-auto flex items-center">
+          <button
+            type="button"
+            aria-label="Search"
+            onClick={() => setSearchOpen(true)}
+            className="inline-flex items-center justify-center text-[var(--text-primary)]"
+            style={{ minWidth: "44px", minHeight: "44px" }}
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </button>
           <button
             type="button"
             aria-label="Open menu"
             aria-expanded={open}
             onClick={() => setOpen(true)}
-            className="md:hidden ml-auto inline-flex items-center justify-center text-[var(--text-primary)]"
+            className="inline-flex items-center justify-center text-[var(--text-primary)]"
             style={{ minWidth: "44px", minHeight: "44px" }}
           >
             <svg
@@ -83,6 +145,7 @@ export default function AppShell({ children }: AppShellProps) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
+          </div>
         </div>
       </header>
 
@@ -134,6 +197,8 @@ export default function AppShell({ children }: AppShellProps) {
           </div>
         </div>
       )}
+
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }
