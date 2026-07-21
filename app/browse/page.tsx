@@ -13,7 +13,7 @@ export default function BrowsePage() {
   return (
     <PortalShell>
       <header className="mb-8">
-        <h1 className="font-serif text-heading text-3xl mb-2">Browse topics</h1>
+        <h1 className="font-head text-heading text-3xl mb-2">Browse topics</h1>
         <p className="text-[var(--text-body)]">
           Seven pillars covering the equity-compensation lifecycle, from award
           types through tax, accounting, and administration.
@@ -33,7 +33,7 @@ export default function BrowsePage() {
               style={{ textDecoration: "none" }}
             >
               <div className="flex items-baseline justify-between gap-3 mb-1">
-                <h2 className="font-serif text-heading text-xl">{p.title}</h2>
+                <h2 className="font-head text-heading text-xl">{p.title}</h2>
                 <span className="text-xs text-[var(--text-muted)] shrink-0">
                   {ready} article{ready === 1 ? "" : "s"}
                 </span>

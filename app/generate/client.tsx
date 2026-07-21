@@ -136,7 +136,7 @@ export default function GenerateClient({
               <StartHereBanner />
             </div>
           )}
-          <h1 className="font-serif text-heading text-3xl md:text-4xl leading-tight">
+          <h1 className="font-head text-heading text-3xl md:text-4xl leading-tight">
             What can I help you explain?
           </h1>
           <p className="mt-3 text-[var(--text-muted)]">
@@ -204,7 +204,7 @@ export default function GenerateClient({
                 </p>
               ) : (
                 <>
-                  <h2 className="font-serif text-xl text-[var(--text-head)] mb-2">
+                  <h2 className="font-head text-xl text-[var(--text-head)] mb-2">
                     Something went wrong
                   </h2>
                   <p className="text-sm text-[var(--text-body)] mb-4">

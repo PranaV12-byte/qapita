@@ -57,7 +57,7 @@ export default async function ArticlePage({
       />
 
       <header className="mb-6">
-        <h1 className="font-serif text-heading text-3xl leading-tight mb-1">
+        <h1 className="font-head text-heading text-3xl leading-tight mb-1">
           {frontmatter.title}
         </h1>
         <p className="text-xs text-[var(--text-muted)]">
@@ -77,7 +77,7 @@ export default async function ArticlePage({
 
       {/* CTA — generate a tailored artifact for this topic */}
       <div className="mt-10 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-5">
-        <h2 className="font-serif text-heading text-xl mb-1">
+        <h2 className="font-head text-heading text-xl mb-1">
           Need this for a specific situation?
         </h2>
         <p className="text-sm text-[var(--text-body)] mb-4">

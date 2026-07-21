@@ -51,6 +51,13 @@ input[type="search"]::-webkit-search-decoration {
   border-radius: 4px;
 }
 
+@layer base {
+  /* Heading font (Montserrat) reads light at 400 on dark — default to 600 */
+  .font-head {
+    font-weight: 600;
+  }
+}
+
 @layer components {
   /* Clickable card: visible border + elevation, lifts on hover */
   .q-card-link {

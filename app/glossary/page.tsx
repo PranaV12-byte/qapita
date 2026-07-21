@@ -13,7 +13,7 @@ export default function GlossaryPage() {
   return (
     <PortalShell>
       <header className="mb-6">
-        <h1 className="font-serif text-heading text-3xl mb-2">Glossary</h1>
+        <h1 className="font-head text-heading text-3xl mb-2">Glossary</h1>
         <p className="text-[var(--text-body)]">
           {terms.length} equity-compensation terms, defined in plain language.
         </p>

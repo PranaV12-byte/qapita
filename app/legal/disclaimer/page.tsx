@@ -1,7 +1,7 @@
 export default function DisclaimerPage() {
   return (
     <div className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="font-serif text-heading text-3xl mb-6">Disclaimer</h1>
+      <h1 className="font-head text-heading text-3xl mb-6">Disclaimer</h1>
       <div className="space-y-4 text-body">
         <p>
           This is an AI-generated draft that has not been reviewed by a professional.

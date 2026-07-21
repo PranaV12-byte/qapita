@@ -23,7 +23,7 @@
 --accent #5FAE9E  --accent-solid #357A69  --accent-on #EAF3F0  --accent-line #4E9E8C
 --draft #D6A85C  --certified #7FB972  --danger #D97070
 ```
-Fonts: Instrument Serif 400 (headings, never below 20px) + Inter 400/500 (body/UI).
+Fonts: Montserrat 600 (headings; Tailwind `font-head`) + Inter 400/500 (body/UI; `font-sans`).
 Dark-first near-monochrome. Teal accent ONLY on: links, primary action, active nav, tracked labels.
 
 ## Stack (pinned)

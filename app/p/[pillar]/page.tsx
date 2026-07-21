@@ -39,7 +39,7 @@ export default async function PillarPage({
           { label: p.title },
         ]}
       />
-      <h1 className="font-serif text-heading text-3xl mb-6">{p.title}</h1>
+      <h1 className="font-head text-heading text-3xl mb-6">{p.title}</h1>
 
       <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
         {p.nodes.map((n) => {

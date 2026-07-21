@@ -47,7 +47,7 @@ export default async function GlossaryTermPage({
           { label: t.term },
         ]}
       />
-      <h1 className="font-serif text-heading text-3xl mb-4">{t.term}</h1>
+      <h1 className="font-head text-heading text-3xl mb-4">{t.term}</h1>
       <p className="text-[var(--text-primary)] text-lg leading-relaxed">
         {t.definition}
       </p>

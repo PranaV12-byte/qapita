@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter } from "next/font/google";
+import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import { LensProvider } from "@/components/lens/LensProvider";
 
-const instrumentSerif = Instrument_Serif({
-  weight: "400",
+const montserrat = Montserrat({
+  weight: ["400", "600", "700"],
   subsets: ["latin"],
-  variable: "--font-instrument-serif",
+  variable: "--font-head",
 });
 
 const inter = Inter({
@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${instrumentSerif.variable} ${inter.variable}`}>
+    <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
       <head>
         <meta name="robots" content="noindex" />
       </head>

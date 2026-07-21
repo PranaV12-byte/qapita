@@ -9,7 +9,7 @@ export default function FaqAccordion({ faqs }: { faqs: Article["faqs"] }) {
 
   return (
     <section className="mt-8">
-      <h2 className="font-serif text-heading text-xl mb-3">
+      <h2 className="font-head text-heading text-xl mb-3">
         Frequently asked
       </h2>
       <div className="divide-y divide-[var(--border)] border-y border-[var(--border)]">

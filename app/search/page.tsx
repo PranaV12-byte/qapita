@@ -17,7 +17,7 @@ export default async function SearchPage({
   const { q } = await searchParams;
   return (
     <PortalShell>
-      <h1 className="font-serif text-heading text-3xl mb-6">Search</h1>
+      <h1 className="font-head text-heading text-3xl mb-6">Search</h1>
       <Suspense fallback={<p className="text-[var(--text-muted)]">Loading…</p>}>
         <SearchResults initialQuery={q ?? ""} />
       </Suspense>

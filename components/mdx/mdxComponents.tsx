@@ -9,13 +9,13 @@ export const mdxComponents: MDXRemoteProps["components"] = {
   Advanced,
   h1: (props) => (
     <h1
-      className="font-serif text-heading text-2xl mt-8 mb-3 first:mt-0"
+      className="font-head text-heading text-2xl mt-8 mb-3 first:mt-0"
       {...props}
     />
   ),
   h2: (props) => (
     <h2
-      className="font-serif text-heading text-xl mt-7 mb-2 first:mt-0"
+      className="font-head text-heading text-xl mt-7 mb-2 first:mt-0"
       {...props}
     />
   ),

@@ -44,7 +44,7 @@ export default function GlossaryList({ terms }: { terms: GlossaryTerm[] }) {
       <div className="space-y-8">
         {groups.map(([letter, items]) => (
           <section key={letter}>
-            <h2 className="font-serif text-heading text-2xl mb-2">{letter}</h2>
+            <h2 className="font-head text-heading text-2xl mb-2">{letter}</h2>
             <dl className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
               {items.map((t) => (
                 <div key={t.slug} className="py-3">

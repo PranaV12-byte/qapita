@@ -15,7 +15,7 @@ export default function StartHerePage() {
     <LensProvider force="plain">
       <PortalShell>
         <header className="mb-6">
-          <h1 className="font-serif text-heading text-3xl mb-2">Start here</h1>
+          <h1 className="font-head text-heading text-3xl mb-2">Start here</h1>
           <p className="text-[var(--text-body)]">
             New to equity compensation? These six basics explain how it works —
             in plain language.
@@ -41,7 +41,7 @@ export default function StartHerePage() {
                 <div className="text-xs text-[var(--text-muted)] mb-2">
                   {i + 1} of {START_HERE_CARDS.length}
                 </div>
-                <h2 className="font-serif text-heading text-xl mb-1">
+                <h2 className="font-head text-heading text-xl mb-1">
                   {card.title}
                 </h2>
                 <p className="text-sm text-[var(--text-body)] leading-relaxed">

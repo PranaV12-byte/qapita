@@ -47,7 +47,7 @@ const config: Config = {
         accent: "var(--accent-line)",
       },
       fontFamily: {
-        serif: ["var(--font-instrument-serif)", "Georgia", "serif"],
+        head: ["var(--font-head)", "ui-sans-serif", "system-ui", "sans-serif"],
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
     },
