@@ -2,6 +2,7 @@
 
 > **Current phase: Phase 1 — RAG chatbot demo.** Spec: `SPEC-PHASE1.md`.
 > Phase 2 (browse, glossary, search, content pages): `SPEC-PHASE2.md` — do NOT implement yet.
+> **Flagship feature (active work): Second Brain / the Wiki — spec: `SPEC-BRAIN.md`.** Implement strictly phase-by-phase per its §4 protocol; a phase only starts after the previous phase's gate (tsc + full tests + manual checks) is green and committed.
 
 ## Golden rules
 1. `npm i && npm run dev` MUST work with zero external services and zero API keys (mock path).
