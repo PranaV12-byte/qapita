@@ -1,0 +1,93 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`characterization: POST /api/artifact (pre-Second-Brain baseline) > pins shape + mock output for a free-text query 1`] = `
+{
+  "artifactId": Any<String>,
+  "bodyMarkdown": "Here's a working reference for: How are RSUs taxed?
+
+## What this covers
+- For RSUs, the taxable event is delivery of shares—typically the date the vesting condition is satisfied and shares are transferred to the participant's brokerage account.
+- 83(b) election can lock in a low income inclusion and start the long-term capita **RSUs:** RSUs are not taxable at grant because they are unfunded, unsecured promises.
+- x.
+- y compensation income, subject to federal income tax withholding and FICA taxes.
+- When RSU shares vest and are delivered, the employer must satisfy its withholding obligation.
+
+## Key points
+1. For RSUs, the taxable event is delivery of shares—typically the date the vesting condition is satisfied and shares are transferred to the participant's brokerage account. At that moment, the FMV of the shares delivered is ordinary compensation income, subject to federal income tax withholding and FICA taxes.
+2. 83(b) election can lock in a low income inclusion and start the long-term capita **RSUs:** RSUs are not taxable at grant because they are unfunded, unsecured promises. There is nothing of present value to tax.
+3. x. The participant receives the remaining net shares in their brokerage account.
+4. y compensation income, subject to federal income tax withholding and FICA taxes. For RSAs (where no 83(b) was filed), each vesting tranche triggers ordinary income equal to the FMV of the shares on the vesting date, less any purchase price paid.
+5. When RSU shares vest and are delivered, the employer must satisfy its withholding obligation. The predominant method for public company RSUs is: **Net share withholding (sell-to-cover):** On the vesting date, the plan administrator instructs the broker to withhold a number of shares equal in value to the tax withholding amount.
+
+## Cited topics
+- RSUs & RSAs",
+  "citations": [
+    {
+      "nodeId": "1.3",
+      "title": "RSUs & RSAs",
+    },
+  ],
+  "fallbackUsed": false,
+  "logged": true,
+  "quickShare": "Reference: How are RSUs taxed?
+
+1. For RSUs, the taxable event is delivery of shares—typically the date the vesting condition is satisfied and shares are transferred to the participant's brokerage account. At that moment, the FMV of the shares delivered is ordinary compensation income, subject to federal income tax withholding and FICA taxes.
+2. 83(b) election can lock in a low income inclusion and start the long-term capita RSUs: RSUs are not taxable at grant because they are unfunded, unsecured promises. There is nothing of present value to tax.
+3. x. The participant receives the remaining net shares in their brokerage account.
+4. y compensation income, subject to federal income tax withholding and FICA taxes. For RSAs (where no 83(b) was filed), each vesting tranche triggers ordinary income equal to the FMV of the shares on the vesting date, less any purchase price paid.
+5. When RSU shares vest and are delivered, the employer must satisfy its withholding obligation. The predominant method for public company RSUs is: Net share withholding (sell-to-cover): On the vesting date, the plan administrator instructs the broker to withhold a number of shares equal in value to the tax withholding amount.",
+  "scenario": null,
+  "status": "generated",
+  "title": "Reference: How are RSUs taxed?",
+}
+`;
+
+exports[`characterization: POST /api/artifact (pre-Second-Brain baseline) > pins shape + mock output for the rsu-vesting-tax scenario 1`] = `
+{
+  "artifactId": Any<String>,
+  "bodyMarkdown": "Here's a working reference for: How RSU vesting and tax withholding work
+
+## What this covers
+- When RSU shares vest and are delivered, the employer must satisfy its withholding obligation.
+- y compensation income, subject to federal income tax withholding and FICA taxes.
+- For RSUs, the taxable event is delivery of shares—typically the date the vesting condition is satisfied and shares are transferred to the participant's brokerage account.
+- When RSU shares vest, the administrator must: 1.
+- method (typically net share withholding).
+
+## Key points
+1. When RSU shares vest and are delivered, the employer must satisfy its withholding obligation. The predominant method for public company RSUs is: **Net share withholding (sell-to-cover):** On the vesting date, the plan administrator instructs the broker to withhold a number of shares equal in value to the tax withholding amount.
+2. y compensation income, subject to federal income tax withholding and FICA taxes. For RSAs (where no 83(b) was filed), each vesting tranche triggers ordinary income equal to the FMV of the shares on the vesting date, less any purchase price paid.
+3. For RSUs, the taxable event is delivery of shares—typically the date the vesting condition is satisfied and shares are transferred to the participant's brokerage account. At that moment, the FMV of the shares delivered is ordinary compensation income, subject to federal income tax withholding and FICA taxes.
+4. When RSU shares vest, the administrator must: 1. Determine the FMV of the shares on the vesting date (closing market price for public company shares).
+5. method (typically net share withholding). 4.
+
+## Cited topics
+- RSUs & RSAs
+- RSU & ESPP tax",
+  "citations": [
+    {
+      "nodeId": "1.3",
+      "title": "RSUs & RSAs",
+    },
+    {
+      "nodeId": "3.2",
+      "title": "RSU & ESPP tax",
+    },
+  ],
+  "fallbackUsed": false,
+  "logged": true,
+  "quickShare": "Reference: How RSU vesting and tax withholding work
+
+1. When RSU shares vest and are delivered, the employer must satisfy its withholding obligation. The predominant method for public company RSUs is: Net share withholding (sell-to-cover): On the vesting date, the plan administrator instructs the broker to withhold a number of shares equal in value to the tax withholding amount.
+2. y compensation income, subject to federal income tax withholding and FICA taxes. For RSAs (where no 83(b) was filed), each vesting tranche triggers ordinary income equal to the FMV of the shares on the vesting date, less any purchase price paid.
+3. For RSUs, the taxable event is delivery of shares—typically the date the vesting condition is satisfied and shares are transferred to the participant's brokerage account. At that moment, the FMV of the shares delivered is ordinary compensation income, subject to federal income tax withholding and FICA taxes.
+4. When RSU shares vest, the administrator must: 1. Determine the FMV of the shares on the vesting date (closing market price for public company shares).
+5. method (typically net share withholding). 4.",
+  "scenario": {
+    "id": "rsu-vesting-tax",
+    "label": "How RSU vesting and tax withholding work",
+  },
+  "status": "generated",
+  "title": "Reference: How RSU vesting and tax withholding work",
+}
+`;

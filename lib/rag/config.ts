@@ -79,3 +79,30 @@ export const CONTEXTUAL_ENRICHMENT = bool(
 // Chunking.
 export const CHUNK_MAX_CHARS = num(process.env.CHUNK_MAX_CHARS, 500);
 export const CHUNK_OVERLAP = num(process.env.CHUNK_OVERLAP, 80);
+
+// ── Second Brain (SPEC-BRAIN.md) ─────────────────────────────────────────────────
+// Per-user wiki: uploaded-content weighting, graph-aware neighbour expansion,
+// ingest caps, and lint cadence. Additive — nothing here is read by the
+// existing retrieval path until later phases wire it in.
+/** Tier weight for user-uploaded content in retrieval scoring. */
+export const USER_WEIGHT = num(process.env.USER_WEIGHT, 1.0);
+/** Master switch for post-selection neighbour expansion in retrieveMulti. */
+export const GRAPH_EXPANSION = bool(process.env.GRAPH_EXPANSION, true);
+/** Max extra passages pulled in from graph neighbours of top hits. */
+export const NEIGHBOR_LIMIT = num(process.env.NEIGHBOR_LIMIT, 4);
+/** Minimum cosine for a neighbour candidate to be included. */
+export const NEIGHBOR_MIN_COSINE = num(process.env.NEIGHBOR_MIN_COSINE, 0.25);
+/** Per-file upload cap (megabytes) before extraction is attempted. */
+export const BRAIN_MAX_FILE_MB = num(process.env.BRAIN_MAX_FILE_MB, 15);
+/** Per-file extracted-text cap (megabytes) after extraction. */
+export const BRAIN_MAX_TEXT_MB = num(process.env.BRAIN_MAX_TEXT_MB, 1.5);
+/** Soft cap on total passages per brain; surfaced in the UI, never silent. */
+export const BRAIN_MAX_PASSAGES = num(process.env.BRAIN_MAX_PASSAGES, 5000);
+/** Max files accepted in a single upload batch. */
+export const BRAIN_BATCH_LIMIT = num(process.env.BRAIN_BATCH_LIMIT, 10);
+/** Auto-trigger a lint pass after this many appends since the last one. */
+export const LINT_APPEND_THRESHOLD = num(process.env.LINT_APPEND_THRESHOLD, 5);
+/** Auto-trigger a lint pass if the last one is older than this many days. */
+export const LINT_STALE_DAYS = num(process.env.LINT_STALE_DAYS, 7);
+/** Max number of loaded brain deltas kept warm in the in-process LRU. */
+export const BRAIN_LRU = num(process.env.BRAIN_LRU, 50);

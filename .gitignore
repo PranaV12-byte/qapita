@@ -49,3 +49,6 @@ scrape-inbox/
 data/.embed-cache.json
 data/scrape-manifest.json
 data/scrape-review/
+
+# Second Brain (per-user wikis — generated, anonymous-cookie-keyed)
+data/brains/

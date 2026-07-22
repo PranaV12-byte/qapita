@@ -3,7 +3,7 @@
 // VectorStore, Reranker). Changing an implementation of any interface must never
 // require touching a consumer.
 
-export type Tier = "curated" | "scrape";
+export type Tier = "curated" | "scrape" | "user";
 
 /** Where a scrape chunk came from (for citation labels). Curated content omits it. */
 export type SourceName = "curated" | "myStockOptions" | "NASPP" | (string & {});
@@ -15,9 +15,12 @@ export type SourceName = "curated" | "myStockOptions" | "NASPP" | (string & {});
  */
 export type ChunkMeta = {
   tier: Tier;
-  /** Real tree node id (e.g. "3.2"), the GENERAL_NODE_ID sentinel, or undefined. */
+  /** Real tree node id (e.g. "3.2"), the GENERAL_NODE_ID sentinel, a brain-local
+   *  "u-<slug>" node id (tier "user" only), or undefined. */
   nodeId?: string;
   source?: SourceName;
+  /** Which uploaded source this chunk came from (tier "user" only). */
+  sourceId?: string;
   /** Document title (from filename / _index.md) — used for context + citation. */
   title?: string;
   /** Joined heading trail, e.g. "Taxes > ISO taxation > AMT". */
@@ -60,6 +63,24 @@ export type RetrievalResult = {
   chunks: RetrievalChunk[];
   fallbackUsed: boolean;
   fallbackScenario?: { id: string; label: string };
+};
+
+/**
+ * Distinguishes what a citation points at, so the UI can link/label correctly:
+ * a curated topic-tree node, a user-uploaded source, or a brain-local "u-"
+ * node created for genuinely novel content. Not yet wired into the API
+ * response or ArtifactResult (Phase 4) or the UI (Phase 6) — defined here now
+ * as the shared home for the data model, per this file's own convention.
+ */
+export type CitationKind = "topic" | "source" | "user-node";
+
+/** A citation surfaced to the user. `kind`/`sourceId` are optional so existing
+ *  {nodeId, title} citation shapes remain valid until Phase 4 wires this in. */
+export type Citation = {
+  kind?: CitationKind;
+  nodeId?: string;
+  sourceId?: string;
+  title: string;
 };
 
 // ── Swap-boundary interfaces ────────────────────────────────────────────────────
