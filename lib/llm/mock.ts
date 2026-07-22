@@ -1,5 +1,5 @@
 import type { ArtifactResult, LLMProvider } from "@/lib/llm/types";
-import type { RetrievalChunk } from "@/lib/rag/types";
+import type { RetrievalChunk, Citation } from "@/lib/rag/types";
 import { getNode } from "@/lib/content/tree";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "@/lib/rag/config";
 
@@ -47,6 +47,20 @@ function distinctNodes(chunks: RetrievalChunk[]): { nodeId: string; title: strin
   return out;
 }
 
+/** Distinct citations for user-uploaded chunks, keyed by sourceId. Explicit
+ *  handling (not nodeLabel, which returns null for "u-" node ids) is the fix
+ *  for the confirmed pre-Phase-4 bug where user citations were dropped. */
+function distinctUserSources(chunks: RetrievalChunk[]): Citation[] {
+  const seen = new Set<string>();
+  const out: Citation[] = [];
+  for (const c of chunks) {
+    if (!c.sourceId || seen.has(c.sourceId)) continue;
+    seen.add(c.sourceId);
+    out.push({ kind: "source", sourceId: c.sourceId, title: c.title ?? "Your source" });
+  }
+  return out;
+}
+
 export class MockLLM implements LLMProvider {
   async generate(
     query: string,
@@ -60,6 +74,42 @@ export class MockLLM implements LLMProvider {
     const title = `Reference: ${query.slice(0, 80)}`;
     const curated = chunks.filter((c) => c.tier === "curated");
     const scrape = chunks.filter((c) => c.tier === "scrape");
+    const user = chunks.filter((c) => c.tier === "user");
+
+    // ── User path: the wiki has the user's own uploads. Under the Phase-4
+    // quoting policy their content IS quotable back to them, WITH attribution.
+    // Only reached when a brain delta contributed chunks — the empty-brain
+    // paths below stay byte-identical to the pre-Second-Brain baseline. ──
+    if (user.length > 0) {
+      const userBullets = user
+        .slice(0, 5)
+        .map((c) => `- From **${c.title ?? "your source"}**: ${firstSentences(c.text, 1)}`)
+        .join("\n");
+
+      const topicCitations = distinctNodes([...curated, ...scrape]);
+      const sourceCitations = distinctUserSources(user);
+      const citations: Citation[] = [...topicCitations, ...sourceCitations];
+
+      const relatedBlock =
+        curated.length > 0
+          ? ["", "## Related curated topics", distinctNodes(curated).map((c) => `- ${c.title}`).join("\n")]
+          : [];
+
+      const bodyMarkdown = [
+        `Here's what your wiki has on: ${query}`,
+        "",
+        "## From your sources",
+        userBullets,
+        ...relatedBlock,
+      ].join("\n");
+
+      const plainUser = user
+        .slice(0, 5)
+        .map((c) => `- From ${c.title ?? "your source"}: ${firstSentences(stripMarkdown(c.text), 1)}`);
+      const quickShare = [title, "", ...plainUser].join("\n").trim();
+
+      return { title, bodyMarkdown, citations, quickShare };
+    }
 
     // ── Curated path: safe to summarize our own reviewed content. ──
     if (curated.length > 0) {

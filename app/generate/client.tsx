@@ -10,7 +10,12 @@ import {
   isSubmitDisabled,
 } from "@/lib/generate-utils";
 
-type Citation = { nodeId: string; title: string };
+type Citation = {
+  kind?: "topic" | "source" | "user-node";
+  nodeId?: string;
+  sourceId?: string;
+  title: string;
+};
 
 type ApiResponse = {
   artifactId: string;

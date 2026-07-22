@@ -91,8 +91,12 @@ describe("MockLLM", () => {
     ];
     const result = await mock.generate("RSU withholding", chunks);
     const inputNodeIds = new Set(["1.3", "3.4"]);
+    // Citation.nodeId is optional post-Phase-4 (user citations carry sourceId
+    // instead); these are all curated chunks, so every citation must still
+    // carry a nodeId, and it must come from the input.
     result.citations.forEach((c) => {
-      expect(inputNodeIds.has(c.nodeId)).toBe(true);
+      expect(c.nodeId).toBeDefined();
+      expect(inputNodeIds.has(c.nodeId!)).toBe(true);
     });
   });
 

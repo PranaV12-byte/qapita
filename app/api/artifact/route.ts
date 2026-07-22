@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { retrieve } from "@/lib/rag/retriever";
 import { getLLMProvider } from "@/lib/llm/provider";
 import { logArtifact } from "@/lib/log";
 import { SCENARIOS } from "@/lib/scenarios";
+import { getBrainId } from "@/lib/brain/id";
+import { brainStore } from "@/lib/brain/store";
+import { retrieveForBrain } from "@/lib/brain/retrieval";
 
 export const runtime = "nodejs";
 
@@ -35,7 +37,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const retrieval = await retrieve(query, boostNodeId);
+  // Brain-aware: retrieve against the caller's wiki (foundation ⊕ their delta).
+  // No brain / an empty brain → foundation-only, byte-identical to before.
+  const brainId = getBrainId(req.headers);
+  const retrieval = await retrieveForBrain(query, brainId, { nodeId: boostNodeId });
   const provider = getLLMProvider();
   const result = await provider.generate(query, retrieval.chunks);
 
@@ -54,8 +59,23 @@ export async function POST(req: NextRequest) {
     fallbackUsed: retrieval.fallbackUsed,
   });
 
+  const artifactId = randomUUID();
+
+  // Per-brain answer log — powers node backlinks + a recent-questions list.
+  // Only when the caller actually has a wiki (avoids creating a brain dir on
+  // a bare chat visit).
+  if (brainId && brainStore.brainExists(brainId)) {
+    brainStore.appendAnswer(brainId, {
+      artifactId,
+      query,
+      title: result.title,
+      citations: result.citations,
+      ts: new Date().toISOString(),
+    });
+  }
+
   return NextResponse.json({
-    artifactId: randomUUID(),
+    artifactId,
     title: result.title,
     bodyMarkdown: result.bodyMarkdown,
     quickShare: result.quickShare,

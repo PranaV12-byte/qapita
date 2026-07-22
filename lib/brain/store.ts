@@ -39,6 +39,17 @@ export type BrainPaths = {
   sourcesDir: string;
   manifestPath: string;
   journalPath: string;
+  answersPath: string;
+};
+
+/** One logged answer — powers node backlinks ("cited by N answers") and a
+ *  recent-questions list, without persisting full chat threads. */
+export type BrainAnswer = {
+  artifactId: string;
+  query: string;
+  title: string;
+  citations: { kind?: string; nodeId?: string; sourceId?: string; title: string }[];
+  ts: string;
 };
 
 /** Writes never leave a partially-written destination file: always write to a
@@ -99,6 +110,8 @@ export type BrainStore = {
   loadManifest(brainId: string): BrainManifest | null;
   saveManifest(brainId: string, manifest: BrainManifest): void;
   appendJournal(brainId: string, line: string): void;
+  /** Append one answer to the brain's answers.jsonl (JSONL, like lib/log.ts). */
+  appendAnswer(brainId: string, answer: BrainAnswer): void;
   /** Creates a brand-new brain: dir + sources/ + manifest.json + a journal line.
    *  Only call this when about to add real content — never on a bare page load. */
   createBrain(brainId: string): BrainManifest;
@@ -129,6 +142,7 @@ export function createBrainStore(rootDir: string = DEFAULT_BRAINS_DIR): BrainSto
       sourcesDir: path.join(dir, "sources"),
       manifestPath: path.join(dir, "manifest.json"),
       journalPath: path.join(dir, "journal.md"),
+      answersPath: path.join(dir, "answers.jsonl"),
     };
   }
 
@@ -152,6 +166,12 @@ export function createBrainStore(rootDir: string = DEFAULT_BRAINS_DIR): BrainSto
     const { journalPath, dir } = brainPaths(brainId);
     fs.mkdirSync(dir, { recursive: true });
     fs.appendFileSync(journalPath, line.endsWith("\n") ? line : line + "\n");
+  }
+
+  function appendAnswer(brainId: string, answer: BrainAnswer): void {
+    const { answersPath, dir } = brainPaths(brainId);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(answersPath, JSON.stringify(answer) + "\n");
   }
 
   function createBrain(brainId: string): BrainManifest {
@@ -190,6 +210,7 @@ export function createBrainStore(rootDir: string = DEFAULT_BRAINS_DIR): BrainSto
     loadManifest,
     saveManifest,
     appendJournal,
+    appendAnswer,
     createBrain,
     eraseBrain,
     withLock,

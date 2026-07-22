@@ -57,6 +57,9 @@ export type RetrievalChunk = ChunkMeta & {
   cosine: number;
   /** Parent-section text for generation context (may equal `text` if no parent). */
   parentText?: string;
+  /** True when pulled in by graph neighbour expansion rather than direct
+   *  relevance — the prompt lists these after the primary hits (Phase 4). */
+  neighbor?: boolean;
 };
 
 export type RetrievalResult = {

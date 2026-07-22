@@ -4,7 +4,12 @@ import { useState, useRef } from "react";
 import { getNode } from "@/lib/content/tree";
 import { getCopyLabel } from "@/lib/generate-utils";
 
-type Citation = { nodeId: string; title: string };
+type Citation = {
+  kind?: "topic" | "source" | "user-node";
+  nodeId?: string;
+  sourceId?: string;
+  title: string;
+};
 
 type Props = {
   artifactId: string;
@@ -191,27 +196,57 @@ export default function ArtifactResult({
         {quickShare}
       </pre>
 
-      {/* Sources — directly under the text */}
-      {citations.length > 0 && (
-        <div className="mt-4">
-          <p className="text-xs text-[var(--text-muted)] mb-2">Sources</p>
-          <div className="flex flex-wrap gap-2">
-            {citations.map((c) => {
-              const node = getNode(c.nodeId);
-              const href = node ? `/a/${node.pillarSlug}/${node.slug}` : "#";
-              return (
-                <a
-                  key={c.nodeId}
-                  href={href}
-                  className="text-xs px-2 py-1 rounded border border-[var(--border)] text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
-                >
-                  {c.title}
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Sources — directly under the text. User uploads (kind source/
+          user-node) link into the wiki graph; topics link to their article. */}
+      {citations.length > 0 &&
+        (() => {
+          const isUser = (c: Citation) => c.kind === "source" || c.kind === "user-node";
+          const yourSources = citations.filter(isUser);
+          const topics = citations.filter((c) => !isUser(c));
+          const chipClass =
+            "text-xs px-2 py-1 rounded border border-[var(--border)] text-[var(--accent)] hover:border-[var(--accent)] transition-colors";
+
+          const focusId = (c: Citation) => c.sourceId ?? c.nodeId ?? "";
+
+          return (
+            <div className="mt-4 space-y-3">
+              {yourSources.length > 0 && (
+                <div>
+                  <p className="text-xs text-[var(--text-muted)] mb-2">Your sources</p>
+                  <div className="flex flex-wrap gap-2">
+                    {yourSources.map((c, i) => (
+                      <a
+                        key={`u-${focusId(c)}-${i}`}
+                        href={`/brain?focus=${encodeURIComponent(focusId(c))}`}
+                        className={chipClass}
+                      >
+                        {c.title}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {topics.length > 0 && (
+                <div>
+                  <p className="text-xs text-[var(--text-muted)] mb-2">
+                    {yourSources.length > 0 ? "Topics" : "Sources"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {topics.map((c, i) => {
+                      const node = c.nodeId ? getNode(c.nodeId) : undefined;
+                      const href = node ? `/a/${node.pillarSlug}/${node.slug}` : "#";
+                      return (
+                        <a key={`t-${c.nodeId ?? i}`} href={href} className={chipClass}>
+                          {c.title}
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       {/* Actions — at the bottom of the answer */}
       <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-wrap items-center gap-2">
