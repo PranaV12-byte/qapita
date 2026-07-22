@@ -1,0 +1,6 @@
+Equity note: incentive stock options (ISOs)
+
+ISOs receive favorable tax treatment if holding-period requirements are met:
+shares must be held more than two years from grant and more than one year
+from exercise. Exercising ISOs can trigger the alternative minimum tax (AMT)
+even though no regular income tax is due at exercise.
