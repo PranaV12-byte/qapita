@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Home", href: "/" },
   { label: "Browse", href: "/browse" },
   { label: "Glossary", href: "/glossary" },
+  { label: "My Brain", href: "/brain" },
 ];
 
 // Extra destinations surfaced only in the mobile drawer.

@@ -65,8 +65,23 @@ export default function GenerateClient({
   const [offline, setOffline] = useState(false);
   const [emptyHint, setEmptyHint] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
+  const [wikiSources, setWikiSources] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // How many of the user's own sources back their answers (the wiki strip).
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/brain")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.counts) setWikiSources(d.counts.sources ?? 0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const nodeTitle = nodeId ? getNode(nodeId)?.title : undefined;
   const placeholder = nodeTitle
@@ -245,6 +260,15 @@ export default function GenerateClient({
             >
               ✕
             </button>
+          </div>
+        )}
+
+        {wikiSources > 0 && (
+          <div className="mb-2 text-xs text-[var(--text-muted)]">
+            Answering from your wiki ·{" "}
+            <a href="/brain" className="text-[var(--accent)] hover:underline">
+              {wikiSources} source{wikiSources === 1 ? "" : "s"}
+            </a>
           </div>
         )}
 
