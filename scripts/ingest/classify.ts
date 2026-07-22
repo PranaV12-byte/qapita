@@ -5,12 +5,19 @@ import { loadAllArticles } from "../../lib/content/loader";
 import { ALL_NODES } from "../../lib/content/tree";
 import { getEmbedder } from "../../lib/rag/embedder";
 import { cosineSimilarity } from "../../lib/rag/cosine";
+import { extractTitleAndLead } from "../../lib/rag/textProbe";
 import {
   CLASSIFY_MIN_CONFIDENCE,
   CLASSIFY_NODE_CONFIDENCE,
   GENERAL_NODE_ID,
   GENERAL_NODE_TITLE,
 } from "../../lib/rag/config";
+
+// Re-exported so existing imports of `extractTitleAndLead` from this module
+// keep working — the implementation now lives in lib/rag/textProbe.ts so
+// lib/brain/healthCheck.ts can use it without depending on this file's
+// fast-glob import (a devDependency; wrong to pull into a runtime bundle).
+export { extractTitleAndLead };
 
 const HEADER = [
   "filePath",
@@ -22,48 +29,6 @@ const HEADER = [
   "secondBestConfidence",
   "flaggedChunks",
 ];
-
-/** First H1 + first paragraph or two — the strongest topic signal per file. */
-export function extractTitleAndLead(md: string): { title: string; lead: string } {
-  const lines = md.split(/\r?\n/);
-  let title = "";
-  const paras: string[] = [];
-  let buf: string[] = [];
-  let inFence = false;
-
-  for (const line of lines) {
-    if (/^\s*(```|~~~)/.test(line)) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence) continue;
-
-    const h1 = line.match(/^#\s+(.+)/);
-    if (h1 && !title) {
-      title = h1[1].trim();
-      continue;
-    }
-    if (/^#{1,6}\s+/.test(line)) {
-      if (buf.length) {
-        paras.push(buf.join(" "));
-        buf = [];
-      }
-      continue;
-    }
-    if (line.trim() === "") {
-      if (buf.length) {
-        paras.push(buf.join(" "));
-        buf = [];
-      }
-    } else {
-      buf.push(line.trim());
-    }
-    if (paras.length >= 2) break;
-  }
-  if (buf.length) paras.push(buf.join(" "));
-
-  return { title, lead: paras.slice(0, 2).join(" ").slice(0, 600) };
-}
 
 function csv(s: string): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;

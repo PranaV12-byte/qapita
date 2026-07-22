@@ -52,3 +52,5 @@ data/scrape-review/
 
 # Second Brain (per-user wikis — generated, anonymous-cookie-keyed)
 data/brains/
+data/node-targets.bin
+data/node-targets.json
