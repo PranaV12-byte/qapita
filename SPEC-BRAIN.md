@@ -1,7 +1,7 @@
 # SPEC-BRAIN — Second Brain ("the Wiki")
 
-> **Status: approved plan, pending final user review. Do not start before review sign-off.**
-> Flagship feature. Implementation is phased; **every phase ends with a hard gate** (typecheck + tests + manual verify) — a phase is not done until its gate is green, and a red gate blocks the next phase.
+> **Status: IMPLEMENTED — Phases 0–7 complete, every gate green.** Baseline 241 tests → **371** on completion; `tsc --noEmit` clean throughout; `retrieveWith` + the empty-brain `/api/artifact` characterization snapshot never changed. Deviations from this plan are recorded in §9.
+> Flagship feature. Implementation was phased; **every phase ended with a hard gate** (typecheck + full tests + verify) and its own checkpoint commit.
 
 ---
 
@@ -326,5 +326,14 @@ Accounts/login (identity seam ready) · cross-user sharing · editing the founda
 
 ## 8. Open items
 
-1. **NASPP verbatim quoting** — implemented per user direction; confirm it sits within the NASPP authorization/license before any external demo.
-2. XLSX parser choice locked to `exceljs` pending the Phase-0 offline spike; §3.6 records the fallback decision path if the spike fails.
+1. **NASPP verbatim quoting** — implemented per owner direction; confirm it sits within the NASPP authorization/license before any external demo. (CLAUDE.md #5/#10 updated to match.)
+2. XLSX parser `exceljs` — verified offline in the Phase-0 spike; no fallback needed.
+
+## 9. Deviations from the plan (with why)
+
+- **`lib/rag/textProbe.ts` (new, Phase 2):** `extractTitleAndLead` was moved here out of `scripts/ingest/classify.ts` (which re-exports it) so runtime brain code can reuse it without importing classify.ts's `fast-glob` (a devDependency) into a server bundle. Pure move; classify's tests pass unchanged.
+- **`lib/brain/id.ts` (new, Phase 3):** identity helpers split out of `store.ts` because `middleware.ts` runs on the Edge runtime and can't import a `node:fs` module. Also fixed a real Phase-1 gap — middleware now validates the incoming cookie before trusting it as a path component (regression-tested).
+- **Citations (Phase 4):** the route keeps returning the provider's citations (so the empty-brain characterization snapshot stays byte-identical); the mock emits user-source citations directly, and `resolveCitations` is the server-side resolver for the brain API — rather than having the route overwrite citations (which would have changed the pinned snapshot). Net effect matches the spec's intent (user sources never dropped).
+- **`safeCall` (Phase 5):** added to `maintain.ts` so a caller that *throws* (not just returns null) still falls back to the heuristic — a robustness gap surfaced by the throwing-caller parity test, not in the original plan.
+- **Foundation "related" edges (Phases 4/6):** `graph.ts` stays pure — the page supplies curated `related` pairs from article frontmatter as an input. Neighbour expansion's "related-node" step is realized via the tree's pillar grouping (since `related` lives in frontmatter, not `tree.ts`); crossLinks provide the user-driven related edges.
+- **`brainId` to the client (Phase 6):** passed as a prop for the erase confirm-token (the httpOnly cookie is unreadable by JS). Acceptable — it's the user's own anonymous id, not a credential.

@@ -2,19 +2,19 @@
 
 > **Current phase: Phase 1 — RAG chatbot demo.** Spec: `SPEC-PHASE1.md`.
 > Phase 2 (browse, glossary, search, content pages): `SPEC-PHASE2.md` — do NOT implement yet.
-> **Flagship feature (active work): Second Brain / the Wiki — spec: `SPEC-BRAIN.md`.** Implement strictly phase-by-phase per its §4 protocol; a phase only starts after the previous phase's gate (tsc + full tests + manual checks) is green and committed.
+> **Flagship feature (IMPLEMENTED): Second Brain / the Wiki — spec: `SPEC-BRAIN.md` (Phases 0–7 complete, gates green).** See the "Second Brain" section below. Any further changes still follow SPEC-BRAIN §2 invariants + §4 protocol.
 
 ## Golden rules
 1. `npm i && npm run dev` MUST work with zero external services and zero API keys (mock path).
 2. Embeddings are ALWAYS local via `@xenova/transformers` — no API key, no network at runtime. Default offline-ready model: `all-MiniLM-L6-v2` (384-dim). Upgrade to `bge-base-en-v1.5` (768-dim, asymmetric — query instruction prefix on queries only) by placing its ONNX weights locally and setting `EMBEDDER_MODEL` / `EMBEDDING_DIM=768` / `EMBED_QUERY_PREFIX`. Optional local cross-encoder rerank (`ms-marco-MiniLM-L-6-v2`) via `RERANK_ENABLED=true` once its weights are present. Retrieval is hybrid dense+lexical (RRF) with tier weighting, scrape-tier dedup, and parent-section context expansion. Set `ALLOW_REMOTE_MODELS=true` only on a networked machine to fetch model weights once.
 3. Only text generation is env-switched: `LLM_PROVIDER=mock|groq|anthropic`.
 4. No database. Vector index = `data/vectors.bin` + `data/chunks.json`. Logs = JSONL / console.
-5. Never render raw-scrape text verbatim. Never quote or closely paraphrase scrape-tier chunks.
+5. Quoting policy (UPDATED for Second Brain, per owner direction): answers MAY quote or closely paraphrase both NASPP scrape-tier grounding and the user's own uploaded (`user`-tier) content — **always WITH attribution** (quoted user material names its source; quoted reference material is presented as sourced grounding, not the assistant's own assertion). This supersedes the former "never reproduce scrape text" rule. Open item: confirm verbatim NASPP quoting sits within the NASPP authorization/license before any external demo (`SPEC-BRAIN.md` §8).
 6. Every page: disclaimer + `<meta name="robots" content="noindex">`. The site header shows the AUTHORIZED NASPP | Qapita co-brand lockup — official marks in `public/brand/` (naspp.png, qapita.png — both transparent, white knocked out) wired via `components/brand/Logos.tsx`, sitting directly on the dark bar with a separator. NASPP branding/content is NOT otherwise reproduced anywhere else.
 7. Windows dev box: use `tsx`, `node:path`, `fast-glob`; no bash-isms in scripts.
 8. Use `next-mdx-remote/rsc` (NOT @next/mdx). Use `@react-pdf/renderer` (NOT Playwright).
 9. All inputs/textareas fixed 16px (prevents iOS zoom). Tap targets >= 44x44px.
-10. Content = real equity-comp facts, own words, grounded in primary authorities (IRC/IRS/SEC/FASB/ASC 718). NASPP data MAY be ingested as scrape-tier retrieval grounding; **myStockOptions (the internal `NSO` corpus) is NOT used at all — it is excluded at ingest in `scripts/ingest/build.ts`** (any source resolving to `myStockOptions` is skipped). Ingested NASPP expression is NEVER reproduced — not verbatim and not paraphrased/reworded. Answers state the underlying facts (facts are not copyrightable) in genuinely original wording; the source text only grounds what is true, it is never rewritten into the output. (Reinforces rule #5.)
+10. Content = real equity-comp facts grounded in primary authorities (IRC/IRS/SEC/FASB/ASC 718). NASPP data is ingested as scrape-tier grounding and, per rule #5, MAY now be quoted with attribution (open item: confirm it's within the NASPP authorization/license). **myStockOptions (the internal `NSO` corpus) is NOT used at all — excluded at ingest in `scripts/ingest/build.ts`** (any source resolving to `myStockOptions` is skipped). User-uploaded material is the `user` tier — a per-brain overlay, quotable back to the same user (their own content). For general equity-comp facts, still prefer original wording (facts are not copyrightable).
 
 ## Design tokens (CSS variables, wire into Tailwind)
 ```
@@ -37,6 +37,18 @@ Next.js App Router + TS strict + Tailwind + next-mdx-remote/rsc + gray-matter + 
 - Top-k after merge: 8, scrape cap: 3
 - Fallback threshold (curated cosine): 0.35
 - Fallback = nearest scenario by cosine over pre-embedded scenario vectors
+
+## Second Brain (flagship — `SPEC-BRAIN.md`)
+Per-user "wiki": the shared foundation (curated + NASPP) with each visitor's uploads woven in; every question retrieves against foundation ⊕ their delta as ONE graph.
+- **Identity:** anonymous `q4np-brain` httpOnly cookie via `middleware.ts` (no accounts). `lib/brain/id.ts` is the Edge-safe home for `isValidBrainId`/`getBrainId`.
+- **Storage:** flat files under `data/brains/<brainId>/` (gitignored) — `lib/brain/store.ts` is the ONLY module that writes there (atomic temp+rename, per-brain mutex, LRU). No DB (rule #4 holds). `data/node-targets.{bin,json}` is a gitignored classification cache.
+- **`user` tier:** new `Tier` member; `ChunkMeta.sourceId` groups a source's chunks; brain-local topic ids are `u-<slug>`. Citations carry `kind: topic|source|user-node`, resolved server-side (`lib/brain/retrieval.ts`) so user sources are never dropped.
+- **Ingest:** `POST /api/brain/sources` (multipart, ≤10/batch) → per-file job (`lib/brain/jobs.ts`) → `extract.ts` (md/txt/pdf/docx/csv/tsv/xlsx/html/json via lazy `unpdf`/`mammoth`/`exceljs`/`turndown`) → `healthCheck.ts` (readable/caps/on-topic/duplicate/non-English) → `placement.ts` + `weave.ts` (append preserving the vectors↔chunks↔lexical row-alignment invariant).
+- **Retrieval:** `retrieveMulti` (additive; `retrieveWith` untouched) + graph neighbour expansion (`GRAPH_EXPANSION`). Empty brain = byte-identical to the pre-brain path (characterization-pinned).
+- **LLM maintenance** (`maintain.ts`): placement / node-summaries / lint review, all behind `LLM_PROVIDER` with **deterministic heuristic parity offline** — ingest/lint never block on the LLM. Prompts fence uploaded content as data (injection defense).
+- **Lint** (`lint.ts`): cadence (≥`LINT_APPEND_THRESHOLD` appends or >`LINT_STALE_DAYS` days) + on-demand; auto-applies structural fixes, destructive fixes route through DELETE.
+- **Retention:** `npm run brains:prune` (dry-run default; `--days N --apply`). Erase via `DELETE /api/brain`.
+- **New config** (`lib/rag/config.ts`, all env-overridable): `USER_WEIGHT`, `GRAPH_EXPANSION`, `NEIGHBOR_LIMIT`, `NEIGHBOR_MIN_COSINE`, `BRAIN_MAX_FILE_MB`, `BRAIN_MAX_TEXT_MB`, `BRAIN_MAX_PASSAGES`, `BRAIN_BATCH_LIMIT`, `LINT_APPEND_THRESHOLD`, `LINT_STALE_DAYS`, `BRAIN_LRU`.
 
 ## Key microcopy (use verbatim)
 - Draft strip: "Draft — AI-generated, not reviewed · Educational only, not advice"
