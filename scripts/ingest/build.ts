@@ -96,11 +96,19 @@ export async function buildIndex(outputDir: string = DATA_DIR): Promise<void> {
   // ── Scrape files (from reviewed manifest) ──
   const manifestPath = path.join(outputDir, "scrape-manifest.json");
   let scrapeCount = 0;
+  let excludedMso = 0;
   if (fs.existsSync(manifestPath)) {
     const manifest = JSON.parse(
       fs.readFileSync(manifestPath, "utf-8")
     ) as ScrapeManifestItem[];
     for (const item of manifest) {
+      const source = item.source ?? inferSource(item.filePath);
+      // Policy: myStockOptions (NSO) data is never ingested — NASPP-only grounding.
+      // Enforced here so exclusion holds even if the manifest is regenerated.
+      if (source === "myStockOptions") {
+        excludedMso++;
+        continue;
+      }
       if (!fs.existsSync(item.filePath)) {
         console.warn(`[build] missing scrape file, skipping: ${item.filePath}`);
         continue;
@@ -112,14 +120,16 @@ export async function buildIndex(outputDir: string = DATA_DIR): Promise<void> {
       await addDoc(raw, {
         tier: "scrape",
         nodeId: item.nodeId,
-        source: item.source ?? inferSource(item.filePath),
+        source,
         docId: item.filePath,
         titleFallback: fallbackTitle,
       });
       scrapeCount++;
     }
   }
-  console.log(`[build] scrape files: ${scrapeCount}`);
+  console.log(
+    `[build] scrape files: ${scrapeCount} (excluded myStockOptions: ${excludedMso})`
+  );
 
   // ── Scenario entries ──
   for (const s of SCENARIOS) {

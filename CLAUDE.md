@@ -13,7 +13,7 @@
 7. Windows dev box: use `tsx`, `node:path`, `fast-glob`; no bash-isms in scripts.
 8. Use `next-mdx-remote/rsc` (NOT @next/mdx). Use `@react-pdf/renderer` (NOT Playwright).
 9. All inputs/textareas fixed 16px (prevents iOS zoom). Tap targets >= 44x44px.
-10. Content = real equity-comp facts, own words, grounded in primary authorities (IRC/IRS/SEC/FASB/ASC 718). myStockOptions and NASPP data MAY be ingested as scrape-tier retrieval grounding, but their expression is NEVER reproduced — not verbatim and not paraphrased/reworded. Answers state the underlying facts (facts are not copyrightable) in genuinely original wording; the source text only grounds what is true, it is never rewritten into the output. (Reinforces rule #5.)
+10. Content = real equity-comp facts, own words, grounded in primary authorities (IRC/IRS/SEC/FASB/ASC 718). NASPP data MAY be ingested as scrape-tier retrieval grounding; **myStockOptions (the internal `NSO` corpus) is NOT used at all — it is excluded at ingest in `scripts/ingest/build.ts`** (any source resolving to `myStockOptions` is skipped). Ingested NASPP expression is NEVER reproduced — not verbatim and not paraphrased/reworded. Answers state the underlying facts (facts are not copyrightable) in genuinely original wording; the source text only grounds what is true, it is never rewritten into the output. (Reinforces rule #5.)
 
 ## Design tokens (CSS variables, wire into Tailwind)
 ```

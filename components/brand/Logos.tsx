@@ -35,7 +35,7 @@ export function QapitaLogo({ className }: { className?: string }) {
  */
 export function BrandLockup({ compact = false }: { compact?: boolean }) {
   const naspp = compact ? "h-4" : "h-5";
-  const qapita = compact ? "h-5" : "h-6";
+  const qapita = compact ? "h-7" : "h-8";
   return (
     <Link
       href="/"
