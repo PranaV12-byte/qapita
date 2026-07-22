@@ -9,6 +9,7 @@
     "build:search": "tsx scripts/ingest/build-search.ts",
     "classify": "tsx scripts/ingest/classify.ts",
     "apply-classification": "tsx scripts/ingest/apply-classification.ts",
+    "brains:prune": "tsx scripts/brain/prune.ts",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run"

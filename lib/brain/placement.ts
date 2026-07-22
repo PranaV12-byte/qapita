@@ -4,6 +4,7 @@ import { cosineSimilarity } from "../rag/cosine";
 import { chunkMarkdown } from "../rag/chunker";
 import { extractTitleAndLead } from "../rag/textProbe";
 import { getNodeTargets } from "./healthCheck";
+import { proposePlacement, type RawLLMCaller } from "./maintain";
 import type { Embedder } from "../rag/types";
 import { CLASSIFY_MIN_CONFIDENCE, CLASSIFY_NODE_CONFIDENCE, GENERAL_NODE_ID } from "../rag/config";
 
@@ -27,6 +28,8 @@ export type PlacementPlan = {
 export type PlacementOpts = {
   embedder?: Embedder;
   dataDir?: string;
+  /** LLM caller (maintain.ts). Offline/no-provider → null → heuristic below. */
+  caller?: RawLLMCaller;
 };
 
 /** Moderate pairwise cosine among a document's own sections — the bar for
@@ -64,6 +67,15 @@ export async function planPlacement(
 
   const { sections } = chunkMarkdown(markdown, { title });
   if (sections.length === 0) return { sectionNodeIds: [], newNodes: [] };
+
+  // LLM-first placement (SPEC-BRAIN.md Phase 5): inert offline / no provider —
+  // proposePlacement returns null → the heuristic below runs unchanged, so the
+  // existing placement tests (which set no provider) stay green.
+  const sectionSummaries = sections.map((s) =>
+    [s.headingPath, s.text].filter(Boolean).join(" — ")
+  );
+  const llmPlan = await proposePlacement(title, sectionSummaries, { caller: opts.caller });
+  if (llmPlan) return llmPlan;
 
   const { targets, vectors: targetVecs } = await getNodeTargets(embedder, dataDir);
 

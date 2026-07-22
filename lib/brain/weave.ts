@@ -4,7 +4,10 @@ import { chunkMarkdown } from "../rag/chunker";
 import { buildLexicalIndex } from "../rag/lexical";
 import { getEmbedder } from "../rag/embedder";
 import { buildEmbedInput } from "../../scripts/ingest/contextualize";
+import { getNode } from "../content/tree";
+import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "../rag/config";
 import { brainStore, atomicWriteFileSync, type BrainStore, type BrainManifest } from "./store";
+import { summarizeNode, type RawLLMCaller } from "./maintain";
 import type { ExistingSourceProbe } from "./healthCheck";
 import type { ChunkMeta, ParentSection, Embedder } from "../rag/types";
 import type { PlacementPlan } from "./placement";
@@ -21,10 +24,14 @@ export type { PlacementPlan, NewNodeProposal } from "./placement";
 
 export type GraphUserNode = { id: string; title: string; createdAt: string };
 export type GraphEdge = { sourceId: string; nodeId: string; passageCount: number };
+/** Node↔node "related" link, inferred by co-occurrence (a source that feeds
+ *  both nodes). `a` < `b` lexically so pairs dedupe regardless of order. */
+export type CrossLink = { a: string; b: string };
 export type BrainGraph = {
   userNodes: Record<string, GraphUserNode>;
   edges: GraphEdge[];
-  /** Populated by Phase 5's LLM/heuristic maintenance — empty for now. */
+  crossLinks: CrossLink[];
+  /** nodeId → concise summary (LLM when a provider is on, extractive otherwise). */
   nodeSummaries: Record<string, string>;
 };
 
@@ -49,9 +56,32 @@ export type WeaveSourceParams = {
   embedder?: Embedder;
   /** Injectable for tests; defaults to the real data/brains-backed store. */
   store?: BrainStore;
+  /** LLM caller for node summaries (maintain.ts). Null/offline → extractive. */
+  caller?: RawLLMCaller;
 };
 
-const emptyGraph = (): BrainGraph => ({ userNodes: {}, edges: [], nodeSummaries: {} });
+const MAX_SUMMARY_NODES_PER_INGEST = 10;
+
+const emptyGraph = (): BrainGraph => ({
+  userNodes: {},
+  edges: [],
+  crossLinks: [],
+  nodeSummaries: {},
+});
+
+function nodeTitleFor(nodeId: string, graph: BrainGraph): string {
+  if (nodeId === GENERAL_NODE_ID) return GENERAL_NODE_TITLE;
+  if (nodeId.startsWith("u-")) return graph.userNodes[nodeId]?.title ?? nodeId;
+  return getNode(nodeId)?.title ?? nodeId;
+}
+
+function addCrossLink(graph: BrainGraph, x: string, y: string): void {
+  const [a, b] = x < y ? [x, y] : [y, x];
+  if (a === b) return;
+  if (!graph.crossLinks.some((l) => l.a === a && l.b === b)) {
+    graph.crossLinks.push({ a, b });
+  }
+}
 
 function graphPath(store: BrainStore, brainId: string): string {
   return path.join(store.brainPaths(brainId).dir, "graph.json");
@@ -61,10 +91,17 @@ export function loadGraph(brainId: string, opts: { store?: BrainStore } = {}): B
   const store = opts.store ?? brainStore;
   const gp = graphPath(store, brainId);
   if (!fs.existsSync(gp)) return emptyGraph();
-  return JSON.parse(fs.readFileSync(gp, "utf-8")) as BrainGraph;
+  const raw = JSON.parse(fs.readFileSync(gp, "utf-8")) as Partial<BrainGraph>;
+  // Normalize: older graphs (pre-crossLinks) must not crash a push().
+  return {
+    userNodes: raw.userNodes ?? {},
+    edges: raw.edges ?? [],
+    crossLinks: raw.crossLinks ?? [],
+    nodeSummaries: raw.nodeSummaries ?? {},
+  };
 }
 
-function saveGraph(store: BrainStore, brainId: string, graph: BrainGraph): void {
+export function saveGraph(store: BrainStore, brainId: string, graph: BrainGraph): void {
   atomicWriteFileSync(graphPath(store, brainId), JSON.stringify(graph, null, 2));
 }
 
@@ -260,6 +297,21 @@ export async function weaveSource(params: WeaveSourceParams): Promise<WeaveRepor
     Object.entries(perNode).forEach(([nodeId, count]) => {
       graph.edges.push({ sourceId, nodeId, passageCount: count });
     });
+
+    // ── cross-links: a source feeding multiple nodes relates those nodes ──
+    const touched = Object.keys(perNode);
+    for (let i = 0; i < touched.length; i++) {
+      for (let j = i + 1; j < touched.length; j++) addCrossLink(graph, touched[i], touched[j]);
+    }
+
+    // ── node summaries for the nodes this ingest touched (bounded budget) ──
+    for (const nodeId of touched.slice(0, MAX_SUMMARY_NODES_PER_INGEST)) {
+      const texts = allEntries.filter((e) => e.nodeId === nodeId).map((e) => e.text);
+      graph.nodeSummaries[nodeId] = await summarizeNode(nodeTitleFor(nodeId, graph), texts, {
+        caller: params.caller,
+      });
+    }
+
     saveGraph(store, brainId, graph);
 
     // ── catalog + journal ──
