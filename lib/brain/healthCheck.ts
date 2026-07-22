@@ -102,9 +102,12 @@ function looksNonEnglish(text: string): boolean {
 }
 
 // ── Node-target vectors: computed once, cached to data/node-targets.bin (+json) ──
+// Exported so lib/brain/placement.ts reuses the exact same cached vectors
+// instead of duplicating this cache (placement classifies per-section against
+// the same 41 targets health check classifies the whole document against).
 
-type NodeTarget = { id: string; title: string };
-type NodeTargetsBundle = { targets: NodeTarget[]; vectors: Float32Array[] };
+export type NodeTarget = { id: string; title: string };
+export type NodeTargetsBundle = { targets: NodeTarget[]; vectors: Float32Array[] };
 
 let _cached: { embedderId: string; dataDir: string; bundle: NodeTargetsBundle } | null = null;
 
@@ -169,7 +172,7 @@ async function loadOrComputeNodeTargets(
   return bundle;
 }
 
-async function getNodeTargets(embedder: Embedder, dataDir: string): Promise<NodeTargetsBundle> {
+export async function getNodeTargets(embedder: Embedder, dataDir: string): Promise<NodeTargetsBundle> {
   if (_cached && _cached.embedderId === embedder.id && _cached.dataDir === dataDir) {
     return _cached.bundle;
   }

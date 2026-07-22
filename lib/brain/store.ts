@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { BRAIN_LRU, BRAIN_MAX_PASSAGES } from "../rag/config";
+import { isValidBrainId } from "./id";
 
 // ── The ONLY module that touches data/brains/** (SPEC-BRAIN.md Sec3.2, Phase 1) ──
 // Owns brain identity validation, directory layout, manifest read/write, atomic
@@ -9,13 +10,7 @@ import { BRAIN_LRU, BRAIN_MAX_PASSAGES } from "../rag/config";
 
 const DEFAULT_BRAINS_DIR = path.join(process.cwd(), "data", "brains");
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Strict UUID form only — also the defense against path traversal, since a
- *  brainId that fails this can never contain "/", "\", or ".." segments. */
-export function isValidBrainId(id: string): boolean {
-  return typeof id === "string" && UUID_RE.test(id);
-}
+export { isValidBrainId };
 
 export type BrainSourceMeta = {
   sourceId: string;
@@ -24,6 +19,10 @@ export type BrainSourceMeta = {
   addedAt: string;
   nodeIds: string[];
   passageCount: number;
+  /** For duplicate detection on future uploads (lib/brain/healthCheck.ts). */
+  contentHash: string;
+  /** Float32Array serialized as a plain array (JSON has no typed-array form). */
+  probeVector: number[];
 };
 
 export type BrainManifest = {

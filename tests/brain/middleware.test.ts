@@ -38,4 +38,15 @@ describe("middleware: anonymous brain identity", () => {
     const res = middleware(makeReq("/"));
     expect(res.headers.get("location")).toBeNull();
   });
+
+  it("replaces a malformed/tampered cookie value rather than trusting it", () => {
+    // A cookie value must never reach a route handler unvalidated — it
+    // becomes a filesystem path component (lib/brain/store.ts).
+    const res = middleware(makeReq("/", "../../etc/passwd"));
+    const cookie = res.cookies.get(BRAIN_COOKIE);
+    expect(cookie?.value).toMatch(UUID_RE);
+    expect(cookie?.value).not.toBe("../../etc/passwd");
+    const forwarded = res.headers.get(`x-middleware-request-${BRAIN_HEADER}`);
+    expect(forwarded).toMatch(UUID_RE);
+  });
 });

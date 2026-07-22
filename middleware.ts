@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { BRAIN_COOKIE, BRAIN_HEADER, isValidBrainId } from "./lib/brain/id";
 
 /**
  * Guarantees every visitor has an anonymous brain identity — the seam that
@@ -7,12 +8,14 @@ import { NextRequest, NextResponse } from "next/server";
  * request header so THIS request's route handler can read it immediately,
  * without waiting for the Set-Cookie round-trip.
  */
-export const BRAIN_COOKIE = "q4np-brain";
-export const BRAIN_HEADER = "x-q4np-brain";
+export { BRAIN_COOKIE, BRAIN_HEADER };
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 export function middleware(request: NextRequest) {
-  const existing = request.cookies.get(BRAIN_COOKIE)?.value;
+  // Validate before trusting: a malformed/tampered cookie value must never
+  // reach a route handler that uses it as a filesystem path component.
+  const raw = request.cookies.get(BRAIN_COOKIE)?.value;
+  const existing = raw && isValidBrainId(raw) ? raw : undefined;
   const brainId = existing ?? crypto.randomUUID();
 
   const forwardedHeaders = new Headers(request.headers);
