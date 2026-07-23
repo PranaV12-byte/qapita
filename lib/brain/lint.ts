@@ -2,12 +2,36 @@ import fs from "node:fs";
 import path from "node:path";
 import { cosineSimilarity } from "../rag/cosine";
 import { getEmbedder } from "../rag/embedder";
-import { DEDUP_COSINE_THRESHOLD, CLASSIFY_MIN_CONFIDENCE, LINT_STALE_DAYS } from "../rag/config";
-import { brainStore, atomicWriteFileSync, type BrainStore } from "./store";
-import { loadGraph, saveGraph } from "./weave";
+import {
+  DEDUP_COSINE_THRESHOLD,
+  CLASSIFY_MIN_CONFIDENCE,
+  LINT_STALE_DAYS,
+  GENERAL_NODE_TITLE,
+} from "../rag/config";
+import { ALL_NODES, PILLARS, getNode } from "../content/tree";
+import { brainStore, atomicWriteFileSync, type BrainStore, type BrainManifest } from "./store";
+import { loadGraph, saveGraph, type BrainGraph } from "./weave";
 import { getNodeTargets } from "./healthCheck";
 import { reviewWiki, type RawLLMCaller } from "./maintain";
 import type { Embedder } from "../rag/types";
+
+/** Titles a `[[wiki-link]]` may resolve to: every tree topic, pillar, the
+ *  general bucket, this brain's u-nodes, and its uploaded source filenames.
+ *  Lowercased for case-insensitive matching. Shared by the broken-link
+ *  detector and its auto-fix so both agree on "resolvable". */
+function knownLinkTitles(graph: BrainGraph, manifest: BrainManifest | null): Set<string> {
+  const s = new Set<string>();
+  for (const n of ALL_NODES) s.add(n.title.toLowerCase());
+  for (const p of PILLARS) s.add(p.title.toLowerCase());
+  s.add(GENERAL_NODE_TITLE.toLowerCase());
+  for (const un of Object.values(graph.userNodes)) s.add(un.title.toLowerCase());
+  if (manifest) for (const src of Object.values(manifest.sources)) s.add(src.fileName.toLowerCase());
+  return s;
+}
+
+function wikiLinkRe(): RegExp {
+  return /\[\[([^\]]+)\]\]/g;
+}
 
 // ── Lint: periodic wiki health check (SPEC-BRAIN.md Phase 5, Karpathy's 3rd op) ──
 // Heuristic detectors always run; an LLM review is layered on when a provider
@@ -167,6 +191,43 @@ export async function runLint(brainId: string, opts: LintOpts = {}): Promise<Lin
     }
   }
 
+  // 6. broken [[wiki-links]]: a note links to a title that resolves to nothing.
+  //    Auto-applicable — the fix rewrites the dead link to plain text.
+  const wikiDir = path.join(store.brainPaths(brainId).dir, "wiki");
+  if (fs.existsSync(wikiDir)) {
+    const known = knownLinkTitles(graph, manifest);
+    for (const file of fs.readdirSync(wikiDir)) {
+      if (!file.endsWith(".md")) continue;
+      const stem = file.slice(0, -3);
+      let content: string;
+      try {
+        content = fs.readFileSync(path.join(wikiDir, file), "utf-8");
+      } catch {
+        continue;
+      }
+      const broken = new Set<string>();
+      for (const m of content.matchAll(wikiLinkRe())) {
+        const t = m[1].trim();
+        if (!known.has(t.toLowerCase())) broken.add(t);
+      }
+      if (broken.size > 0) {
+        const noteTitle = getNode(stem)?.title ?? graph.userNodes[stem]?.title ?? stem;
+        findings.push({
+          id: `broken_link:${stem}`,
+          type: "broken_link",
+          severity: "info",
+          message: `The note "${noteTitle}" links to ${[...broken]
+            .map((b) => `"${b}"`)
+            .join(", ")}, which no longer resolve${broken.size === 1 ? "s" : ""}.`,
+          suggestedAction: "Rewrite the broken links as plain text.",
+          autoApplicable: true,
+          sourceIds: [],
+          nodeIds: [stem],
+        });
+      }
+    }
+  }
+
   // Layered LLM review (empty offline / on failure).
   if (manifest) {
     const previews = Object.values(manifest.sources).map((s) => ({
@@ -266,8 +327,26 @@ export async function applyFinding(
         (e) => !(finding.sourceIds.includes(e.sourceId) && finding.nodeIds.includes(e.nodeId))
       );
       applied = true;
+    } else if (finding.type === "broken_link") {
+      // Rewrite unresolvable [[Title]] → plain "Title" in the affected notes.
+      const manifest = store.loadManifest(brainId);
+      const known = knownLinkTitles(graph, manifest);
+      for (const stem of finding.nodeIds) {
+        const p = path.join(store.brainPaths(brainId).dir, "wiki", `${stem}.md`);
+        if (!fs.existsSync(p)) continue;
+        const content = fs.readFileSync(p, "utf-8");
+        const rewritten = content.replace(wikiLinkRe(), (full, title: string) =>
+          known.has(title.trim().toLowerCase()) ? full : title.trim()
+        );
+        if (rewritten !== content) {
+          atomicWriteFileSync(p, rewritten);
+          applied = true;
+        }
+      }
     }
-    if (applied) saveGraph(store, brainId, graph);
+    if (applied && (finding.type === "orphan_node" || finding.type === "broken_edge")) {
+      saveGraph(store, brainId, graph);
+    }
   }
 
   if (!report.applied.includes(findingId)) report.applied.push(findingId);

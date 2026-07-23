@@ -1,6 +1,6 @@
 # SPEC-VAULT — Obsidian-grade graph, readable notes, fast ingest
 
-> **Status: approved plan, not yet started.** Builds on the completed Second Brain (`SPEC-BRAIN.md`, done at commit `9298847`). Same phase-gate protocol: every phase ends with **tsc clean + full vitest green + preview/manual checks + a checkpoint commit**; a red gate blocks the next phase. Run one phase per session; start each session by reading this file's phase + its Read list only.
+> **Status: IMPLEMENTED — Phases V0–V4 complete, all gates green.** Builds on the completed Second Brain (`SPEC-BRAIN.md`, done at commit `9298847`). Same phase-gate protocol: every phase ended with **tsc clean + full vitest green + preview/manual checks + a checkpoint commit**. Test baseline grew 371 (pre-vault) → 389 (V0 +4, V1 +12, V4 +2). See §6 Deviations. Any further changes still follow SPEC-BRAIN §2 invariants + §4 protocol.
 
 ## 1. Context
 
@@ -59,3 +59,11 @@ Each upload today: cold-loads the embedder + 41 node targets on first use; **chu
 
 ## 5. Explicitly NOT doing
 Obsidian zip-export · answers-as-graph-nodes · in-app note editing · WebGL renderer · touching `lib/rag/retriever.ts` or `/api/artifact`.
+
+## 6. Deviations (as-built)
+- **Warm-up split** (V0): `instrumentation.ts` runs in both edge + nodejs runtimes; its node-only imports (fs/crypto via the embedder + content loader) broke the edge bundle. Fixed with Next's documented pattern — a `NEXT_RUNTIME === "nodejs"` guard around `await import("./lib/warmup")`, with the actual warm-up in `lib/warmup.ts` so it never enters the edge compile.
+- **Placement section vectors** (V0): the single-pass path scores a section by the normalized **mean of its chunk vectors**, not by re-embedding a section probe as the legacy path did. Deliberate approximation — it only affects placement *bucketing*; retrieval always uses the real per-chunk vectors. The legacy `planPlacement(title, markdown)` path (no `precomputed`) is unchanged, so the placement unit tests stay byte-for-byte valid.
+- **Draw via ref, synchronous first paint** (V2): `BrainGraph` draws through a `drawRef` (latest closure, no stale `model.edges` after upload/delete) and paints once synchronously on every `kick()` — so the graph appears immediately even before the rAF loop spins up. Camera **snaps** to the fitted view on first layout; only the user-initiated Fit button animates. Sizing measures synchronously on mount (+ window `resize` + ResizeObserver) because the ResizeObserver's first callback is unreliable headless.
+- **`setPointerCapture` hardened** (V2): wrapped in try/catch — some pointer ids can't be captured — so a capture failure never aborts a click/drag.
+- **MDX unwrap** (V1): curated articles wrap sections in `<Advanced>`; the note renderer is plain-markdown, so `wiki.ts` strips capitalized component tags (keeping inner content) rather than leaking `<Advanced>` into the reader.
+- **Preview verification** (V2/V3): the Browser pane wasn't compositing frames, so `requestAnimationFrame` was paused and screenshots timed out. Verified instead via canvas pixel sampling, synthetic pointer/keyboard events, and DOM assertions — sufficient to confirm render, wheel-preventDefault, hit-testing, selection, quick-switcher, note fetch/render, backlink navigation, upload→source-note, delete, and the mobile bottom sheet.

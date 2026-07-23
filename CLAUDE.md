@@ -3,6 +3,7 @@
 > **Current phase: Phase 1 — RAG chatbot demo.** Spec: `SPEC-PHASE1.md`.
 > Phase 2 (browse, glossary, search, content pages): `SPEC-PHASE2.md` — do NOT implement yet.
 > **Flagship feature (IMPLEMENTED): Second Brain / the Wiki — spec: `SPEC-BRAIN.md` (Phases 0–7 complete, gates green).** See the "Second Brain" section below. Any further changes still follow SPEC-BRAIN §2 invariants + §4 protocol.
+> **Vault upgrade (IMPLEMENTED): Obsidian-grade graph + readable notes + fast ingest — spec: `SPEC-VAULT.md` (Phases V0–V4 complete, gates green).** Builds on the Second Brain; carries SPEC-BRAIN §2 invariants.
 
 ## Golden rules
 1. `npm i && npm run dev` MUST work with zero external services and zero API keys (mock path).
@@ -46,9 +47,15 @@ Per-user "wiki": the shared foundation (curated + NASPP) with each visitor's upl
 - **Ingest:** `POST /api/brain/sources` (multipart, ≤10/batch) → per-file job (`lib/brain/jobs.ts`) → `extract.ts` (md/txt/pdf/docx/csv/tsv/xlsx/html/json via lazy `unpdf`/`mammoth`/`exceljs`/`turndown`) → `healthCheck.ts` (readable/caps/on-topic/duplicate/non-English) → `placement.ts` + `weave.ts` (append preserving the vectors↔chunks↔lexical row-alignment invariant).
 - **Retrieval:** `retrieveMulti` (additive; `retrieveWith` untouched) + graph neighbour expansion (`GRAPH_EXPANSION`). Empty brain = byte-identical to the pre-brain path (characterization-pinned).
 - **LLM maintenance** (`maintain.ts`): placement / node-summaries / lint review, all behind `LLM_PROVIDER` with **deterministic heuristic parity offline** — ingest/lint never block on the LLM. Prompts fence uploaded content as data (injection defense).
-- **Lint** (`lint.ts`): cadence (≥`LINT_APPEND_THRESHOLD` appends or >`LINT_STALE_DAYS` days) + on-demand; auto-applies structural fixes, destructive fixes route through DELETE.
+- **Lint** (`lint.ts`): cadence (≥`LINT_APPEND_THRESHOLD` appends or >`LINT_STALE_DAYS` days) + on-demand; auto-applies structural fixes (orphan-node / broken-edge / broken-`[[link]]`), destructive fixes route through DELETE.
 - **Retention:** `npm run brains:prune` (dry-run default; `--days N --apply`). Erase via `DELETE /api/brain`.
 - **New config** (`lib/rag/config.ts`, all env-overridable): `USER_WEIGHT`, `GRAPH_EXPANSION`, `NEIGHBOR_LIMIT`, `NEIGHBOR_MIN_COSINE`, `BRAIN_MAX_FILE_MB`, `BRAIN_MAX_TEXT_MB`, `BRAIN_MAX_PASSAGES`, `BRAIN_BATCH_LIMIT`, `LINT_APPEND_THRESHOLD`, `LINT_STALE_DAYS`, `BRAIN_LRU`.
+
+### Vault upgrade (`SPEC-VAULT.md`) — the `/brain` surface
+- **Fast ingest (V0):** single-pass pipeline — `jobs.ts` chunks once (docId === sourceId), embeds each chunk once through a shared `EmbedCache` (`data/.brain-embed-cache.json`, gitignored) with **real per-passage progress**, and reuses those vectors for BOTH placement (`placement.ts` precomputed path: section vector = normalized mean of chunk vecs; doc-novelty reuses healthCheck's `probeVector`) AND the weave (`weave.ts` optional precomputed bundle). `lib/rag/embedder.ts` `embedInBlocks` does the block-embed + cache. `instrumentation.ts` → `lib/warmup.ts` warms the embedder + node targets at boot (nodejs runtime only; guarded so it never enters the edge bundle). Warm upload <1.5s. Pre-V0 `planPlacement`/`weaveSource` signatures still work unchanged.
+- **Wiki pages + note API (V1):** `lib/brain/wiki.ts` `buildNotePage(brainId, id)` (id ∈ `nodeId | source:<id> | pillar:<slug> | general`) → `{kind,title,meta,markdown,backlinks[]}`. Topic = curated article (MDX component tags unwrapped) + "## From your sources" (attributed passages) + "## Synthesis" (`wiki/<nodeId>.md`). Backlinks = weave edges + crossLinks + curated `related` + answers + `[[mention]]` scans. `maintain.ts` `authorNodeSynthesis` writes `wiki/<nodeId>.md` at weave time (LLM + template parity). `GET /api/brain/note/[id]` (nodejs).
+- **Graph (V2):** `components/brain/BrainGraph.tsx` is a **canvas + d3-force** renderer (one runtime dep: `d3-force`). Smooth zoom-to-cursor via a native `wheel` `{passive:false}` listener, node drag (fx/fy reheat), pan/pinch, zoom-fading labels, neighbourhood highlight, `?focus=` pulse, Ctrl-K quick-switcher, filter chips; ListView a11y fallback kept. Draw goes through a ref (no stale closures); first paint is synchronous. `graph.ts` adds node `degree` for sizing.
+- **Note pane (V3):** `components/brain/{NoteMarkdown,NotePane}.tsx` — element-based markdown (`[[wiki-link]]` navigation, no `dangerouslySetInnerHTML`), side pane (desktop) / bottom sheet (mobile), collapsible backlinks, Ask / Delete actions. `app/brain/client.tsx` is graph-first; `?note=` deep link + citation `?focus=` auto-open, URL synced via `history.replaceState`. `IngestQueue` shows the real weave %.
 
 ## Key microcopy (use verbatim)
 - Draft strip: "Draft — AI-generated, not reviewed · Educational only, not advice"
