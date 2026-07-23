@@ -51,17 +51,32 @@ function JobCard({
   const v = job.view;
   const stage = v?.stage ?? "extracting";
   const busy = stage === "extracting" || stage === "vetting" || stage === "weaving";
+  // Real per-passage progress during the weave (V0); a pulse otherwise.
+  const prog = v?.progress ?? null;
+  const pct = stage === "weaving" && prog && prog.total > 0
+    ? Math.round((prog.current / prog.total) * 100)
+    : null;
 
   return (
     <div className="rounded-lg border border-[var(--border)] p-3 bg-[var(--surface-1)]">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm text-[var(--text-primary)] truncate">{job.fileName}</span>
-        <span className="text-xs text-[var(--text-muted)] shrink-0">{STAGE_LABEL[stage]}</span>
+        <span className="text-xs text-[var(--text-muted)] shrink-0">
+          {STAGE_LABEL[stage]}
+          {pct !== null ? ` · ${pct}%` : ""}
+        </span>
       </div>
 
       {busy && (
         <div className="mt-2 h-1 rounded bg-[var(--surface-2)] overflow-hidden">
-          <div className="h-full w-1/3 animate-pulse" style={{ background: "var(--accent)" }} />
+          {pct !== null ? (
+            <div
+              className="h-full transition-[width] duration-300"
+              style={{ width: `${pct}%`, background: "var(--accent)" }}
+            />
+          ) : (
+            <div className="h-full w-1/3 animate-pulse" style={{ background: "var(--accent)" }} />
+          )}
         </div>
       )}
 
