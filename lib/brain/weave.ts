@@ -7,7 +7,7 @@ import { buildEmbedInput } from "../../scripts/ingest/contextualize";
 import { getNode } from "../content/tree";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "../rag/config";
 import { brainStore, atomicWriteFileSync, type BrainStore, type BrainManifest } from "./store";
-import { summarizeNode, type RawLLMCaller } from "./maintain";
+import { summarizeNode, authorNodeSynthesis, type RawLLMCaller } from "./maintain";
 import type { ExistingSourceProbe } from "./healthCheck";
 import type { ChunkMeta, ParentSection, Embedder } from "../rag/types";
 import type { PlacementPlan } from "./placement";
@@ -323,12 +323,33 @@ export async function weaveSource(params: WeaveSourceParams): Promise<WeaveRepor
       for (let j = i + 1; j < touched.length; j++) addCrossLink(graph, touched[i], touched[j]);
     }
 
-    // ── node summaries for the nodes this ingest touched (bounded budget) ──
+    // ── node summaries + wiki-note synthesis for the touched nodes (bounded) ──
+    // Summaries feed the graph tooltip/index; the synthesis is the readable
+    // wiki note (wiki/<nodeId>.md) surfaced by the note pane (V1). Both are
+    // LLM-when-available with deterministic fallbacks, so a weave never blocks.
+    const sourceNames = new Map<string, string>();
+    for (const [sid, s] of Object.entries(manifest.sources)) sourceNames.set(sid, s.fileName);
+
     for (const nodeId of touched.slice(0, MAX_SUMMARY_NODES_PER_INGEST)) {
-      const texts = allEntries.filter((e) => e.nodeId === nodeId).map((e) => e.text);
-      graph.nodeSummaries[nodeId] = await summarizeNode(nodeTitleFor(nodeId, graph), texts, {
+      const nodeEntries = allEntries.filter((e) => e.nodeId === nodeId);
+      const nodeTitle = nodeTitleFor(nodeId, graph);
+      graph.nodeSummaries[nodeId] = await summarizeNode(
+        nodeTitle,
+        nodeEntries.map((e) => e.text),
+        { caller: params.caller }
+      );
+
+      const passages = nodeEntries.slice(0, 24).map((e) => ({
+        source: (e.sourceId && sourceNames.get(e.sourceId)) || e.title || "Your source",
+        text: e.text,
+      }));
+      const linkableTitles = graph.crossLinks
+        .filter((l) => l.a === nodeId || l.b === nodeId)
+        .map((l) => nodeTitleFor(l.a === nodeId ? l.b : l.a, graph));
+      const synthesis = await authorNodeSynthesis(nodeTitle, passages, linkableTitles, {
         caller: params.caller,
       });
+      atomicWriteFileSync(path.join(dir, "wiki", `${nodeId}.md`), synthesis);
     }
 
     saveGraph(store, brainId, graph);

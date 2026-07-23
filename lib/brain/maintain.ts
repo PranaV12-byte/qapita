@@ -174,6 +174,68 @@ export async function summarizeNode(
   return parsed.data.summary.trim().slice(0, 600);
 }
 
+// ── Node synthesis (the wiki note body) ─────────────────────────────────────────
+
+const SynthesisSchema = z.object({ markdown: z.string() });
+
+/** Author a short wiki-note synthesis for one node from the user's own passages,
+ *  optionally linking to related topics with `[[Title]]` syntax. LLM when a
+ *  provider is on; a deterministic template otherwise (lead sentences + a bullet
+ *  per source + related `[[links]]`). Always returns non-empty markdown and
+ *  never blocks a weave — any provider/parse failure falls back to the template. */
+export async function authorNodeSynthesis(
+  nodeTitle: string,
+  passages: { source: string; text: string }[],
+  linkableTitles: string[],
+  opts: MaintainOpts = {}
+): Promise<string> {
+  const template = (): string => {
+    const lead = passages
+      .slice(0, 2)
+      .map((p) => leadSentences(p.text, 1))
+      .join(" ")
+      .trim();
+    const bySource = new Map<string, string>();
+    for (const p of passages) {
+      if (!bySource.has(p.source)) bySource.set(p.source, leadSentences(p.text, 1));
+    }
+    const bullets = [...bySource].slice(0, 8).map(([s, t]) => `- **${s}**: ${t}`);
+    const links = linkableTitles.slice(0, 5).map((t) => `[[${t}]]`).join(" · ");
+    return [
+      lead || `Notes on ${nodeTitle} from your sources.`,
+      bullets.length ? "\n" + bullets.join("\n") : "",
+      links ? `\nRelated: ${links}` : "",
+    ]
+      .join("\n")
+      .trim();
+  };
+  if (passages.length === 0) return `Notes on ${nodeTitle}.`;
+
+  const caller = opts.caller ?? defaultCaller;
+  const body = passages
+    .slice(0, 8)
+    .map((p, i) => fence(`passage ${i} source="${p.source}"`, p.text.slice(0, 400)))
+    .join("\n");
+  const linkList = linkableTitles.slice(0, 12).map((t) => `- ${t}`).join("\n") || "(none)";
+  const user = [
+    `Write a concise wiki synthesis (a short intro then a few bullets is ideal) for ` +
+      `the topic "${nodeTitle}", based ONLY on these passages from the user's own ` +
+      `sources. Attribute claims to their source where useful. You MAY link to any ` +
+      `of these related topics using [[Title]] wiki-link syntax; do not invent ` +
+      `other links.`,
+    `Related topics:\n${linkList}`,
+    `Passages:\n${body}`,
+    ``,
+    `JSON schema: {"markdown": string}`,
+  ].join("\n");
+
+  const raw = await safeCall(caller, MAINT_SYSTEM, user);
+  if (raw == null) return template();
+  const parsed = SynthesisSchema.safeParse(raw);
+  if (!parsed.success || parsed.data.markdown.trim().length === 0) return template();
+  return parsed.data.markdown.trim().slice(0, 4000);
+}
+
 // ── Lint review (contradictions / quality) ──────────────────────────────────────
 
 const ReviewSchema = z.object({
