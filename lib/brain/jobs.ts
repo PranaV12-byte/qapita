@@ -1,9 +1,57 @@
 import { randomUUID } from "node:crypto";
-import { chunkMarkdown } from "../rag/chunker";
+import path from "node:path";
+import { chunkMarkdown, type ChunkResult, type SectionResult } from "../rag/chunker";
+import { getEmbedder, EmbedCache, embedInBlocks } from "../rag/embedder";
+import { buildEmbedInput } from "../../scripts/ingest/contextualize";
 import { extractDocument, type ExtractFailure } from "./extract";
 import { runHealthCheck, type HealthCheckResult } from "./healthCheck";
 import { planPlacement, type PlacementPlan } from "./placement";
 import { weaveSource, getExistingSourceProbes, type WeaveReport } from "./weave";
+
+// ── Shared brain embed cache (V0 / SPEC-VAULT §3) ───────────────────────────────
+// User uploads embed through the same content-hash cache the offline corpus
+// build uses, so re-uploading identical content (or overlapping sections) is a
+// cache hit — zero embedder calls. Process-wide singleton; flushed after each
+// weave. Keyed by the exact embed-input string, so any chunk/heading change is
+// a targeted miss.
+const BRAIN_EMBED_CACHE_FILE = path.join(process.cwd(), "data", ".brain-embed-cache.json");
+let _brainEmbedCache: EmbedCache | null = null;
+function brainEmbedCache(): EmbedCache {
+  if (!_brainEmbedCache) {
+    _brainEmbedCache = new EmbedCache(BRAIN_EMBED_CACHE_FILE);
+    _brainEmbedCache.load();
+  }
+  return _brainEmbedCache;
+}
+
+/** Section vector = normalized mean of that section's chunk vectors — enough to
+ *  bucket the section against node targets for placement without a second
+ *  embedding pass (retrieval itself always uses the real per-chunk vectors). */
+function sectionVectorsFromChunks(
+  chunks: ChunkResult[],
+  chunkVecs: Float32Array[],
+  sections: SectionResult[],
+  dim: number
+): Float32Array[] {
+  const byParent = new Map<string, number[]>();
+  chunks.forEach((c, i) => {
+    const arr = byParent.get(c.parentId);
+    if (arr) arr.push(i);
+    else byParent.set(c.parentId, [i]);
+  });
+  return sections.map((s) => {
+    const mean = new Float32Array(dim);
+    for (const i of byParent.get(s.parentId) ?? []) {
+      const v = chunkVecs[i];
+      for (let d = 0; d < dim; d++) mean[d] += v[d];
+    }
+    let norm = 0;
+    for (let d = 0; d < dim; d++) norm += mean[d] * mean[d];
+    norm = Math.sqrt(norm);
+    if (norm > 0) for (let d = 0; d < dim; d++) mean[d] /= norm;
+    return mean;
+  });
+}
 
 // ── In-memory ingest job registry (SPEC-BRAIN.md Phase 3) ───────────────────────
 // Deliberately in-memory, not persisted: a server restart loses only
@@ -78,19 +126,45 @@ async function finishWeave(
   buffer: Buffer,
   chosenNodeId?: string
 ): Promise<void> {
-  updateJob(jobId, { stage: "weaving", progress: { current: 0, total: 1 } });
+  const sourceId = randomUUID();
+  const embedder = getEmbedder();
+
+  // ── Single pass (V0): chunk once (docId === sourceId so parentIds match the
+  // weave append), build each chunk's embed-input once, embed once through the
+  // shared cache with real progress, then reuse those vectors for BOTH
+  // placement scoring and the weave — no second chunk/embed anywhere. ──
+  const { chunks, sections, title: chunkedTitle } = chunkMarkdown(markdown, {
+    docId: sourceId,
+    title,
+  });
+  const total = Math.max(chunks.length, 1);
+  updateJob(jobId, { stage: "weaving", progress: { current: 0, total } });
+
+  const embedInputs: string[] = [];
+  for (const c of chunks) {
+    embedInputs.push(await buildEmbedInput(chunkedTitle, c.headingPath, c.text));
+  }
+  const cache = brainEmbedCache();
+  const chunkVecs = await embedInBlocks(cache, embedder, embedInputs, 16, (current) => {
+    updateJob(jobId, { progress: { current, total } });
+  });
+  cache.flush();
+
+  const dim = chunkVecs[0]?.length ?? embedder.dim;
+  const sectionVecs = sectionVectorsFromChunks(chunks, chunkVecs, sections, dim);
 
   let plan: PlacementPlan;
   if (chosenNodeId) {
     // User override — every section of the document goes to the chosen
     // topic, bypassing the heuristic classifier entirely.
-    const { sections } = chunkMarkdown(markdown, { title });
     plan = { sectionNodeIds: sections.map(() => chosenNodeId), newNodes: [] };
   } else {
-    plan = await planPlacement(title, markdown);
+    plan = await planPlacement(title, markdown, {
+      embedder,
+      precomputed: { sections, sectionVecs, probeVector },
+    });
   }
 
-  const sourceId = randomUUID();
   const report = await weaveSource({
     brainId,
     sourceId,
@@ -102,6 +176,7 @@ async function finishWeave(
     plan,
     contentHash,
     probeVector,
+    precomputed: { chunks, sections, chunkedTitle, chunkVecs },
   });
 
   updateJob(jobId, {

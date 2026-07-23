@@ -5,6 +5,7 @@ import { chunkMarkdown } from "../rag/chunker";
 import { extractTitleAndLead } from "../rag/textProbe";
 import { getNodeTargets } from "./healthCheck";
 import { proposePlacement, type RawLLMCaller } from "./maintain";
+import type { SectionResult } from "../rag/chunker";
 import type { Embedder } from "../rag/types";
 import { CLASSIFY_MIN_CONFIDENCE, CLASSIFY_NODE_CONFIDENCE, GENERAL_NODE_ID } from "../rag/config";
 
@@ -25,11 +26,23 @@ export type PlacementPlan = {
   newNodes: NewNodeProposal[];
 };
 
+/** Vectors already computed by the single-pass ingest pipeline (V0), reused
+ *  here so placement never re-chunks or re-embeds. `sectionVecs[i]` is the
+ *  (normalized) mean of section[i]'s chunk vectors; `probeVector` is the exact
+ *  whole-document probe healthCheck already embedded. */
+export type PrecomputedPlacement = {
+  sections: SectionResult[];
+  sectionVecs: Float32Array[];
+  probeVector: Float32Array;
+};
+
 export type PlacementOpts = {
   embedder?: Embedder;
   dataDir?: string;
   /** LLM caller (maintain.ts). Offline/no-provider → null → heuristic below. */
   caller?: RawLLMCaller;
+  /** Reuse the ingest pipeline's vectors instead of re-chunking/re-embedding. */
+  precomputed?: PrecomputedPlacement;
 };
 
 /** Moderate pairwise cosine among a document's own sections — the bar for
@@ -64,8 +77,9 @@ export async function planPlacement(
 ): Promise<PlacementPlan> {
   const embedder = opts.embedder ?? getEmbedder();
   const dataDir = opts.dataDir ?? path.join(process.cwd(), "data");
+  const pre = opts.precomputed;
 
-  const { sections } = chunkMarkdown(markdown, { title });
+  const sections = pre ? pre.sections : chunkMarkdown(markdown, { title }).sections;
   if (sections.length === 0) return { sectionNodeIds: [], newNodes: [] };
 
   // LLM-first placement (SPEC-BRAIN.md Phase 5): inert offline / no provider —
@@ -79,18 +93,28 @@ export async function planPlacement(
 
   const { targets, vectors: targetVecs } = await getNodeTargets(embedder, dataDir);
 
-  const sectionProbes = sections.map((s) =>
-    [s.headingPath, s.text].filter(Boolean).join(" — ").slice(0, 600)
-  );
-  const sectionVecs = await embedder.embedPassages(sectionProbes);
-  const perSectionBest = sectionVecs.map((vec) => bestMatch(vec, targetVecs));
-
-  // Whole-document probe — same construction as healthCheck.ts's buildProbe,
-  // used here to decide "does this doc as a whole deserve its own new node".
+  // Whole-document novelty is judged from the same probe healthCheck built
+  // (title + lead); effectiveTitle names any new node identically in both paths.
   const { title: h1Title, lead } = extractTitleAndLead(markdown);
   const effectiveTitle = h1Title || title;
-  const docProbeText = [effectiveTitle, lead].filter(Boolean).join(". ") || markdown.slice(0, 200);
-  const docVec = await embedder.embedPassage(docProbeText);
+
+  let sectionVecs: Float32Array[];
+  let docVec: Float32Array;
+  if (pre) {
+    // Single-pass path (V0): section vector = normalized mean of its chunk
+    // vectors; the doc probe is healthCheck's already-embedded probeVector.
+    sectionVecs = pre.sectionVecs;
+    docVec = pre.probeVector;
+  } else {
+    const sectionProbes = sections.map((s) =>
+      [s.headingPath, s.text].filter(Boolean).join(" — ").slice(0, 600)
+    );
+    sectionVecs = await embedder.embedPassages(sectionProbes);
+    const docProbeText =
+      [effectiveTitle, lead].filter(Boolean).join(". ") || markdown.slice(0, 200);
+    docVec = await embedder.embedPassage(docProbeText);
+  }
+  const perSectionBest = sectionVecs.map((vec) => bestMatch(vec, targetVecs));
   const docBest = bestMatch(docVec, targetVecs);
 
   const isNovelCandidate =

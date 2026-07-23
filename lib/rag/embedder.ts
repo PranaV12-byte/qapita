@@ -159,3 +159,34 @@ export class EmbedCache {
     return { hits: this.hits, misses: this.misses, size: this.map.size };
   }
 }
+
+/**
+ * Embed `texts` in fixed-size blocks, reporting real progress after each block
+ * and (optionally) reusing an EmbedCache so unchanged inputs are never
+ * re-embedded. Result aligns to `texts`. When `cache` is null the embedder is
+ * called directly. Progress is reported as (processedSoFar, total); an empty
+ * input reports (0, 0) exactly once so a caller's progress bar can complete.
+ */
+export async function embedInBlocks(
+  cache: EmbedCache | null,
+  embedder: Embedder,
+  texts: string[],
+  blockSize = 16,
+  onProgress?: (current: number, total: number) => void
+): Promise<Float32Array[]> {
+  const total = texts.length;
+  if (total === 0) {
+    onProgress?.(0, 0);
+    return [];
+  }
+  const out: Float32Array[] = [];
+  for (let i = 0; i < total; i += blockSize) {
+    const block = texts.slice(i, i + blockSize);
+    const vecs = cache
+      ? await cache.embedPassages(embedder, block)
+      : await embedder.embedPassages(block);
+    out.push(...vecs);
+    onProgress?.(out.length, total);
+  }
+  return out;
+}

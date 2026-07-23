@@ -47,6 +47,7 @@ data/artifact-log.jsonl
 # RAG ingest (local-only inputs and caches)
 scrape-inbox/
 data/.embed-cache.json
+data/.brain-embed-cache.json
 data/scrape-manifest.json
 data/scrape-review/
 

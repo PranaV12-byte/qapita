@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { chunkMarkdown } from "../rag/chunker";
+import { chunkMarkdown, type ChunkResult, type SectionResult } from "../rag/chunker";
 import { buildLexicalIndex } from "../rag/lexical";
-import { getEmbedder } from "../rag/embedder";
+import { getEmbedder, embedInBlocks } from "../rag/embedder";
 import { buildEmbedInput } from "../../scripts/ingest/contextualize";
 import { getNode } from "../content/tree";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "../rag/config";
@@ -58,6 +58,19 @@ export type WeaveSourceParams = {
   store?: BrainStore;
   /** LLM caller for node summaries (maintain.ts). Null/offline → extractive. */
   caller?: RawLLMCaller;
+  /** Single-pass ingest (V0): chunks + chunk vectors already computed upstream
+   *  (chunked with docId === this sourceId), so weave skips re-chunk/re-embed.
+   *  Omitted → weave chunks + embeds internally (the pre-V0 path; tests + any
+   *  direct caller rely on this still working unchanged). */
+  precomputed?: {
+    chunks: ChunkResult[];
+    sections: SectionResult[];
+    chunkedTitle: string;
+    chunkVecs: Float32Array[];
+  };
+  /** Progress during internal embedding (ignored when precomputed vectors are
+   *  supplied, since embedding then happened upstream with its own reporting). */
+  onProgress?: (current: number, total: number) => void;
 };
 
 const MAX_SUMMARY_NODES_PER_INGEST = 10;
@@ -215,10 +228,13 @@ export async function weaveSource(params: WeaveSourceParams): Promise<WeaveRepor
     }
     const resolveNodeId = (id: string) => idRemap.get(id) ?? id;
 
-    const { chunks, sections, title: chunkedTitle } = chunkMarkdown(markdown, {
-      docId: sourceId,
-      title,
-    });
+    // Single-pass (V0): reuse the upstream chunks + vectors. Otherwise chunk +
+    // embed here (pre-V0 path). Either way `docId === sourceId`, so parentIds
+    // and the vectors↔chunks↔lexical row alignment are identical.
+    const pre = params.precomputed;
+    const { chunks, sections, title: chunkedTitle } = pre
+      ? { chunks: pre.chunks, sections: pre.sections, title: pre.chunkedTitle }
+      : chunkMarkdown(markdown, { docId: sourceId, title });
 
     const parentIdToNodeId = new Map<string, string>();
     sections.forEach((s, i) => {
@@ -236,24 +252,27 @@ export async function weaveSource(params: WeaveSourceParams): Promise<WeaveRepor
       };
     });
 
-    const newEntries: ChunkMeta[] = [];
-    const embedInputs: string[] = [];
-    for (const c of chunks) {
-      const nodeId = parentIdToNodeId.get(c.parentId);
-      newEntries.push({
-        tier: "user",
-        nodeId,
-        sourceId,
-        title: chunkedTitle,
-        headingPath: c.headingPath,
-        parentId: c.parentId,
-        text: c.text,
-        isScenario: false,
-      });
-      embedInputs.push(await buildEmbedInput(chunkedTitle, c.headingPath, c.text));
-    }
+    const newEntries: ChunkMeta[] = chunks.map((c) => ({
+      tier: "user",
+      nodeId: parentIdToNodeId.get(c.parentId),
+      sourceId,
+      title: chunkedTitle,
+      headingPath: c.headingPath,
+      parentId: c.parentId,
+      text: c.text,
+      isScenario: false,
+    }));
 
-    const newVectors = embedInputs.length > 0 ? await embedder.embedPassages(embedInputs) : [];
+    let newVectors: Float32Array[];
+    if (pre) {
+      newVectors = pre.chunkVecs;
+    } else {
+      const embedInputs: string[] = [];
+      for (const c of chunks) {
+        embedInputs.push(await buildEmbedInput(chunkedTitle, c.headingPath, c.text));
+      }
+      newVectors = await embedInBlocks(null, embedder, embedInputs, 16, params.onProgress);
+    }
     const dim = existingDim > 0 ? existingDim : newVectors[0]?.length ?? embedder.dim;
 
     const allEntries = [...existingEntries, ...newEntries];
