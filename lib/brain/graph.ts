@@ -32,6 +32,9 @@ export type RenderNode = {
   /** Topic/user-node only: the source ids feeding it. */
   feedingSourceIds?: string[];
   pillarSlug?: string;
+  /** Number of edges touching this node — the graph renderer sizes nodes by it
+   *  so well-connected hubs read larger (SPEC-VAULT V2). */
+  degree?: number;
 };
 
 export type RenderEdge = { from: string; to: string; kind: RenderEdgeKind };
@@ -235,6 +238,14 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
       }
     }
   }
+
+  // Node degree (edges touching each node) — the renderer sizes by it.
+  const degree = new Map<string, number>();
+  for (const e of edges) {
+    degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
+    degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
+  }
+  for (const n of nodes) n.degree = degree.get(n.id) ?? 0;
 
   return {
     nodes,
