@@ -28,7 +28,7 @@ function capitalize(text: string): string {
 function cleanPunctuation(text: string): string {
   return text
     .replace(/\s*[—–]\s*/g, ", ")
-    .replace(/(?<=[a-zA-Z0-9)])\s-\s(?=[a-zA-Z(])/g, "; ")
+    .replace(/([a-zA-Z0-9)])\s-\s(?=[a-zA-Z(])/g, "$1; ")
     .replace(/,\s*,/g, ",")
     .replace(/,\s*\./g, ".")
     .replace(/\s+,/g, ",")
@@ -56,7 +56,7 @@ export function cleanProseMarkdown(text: string): string {
     .split("\n")
     .map((line) => {
       if (line.trim() === "") return "";
-      const m = line.match(/^(\s*(?:#{1,6}\s+|[-*]\s+|\d+\.\s+))?(.*)$/s);
+      const m = line.match(/^(\s*(?:#{1,6}\s+|[-*]\s+|\d+\.\s+))?(.*)$/);
       const prefix = m?.[1] ?? "";
       const rest = cleanPunctuation(m?.[2] ?? line);
       const isHeading = /^#{1,6}\s/.test(prefix);

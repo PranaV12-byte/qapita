@@ -1,12 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 
-/**
- * Official NASPP + Qapita marks (public/brand/*.png), both transparent so they
- * sit directly on the dark header — no chip. naspp.png had its white background
- * knocked out to transparency; qapita.png ships transparent.
- */
-
 export function NasppLogo({ className }: { className?: string }) {
   return (
     <img
@@ -29,27 +23,21 @@ export function QapitaLogo({ className }: { className?: string }) {
   );
 }
 
-/**
- * The co-brand lockup used in the header: NASPP | Qapita, linking home.
- * `compact` shrinks it for the mobile bar / drawer.
- */
 export function BrandLockup({ compact = false }: { compact?: boolean }) {
-  const naspp = compact ? "h-4" : "h-5";
   const qapita = compact ? "h-7" : "h-8";
+
   return (
     <Link
       href="/"
-      aria-label="NASPP and Qapita — home"
-      className="inline-flex items-center hover:opacity-80 transition-opacity"
+      aria-label="Qapita EquityIQ home"
+      className="inline-flex items-center gap-3"
       style={{ textDecoration: "none" }}
     >
-      <NasppLogo className={`${naspp} w-auto`} />
-      <span
-        aria-hidden="true"
-        className={`mx-3 ${compact ? "h-4" : "h-5"} w-px`}
-        style={{ backgroundColor: "var(--border-strong)" }}
-      />
-      <QapitaLogo className={`${qapita} w-auto`} />
+      <span className="inline-flex items-center rounded-xl bg-white/96 px-3 py-2 shadow-sm">
+        <QapitaLogo className={`${qapita} w-auto`} />
+      </span>
+      <span className="h-7 w-px bg-white/25" aria-hidden="true" />
+      <span className="font-head text-xl text-white">EquityIQ</span>
     </Link>
   );
 }

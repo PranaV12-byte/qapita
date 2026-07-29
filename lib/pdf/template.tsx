@@ -1,5 +1,5 @@
 import React from "react";
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 const styles = StyleSheet.create({
   page: {
@@ -79,15 +79,15 @@ export function EquityBriefPDF({ title, keyPoints, date }: Props) {
           <Text style={styles.badge}>DRAFT</Text>
         </View>
         <View style={styles.divider} />
-        {keyPoints.map((point, i) => (
-          <View key={i} style={styles.pointRow}>
-            <Text style={styles.pointNum}>{i + 1}.</Text>
+        {keyPoints.map((point, index) => (
+          <View key={index} style={styles.pointRow}>
+            <Text style={styles.pointNum}>{index + 1}.</Text>
             <Text style={styles.pointText}>{point}</Text>
           </View>
         ))}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            {"Draft — AI-generated, not reviewed · Educational only, not advice · Qapita · preview build · " +
+            {"Draft reference, not reviewed. Educational only, not advice. Qapita preview build. " +
               date}
           </Text>
         </View>

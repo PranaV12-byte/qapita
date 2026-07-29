@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import PortalShell from "@/components/portal/PortalShell";
 import Breadcrumb from "@/components/article/Breadcrumb";
-import PlainLanguageCallout from "@/components/article/PlainLanguageCallout";
-import Sources from "@/components/article/Sources";
 import FaqAccordion from "@/components/article/FaqAccordion";
+import PlainLanguageCallout from "@/components/article/PlainLanguageCallout";
 import RelatedNodes from "@/components/article/RelatedNodes";
+import Sources from "@/components/article/Sources";
 import { mdxComponents } from "@/components/mdx/mdxComponents";
-import { ALL_NODES, getPillar } from "@/lib/content/tree";
+import PortalShell from "@/components/portal/PortalShell";
 import { loadArticle } from "@/lib/content/loader";
+import { ALL_NODES, getPillar } from "@/lib/content/tree";
 
 type Params = { pillar: string; slug: string };
 
 export function generateStaticParams() {
-  return ALL_NODES.map((n) => ({ pillar: n.pillarSlug, slug: n.slug }));
+  return ALL_NODES.map((node) => ({ pillar: node.pillarSlug, slug: node.slug }));
 }
 
 export async function generateMetadata({
@@ -26,9 +26,7 @@ export async function generateMetadata({
   const { pillar, slug } = await params;
   const article = await loadArticle(pillar, slug);
   return {
-    title: article
-      ? `${article.frontmatter.title} — Q4N$P`
-      : "Not found — Q4N$P",
+    title: article ? `${article.frontmatter.title} - Q4N$P` : "Not found - Q4N$P",
     description: article?.frontmatter.summaryPlain,
     robots: "noindex",
   };
@@ -44,52 +42,76 @@ export default async function ArticlePage({
   if (!article) notFound();
 
   const { frontmatter, content } = article;
-  const p = getPillar(pillar);
+  const resolvedPillar = getPillar(pillar);
+  const reviewed = frontmatter.status === "signed_off";
 
   return (
     <PortalShell measure>
       <Breadcrumb
         items={[
-          { label: "Browse", href: "/browse" },
-          ...(p ? [{ label: p.title, href: `/p/${p.slug}` }] : []),
+          { label: "Knowledge tree", href: "/browse" },
+          ...(resolvedPillar
+            ? [{ label: resolvedPillar.title, href: `/p/${resolvedPillar.slug}` }]
+            : []),
           { label: frontmatter.title },
         ]}
       />
 
-      <header className="mb-6">
-        <h1 className="font-head text-heading text-3xl leading-tight mb-1">
+      <header className="mb-8 space-y-4">
+        <h1 className="font-head text-5xl leading-tight text-[var(--text-head)]">
           {frontmatter.title}
         </h1>
-        <p className="text-xs text-[var(--text-muted)]">
-          Updated {frontmatter.updatedAt}
-        </p>
+        <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--text-muted)]">
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold"
+            style={{
+              backgroundColor: reviewed ? "#eefaf2" : "#fff3eb",
+              color: reviewed ? "#22a84f" : "#e67a22",
+            }}
+          >
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: reviewed ? "#22b45a" : "#f28c38" }}
+            />
+            {reviewed ? "Reviewed and signed off" : "Draft reference"}
+          </span>
+          <span>Last updated {frontmatter.updatedAt}</span>
+        </div>
       </header>
 
       <PlainLanguageCallout text={frontmatter.summaryPlain} />
 
-      <article>
-        <MDXRemote source={content} components={mdxComponents} />
-      </article>
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1.25fr)_380px]">
+        <article className="space-y-8 rounded-[24px] border border-[var(--border)] bg-white px-6 py-7 md:px-8">
+          <MDXRemote source={content} components={mdxComponents} />
+        </article>
 
-      <Sources sources={frontmatter.sources} />
-      <FaqAccordion faqs={frontmatter.faqs} />
-      <RelatedNodes ids={frontmatter.related} />
-
-      {/* CTA — generate a tailored artifact for this topic */}
-      <div className="mt-10 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-5">
-        <h2 className="font-head text-heading text-xl mb-1">
-          Need this for a specific situation?
-        </h2>
-        <p className="text-sm text-[var(--text-body)] mb-4">
-          Generate a tailored, share-ready explanation grounded in this topic.
-        </p>
-        <Link
-          href={`/generate?nodeId=${frontmatter.id}`}
-          className="inline-flex items-center min-h-[44px] px-4 rounded-lg bg-[var(--accent-solid)] text-[var(--accent-on)] text-sm font-medium"
-          style={{ textDecoration: "none" }}
-        >
-          Generate an artifact →
-        </Link>
+        <aside className="space-y-4">
+          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
+            <FaqAccordion faqs={frontmatter.faqs} />
+          </div>
+          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
+            <h2 className="font-head text-2xl text-[var(--text-head)]">
+              Need this for a specific situation?
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-[var(--text-body)]">
+              Prepare a draft grounded in this topic and ready for internal review.
+            </p>
+            <Link
+              href={`/generate?nodeId=${frontmatter.id}`}
+              className="mt-4 inline-flex min-h-[48px] items-center rounded-xl bg-[var(--accent-solid)] px-5 text-sm font-semibold text-white"
+              style={{ textDecoration: "none" }}
+            >
+              Generate a draft
+            </Link>
+          </div>
+          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
+            <Sources sources={frontmatter.sources} />
+          </div>
+          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
+            <RelatedNodes ids={frontmatter.related} />
+          </div>
+        </aside>
       </div>
     </PortalShell>
   );

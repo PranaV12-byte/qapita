@@ -1,8 +1,8 @@
 export const DEFAULT_PLACEHOLDER =
-  'Describe the problem — e.g. "An employee is asking why taxes were withheld at vest"';
+  'Describe the drafting need, for example: "Explain why taxes were withheld at RSU vesting."';
 
 export function getNodePlaceholder(title: string): string {
-  return `What do you need to explain about ${title}?`;
+  return `Prepare a draft grounded in ${title}.`;
 }
 
 export function isSubmitDisabled(query: string, loading: boolean): boolean {
@@ -10,7 +10,7 @@ export function isSubmitDisabled(query: string, loading: boolean): boolean {
 }
 
 export function getCopyLabel(copied: boolean): string {
-  return copied ? "Copied ✓" : "Copy text";
+  return copied ? "Copied" : "Copy text";
 }
 
 export function validateEmail(email: string): boolean {

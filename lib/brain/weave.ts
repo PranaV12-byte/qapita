@@ -3,7 +3,7 @@ import path from "node:path";
 import { chunkMarkdown, type ChunkResult, type SectionResult } from "../rag/chunker";
 import { buildLexicalIndex } from "../rag/lexical";
 import { getEmbedder, embedInBlocks } from "../rag/embedder";
-import { buildEmbedInput } from "../../scripts/ingest/contextualize";
+import { buildEmbedInput } from "../rag/contextualize";
 import { getNode } from "../content/tree";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "../rag/config";
 import { brainStore, atomicWriteFileSync, type BrainStore, type BrainManifest } from "./store";

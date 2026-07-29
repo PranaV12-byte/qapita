@@ -24,7 +24,6 @@ export default function SearchOverlay({
   const indexRef = useRef<MiniSearch<SearchDoc> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Lazily load + build the index on first open.
   useEffect(() => {
     if (!open || indexRef.current) return;
     loadSearchDocs().then((docs) => {
@@ -37,16 +36,15 @@ export default function SearchOverlay({
     if (open) {
       setQ("");
       setHits([]);
-      // focus after paint
-      const t = setTimeout(() => inputRef.current?.focus(), 30);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => inputRef.current?.focus(), 30);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -64,23 +62,30 @@ export default function SearchOverlay({
     router.push(path);
   };
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     if (hits.length > 0) go(hits[0].path);
     else if (q.trim()) go(`/search?q=${encodeURIComponent(q.trim())}`);
   };
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Search">
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search"
+    >
       <div
-        className="absolute inset-0"
-        style={{ background: "rgba(0,0,0,0.6)" }}
+        className="absolute inset-0 bg-[rgba(18,11,36,0.48)] backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="absolute inset-x-0 top-0 sm:top-[10vh] mx-auto w-full sm:max-w-xl px-0 sm:px-4">
-        <div className="bg-surface-1 sm:rounded-xl border-b sm:border border-[var(--border)] overflow-hidden max-h-screen sm:max-h-[70vh] flex flex-col">
-          <form onSubmit={onSubmit} className="flex items-center gap-2 px-4 border-b border-[var(--border)]">
+      <div className="absolute inset-x-0 top-[72px] mx-auto w-full max-w-4xl px-4 pt-5">
+        <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-white shadow-[0_30px_80px_rgba(54,36,99,0.18)]">
+          <form
+            onSubmit={onSubmit}
+            className="flex items-center gap-3 border-b border-[var(--border)] px-5 py-4"
+          >
             <svg
               width="18"
               height="18"
@@ -91,7 +96,7 @@ export default function SearchOverlay({
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
-              className="text-[var(--text-muted)] shrink-0"
+              className="shrink-0 text-[var(--text-muted)]"
             >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
@@ -101,44 +106,55 @@ export default function SearchOverlay({
               type="search"
               value={q}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="Search topics and terms…"
-              className="w-full bg-transparent text-[var(--text-body)] py-4 focus:outline-none placeholder:text-[var(--text-muted)]"
-              style={{ fontSize: "16px" }}
+              placeholder="Search topics, articles, and glossary terms"
+              className="w-full bg-transparent py-2 text-base text-[var(--text-body)] placeholder:text-[var(--text-muted)] focus:outline-none"
             />
             <button
               type="button"
               onClick={onClose}
               aria-label="Close search"
-              className="text-[var(--text-muted)] hover:text-[var(--text-body)] shrink-0"
-              style={{ minWidth: "44px", minHeight: "44px" }}
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-[var(--text-muted)]"
             >
-              ✕
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m18 6-12 12" />
+                <path d="m6 6 12 12" />
+              </svg>
             </button>
           </form>
 
-          <div className="overflow-y-auto">
+          <div className="max-h-[70vh] overflow-y-auto">
             {q.trim() && hits.length === 0 && (
-              <p className="px-4 py-6 text-sm text-[var(--text-muted)]">
-                No results for “{q}”.
+              <p className="px-5 py-6 text-sm text-[var(--text-muted)]">
+                No results found for &quot;{q}&quot;.
               </p>
             )}
-            <ul>
-              {hits.map((h) => (
-                <li key={h.id}>
+            <ul className="divide-y divide-[var(--border)]">
+              {hits.map((hit) => (
+                <li key={hit.id}>
                   <button
-                    onClick={() => go(h.path)}
-                    className="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left hover:bg-[var(--surface-2)] transition-colors border-b border-[var(--border)]"
+                    onClick={() => go(hit.path)}
+                    className="flex w-full flex-col items-start gap-1 px-5 py-4 text-left transition hover:bg-[var(--surface-2)]"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="text-[var(--text-primary)] font-medium">
-                        {h.title}
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-[var(--text-primary)]">
+                        {hit.title}
                       </span>
-                      <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] border border-[var(--border)] rounded px-1.5 py-0.5">
-                        {h.type}
+                      <span className="rounded-full border border-[var(--border)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                        {hit.type}
                       </span>
                     </span>
-                    <span className="text-xs text-[var(--text-muted)] line-clamp-1">
-                      {h.summary}
+                    <span className="text-sm text-[var(--text-muted)]">
+                      {hit.summary}
                     </span>
                   </button>
                 </li>

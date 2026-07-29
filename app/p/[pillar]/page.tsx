@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import PortalShell from "@/components/portal/PortalShell";
 import Breadcrumb from "@/components/article/Breadcrumb";
-import { PILLARS, getPillar } from "@/lib/content/tree";
+import KnowledgeCenter from "@/components/knowledge/KnowledgeCenter";
+import PortalShell from "@/components/portal/PortalShell";
+import { loadGlossary } from "@/lib/content/glossary";
 import { articleExists } from "@/lib/content/loader";
+import { PILLARS, getPillar } from "@/lib/content/tree";
 
 type Params = { pillar: string };
 
 export function generateStaticParams() {
-  return PILLARS.map((p) => ({ pillar: p.slug }));
+  return PILLARS.map((pillar) => ({ pillar: pillar.slug }));
 }
 
 export async function generateMetadata({
@@ -18,8 +19,10 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { pillar } = await params;
-  const p = getPillar(pillar);
-  return { title: p ? `${p.title} — Q4N$P` : "Not found — Q4N$P" };
+  const resolved = getPillar(pillar);
+  return {
+    title: resolved ? `${resolved.title} - Q4N$P` : "Not found - Q4N$P",
+  };
 }
 
 export default async function PillarPage({
@@ -28,55 +31,39 @@ export default async function PillarPage({
   params: Promise<Params>;
 }) {
   const { pillar } = await params;
-  const p = getPillar(pillar);
-  if (!p) notFound();
+  const resolved = getPillar(pillar);
+  if (!resolved) notFound();
+
+  const terms = loadGlossary();
+  const pillars = PILLARS.map((item) => ({
+    ...item,
+    nodes: item.nodes.map((node) => ({
+      ...node,
+      ready: articleExists(node.pillarSlug, node.slug),
+    })),
+    readyCount: item.nodes.filter((node) =>
+      articleExists(node.pillarSlug, node.slug)
+    ).length,
+  }));
 
   return (
     <PortalShell>
       <Breadcrumb
         items={[
-          { label: "Browse", href: "/browse" },
-          { label: p.title },
+          { label: "Knowledge tree", href: "/browse" },
+          { label: resolved.title },
         ]}
       />
-      <h1 className="font-head text-heading text-3xl mb-6">{p.title}</h1>
-
-      <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
-        {p.nodes.map((n) => {
-          const ready = articleExists(n.pillarSlug, n.slug);
-          return (
-            <li key={n.id}>
-              {ready ? (
-                <Link
-                  href={`/a/${n.pillarSlug}/${n.slug}`}
-                  className="flex items-center gap-3 py-4 group"
-                  style={{ textDecoration: "none" }}
-                >
-                  <span className="text-xs text-[var(--text-muted)] w-8 shrink-0">
-                    {n.id}
-                  </span>
-                  <span className="text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
-                    {n.title}
-                  </span>
-                  <span className="ml-auto text-[var(--text-muted)] group-hover:text-[var(--accent)] transition-colors">
-                    →
-                  </span>
-                </Link>
-              ) : (
-                <div className="flex items-center gap-3 py-4">
-                  <span className="text-xs text-[var(--text-muted)] w-8 shrink-0">
-                    {n.id}
-                  </span>
-                  <span className="text-[var(--text-muted)]">{n.title}</span>
-                  <span className="ml-auto text-xs text-[var(--text-muted)]">
-                    Coming soon
-                  </span>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <div className="mb-8">
+        <h1 className="font-head text-5xl text-[var(--text-head)]">
+          {resolved.title}
+        </h1>
+      </div>
+      <KnowledgeCenter
+        pillars={pillars}
+        terms={terms}
+        initialPillarSlug={resolved.slug}
+      />
     </PortalShell>
   );
 }

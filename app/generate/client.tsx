@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { getNode } from "@/lib/content/tree";
+import { useEffect, useRef, useState } from "react";
 import ArtifactResult from "@/components/ArtifactResult";
-import StartHereBanner from "@/components/StartHereBanner";
+import { SCENARIOS } from "@/lib/scenarios";
+import { getNode } from "@/lib/content/tree";
 import {
   DEFAULT_PLACEHOLDER,
   getNodePlaceholder,
@@ -31,6 +31,7 @@ type ApiResponse = {
 };
 
 type Turn = { id: number; query: string; result: ApiResponse };
+type OutputFormat = "text" | "pdf" | "script";
 
 type Props = {
   initialQuery?: string;
@@ -38,25 +39,13 @@ type Props = {
   showBanner?: boolean;
 };
 
-function QuestionBubble({ text }: { text: string }) {
-  return (
-    <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-2xl rounded-br-md border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-[var(--text-primary)] text-sm">
-        {text}
-      </div>
-    </div>
-  );
-}
-
 export default function GenerateClient({
   initialQuery = "",
   initialNodeId,
-  showBanner = false,
 }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [nodeId, setNodeId] = useState<string | undefined>(initialNodeId);
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [pendingQuery, setPendingQuery] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState<"searching" | "drafting">(
     "searching"
@@ -66,16 +55,17 @@ export default function GenerateClient({
   const [emptyHint, setEmptyHint] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [wikiSources, setWikiSources] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>("text");
+  const resultRef = useRef<HTMLDivElement>(null);
 
-  // How many of the user's own sources back their answers (the wiki strip).
   useEffect(() => {
     let cancelled = false;
     fetch("/api/brain")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled && d?.counts) setWikiSources(d.counts.sources ?? 0);
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.counts) {
+          setWikiSources(data.counts.sources ?? 0);
+        }
       })
       .catch(() => {});
     return () => {
@@ -83,32 +73,29 @@ export default function GenerateClient({
     };
   }, []);
 
+  useEffect(() => {
+    if (turns.length > 0) {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [turns.length]);
+
   const nodeTitle = nodeId ? getNode(nodeId)?.title : undefined;
   const placeholder = nodeTitle
     ? getNodePlaceholder(nodeTitle)
     : DEFAULT_PLACEHOLDER;
-
-  const hasThread = turns.length > 0 || loading || error;
-
-  useEffect(() => {
-    if (hasThread) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, [turns.length, loading, error, hasThread]);
 
   const doSubmit = async (submitQuery: string, scenarioId?: string) => {
     if (!scenarioId && !submitQuery.trim()) {
       setEmptyHint(true);
       return;
     }
+
     setEmptyHint(false);
     setLoading(true);
     setLoadingStage("searching");
     setError(false);
     setOffline(false);
-    setPendingQuery(submitQuery);
     setLastQuery(submitQuery);
-    setQuery("");
 
     const timer = setTimeout(() => setLoadingStage("drafting"), 600);
 
@@ -121,167 +108,81 @@ export default function GenerateClient({
         if (nodeId) body.nodeId = nodeId;
       }
 
-      const res = await fetch("/api/artifact", {
+      const response = await fetch("/api/artifact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as ApiResponse;
-      setTurns((prev) => [
-        ...prev,
-        { id: Date.now(), query: submitQuery, result: data },
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = (await response.json()) as ApiResponse;
+      setTurns((current) => [
+        { id: Date.now(), query: submitQuery || data.scenario?.label || "Draft request", result: data },
+        ...current,
       ]);
     } catch {
-      const isOff = typeof navigator !== "undefined" && !navigator.onLine;
-      setOffline(isOff);
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      setOffline(isOffline);
       setError(true);
     } finally {
       clearTimeout(timer);
       setLoading(false);
-      setPendingQuery(null);
     }
   };
 
-  const handleSubmit = () => doSubmit(query);
+  const handleSubmit = () => {
+    doSubmit(query);
+  };
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 flex flex-col min-h-full">
-      {/* Thread / empty state */}
-      {!hasThread ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-10">
-          {showBanner && (
-            <div className="w-full max-w-md">
-              <StartHereBanner />
-            </div>
-          )}
-          <h1 className="font-head text-heading text-3xl md:text-4xl leading-tight">
-            What can I help you explain?
+    <div className="mx-auto w-full max-w-[1280px] px-5 py-6 md:px-8 lg:px-10 lg:py-8">
+      <div className="mx-auto max-w-[840px]">
+        <header className="space-y-3">
+          <h1 className="font-head text-5xl text-[var(--text-head)]">
+            Draft generator
           </h1>
-          <p className="mt-3 text-[var(--text-muted)]">
-            Ask about any equity-comp topic and I&apos;ll draft a clear,
-            share-ready explanation.
+          <p className="text-lg leading-8 text-[var(--text-body)]">
+            Describe the administration, tax, or compliance issue. Prepare a professional draft grounded in the reviewed library.
           </p>
-        </div>
-      ) : (
-        <div className="flex-1 py-8 space-y-8">
-          {turns.map((t) => (
-            <div key={t.id} className="space-y-4">
-              <QuestionBubble text={t.query} />
-              {t.result.fallbackUsed && (
-                <div className="p-4 rounded-lg border border-[var(--border)] border-l-2 border-l-[var(--accent-line)] bg-[var(--surface-2)]">
-                  <p className="text-sm text-[var(--text-body)]">
-                    We couldn&apos;t confidently answer that from our library, so
-                    here&apos;s the closest curated scenario:{" "}
-                    <strong>
-                      {(t.result.fallbackScenario ?? t.result.scenario)?.label}
-                    </strong>
-                    .
-                  </p>
-                </div>
-              )}
-              <ArtifactResult
-                artifactId={t.result.artifactId}
-                title={t.result.title}
-                bodyMarkdown={t.result.bodyMarkdown}
-                quickShare={t.result.quickShare}
-                citations={t.result.citations}
-              />
-            </div>
-          ))}
+        </header>
 
-          {/* In-flight question + loading skeleton */}
-          {loading && (
-            <div className="space-y-4">
-              {pendingQuery && <QuestionBubble text={pendingQuery} />}
-              <div>
-                <p className="text-sm text-[var(--text-muted)] mb-3">
-                  {loadingStage === "searching"
-                    ? "Searching the knowledge base…"
-                    : "Drafting your answer…"}
-                </p>
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-6">
-                  {[80, 70, 60, 50].map((w, i) => (
-                    <div
-                      key={i}
-                      className="h-4 rounded bg-[var(--surface-2)] animate-pulse mb-2"
-                      style={{ width: `${w}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
+        <section className="mt-8 q-shell-card p-6">
+          {nodeId && nodeTitle && (
+            <div className="mb-4 flex items-center gap-2">
+              <span className="rounded-full border border-[var(--accent)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+                Grounded in {nodeTitle}
+              </span>
+              <button
+                type="button"
+                onClick={() => setNodeId(undefined)}
+                className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-full text-[var(--text-muted)]"
+                aria-label="Remove topic context"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m18 6-12 12" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
             </div>
           )}
 
-          {/* Error */}
-          {error && (
-            <div className="p-6 rounded-xl border border-[var(--border)] border-l-2 border-l-[var(--danger)] bg-[var(--surface-2)]">
-              {offline ? (
-                <p className="text-sm text-[var(--text-body)]">
-                  You appear to be offline. Generating an answer needs a
-                  connection — browsing and search still work.
-                </p>
-              ) : (
-                <>
-                  <h2 className="font-head text-xl text-[var(--text-head)] mb-2">
-                    Something went wrong
-                  </h2>
-                  <p className="text-sm text-[var(--text-body)] mb-4">
-                    We couldn&apos;t generate that — your question wasn&apos;t
-                    lost. Try again.
-                  </p>
-                  <button
-                    onClick={() => doSubmit(lastQuery)}
-                    className="min-h-[44px] px-5 py-2 rounded bg-[var(--accent-solid)] text-[var(--accent-on)] text-sm font-medium"
-                  >
-                    Try again
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          <div ref={bottomRef} />
-        </div>
-      )}
-
-      {/* Composer (pinned to the bottom of the viewport) */}
-      <div className="sticky bottom-0 bg-bg pt-2 pb-3">
-        {nodeId && nodeTitle && (
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs px-3 py-1 rounded-full border border-[var(--accent)] text-[var(--accent)]">
-              Using: {nodeTitle}
-            </span>
-            <button
-              onClick={() => setNodeId(undefined)}
-              aria-label="Remove context"
-              className="text-[var(--text-muted)] hover:text-[var(--text-body)] text-lg leading-none"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {wikiSources > 0 && (
-          <div className="mb-2 text-xs text-[var(--text-muted)]">
-            Answering from your wiki ·{" "}
-            <a href="/brain" className="text-[var(--accent)] hover:underline">
-              {wikiSources} source{wikiSources === 1 ? "" : "s"}
-            </a>
-          </div>
-        )}
-
-        <div className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] focus-within:border-[var(--accent-line)] transition-colors">
           <textarea
-            ref={textareaRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
-            rows={1}
+            rows={5}
             disabled={loading}
-            className="w-full bg-transparent text-[var(--text-body)] px-4 pt-4 pb-2 resize-none focus:outline-none placeholder:text-[var(--text-muted)]"
-            style={{ fontSize: "16px" }}
+            className="w-full rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-lg leading-8 text-[var(--text-body)] placeholder:text-[var(--text-muted)] focus:outline-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -289,30 +190,149 @@ export default function GenerateClient({
               }
             }}
           />
-          <div className="flex items-center justify-end px-3 pb-3">
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitDisabled(query, loading)}
-              aria-label="Generate answer"
-              className="inline-flex items-center justify-center rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-              style={{
-                width: "44px",
-                height: "44px",
-                backgroundColor: "var(--accent-solid)",
-                color: "var(--accent-on)",
-              }}
-            >
-              ➤
-            </button>
-          </div>
-        </div>
 
-        {emptyHint && (
-          <p className="text-sm text-[var(--text-muted)] mt-2 text-center">
-            Please describe what you need help with.
+          <div className="mt-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              Output format
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {(["text", "pdf", "script"] as OutputFormat[]).map((format) => {
+                const active = outputFormat === format;
+                return (
+                  <button
+                    key={format}
+                    type="button"
+                    onClick={() => setOutputFormat(format)}
+                    className="min-h-[44px] rounded-xl border px-5 text-sm font-semibold capitalize transition"
+                    style={{
+                      borderColor: active ? "var(--accent)" : "var(--border)",
+                      backgroundColor: active ? "var(--accent-solid)" : "white",
+                      color: active ? "white" : "var(--text-body)",
+                    }}
+                  >
+                    {format}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitDisabled(query, loading)}
+            className="mt-5 inline-flex min-h-[54px] w-full items-center justify-center rounded-xl bg-[var(--accent-solid)] px-6 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Generate draft
+          </button>
+
+          {wikiSources > 0 && (
+            <p className="mt-3 text-sm text-[var(--text-muted)]">
+              Your workspace currently contributes {wikiSources} source{wikiSources === 1 ? "" : "s"} to retrieval.
+            </p>
+          )}
+
+          {emptyHint && (
+            <p className="mt-3 text-sm text-[var(--danger)]">
+              Provide a drafting prompt before submitting.
+            </p>
+          )}
+
+          {error && (
+            <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-5">
+              {offline ? (
+                <p className="text-sm text-[var(--text-body)]">
+                  A connection is required to prepare a draft. Search and reading remain available offline.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <h2 className="font-head text-2xl text-[var(--text-head)]">
+                    The draft could not be prepared
+                  </h2>
+                  <p className="text-sm text-[var(--text-body)]">
+                    The request was not completed. Try again from the same prompt.
+                  </p>
+                  <button
+                    onClick={() => doSubmit(lastQuery)}
+                    className="inline-flex min-h-[44px] items-center rounded-xl bg-[var(--accent-solid)] px-4 text-sm font-semibold text-white"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            Try an example
           </p>
-        )}
+          <div className="mt-4 space-y-3">
+            {SCENARIOS.slice(0, 3).map((scenario) => (
+              <button
+                key={scenario.id}
+                type="button"
+                onClick={() => doSubmit("", scenario.id)}
+                className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-white px-5 text-left text-base text-[var(--text-primary)] transition hover:border-[var(--accent)]"
+              >
+                <span>{scenario.label}</span>
+                <span className="text-[var(--accent)]">→</span>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
+
+      {loading && (
+        <section className="mx-auto mt-10 max-w-[1280px] rounded-2xl border border-[var(--border)] bg-white p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+            {loadingStage === "searching" ? "Searching the library" : "Preparing the draft"}
+          </p>
+          <div className="mt-5 space-y-3">
+            {[92, 88, 80, 72, 84].map((width, index) => (
+              <div
+                key={index}
+                className="h-4 animate-pulse rounded-full bg-[var(--surface-2)]"
+                style={{ width: `${width}%` }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {turns.length > 0 && (
+        <div ref={resultRef} className="mt-10 space-y-8">
+          {turns.map((turn) => (
+            <section key={turn.id} className="space-y-4">
+              <div className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                  Draft request
+                </p>
+                <p className="mt-2 text-lg leading-8 text-[var(--text-primary)]">
+                  {turn.query}
+                </p>
+              </div>
+              {turn.result.fallbackUsed && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-5 text-sm leading-7 text-[var(--text-body)]">
+                  The request was aligned to the closest curated scenario available in the library:
+                  {" "}
+                  <strong>
+                    {(turn.result.fallbackScenario ?? turn.result.scenario)?.label}
+                  </strong>
+                  .
+                </div>
+              )}
+              <ArtifactResult
+                artifactId={turn.result.artifactId}
+                title={turn.result.title}
+                bodyMarkdown={turn.result.bodyMarkdown}
+                quickShare={turn.result.quickShare}
+                citations={turn.result.citations}
+              />
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

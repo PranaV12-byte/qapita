@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { chunkMarkdown, type ChunkResult, type SectionResult } from "../rag/chunker";
 import { getEmbedder, EmbedCache, embedInBlocks } from "../rag/embedder";
-import { buildEmbedInput } from "../../scripts/ingest/contextualize";
+import { buildEmbedInput } from "../rag/contextualize";
 import { extractDocument, type ExtractFailure } from "./extract";
 import { runHealthCheck, type HealthCheckResult } from "./healthCheck";
 import { planPlacement, type PlacementPlan } from "./placement";

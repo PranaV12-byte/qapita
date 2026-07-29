@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { PILLARS, ALL_NODES } from "../content/tree";
+import { PILLARS } from "../content/tree";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "../rag/config";
 import { brainStore, type BrainStore, type BrainAnswer } from "./store";
 import { loadGraph } from "./weave";

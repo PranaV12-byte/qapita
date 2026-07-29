@@ -1,50 +1,49 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import PortalShell from "@/components/portal/PortalShell";
-import { PILLARS } from "@/lib/content/tree";
+import KnowledgeCenter from "@/components/knowledge/KnowledgeCenter";
+import { loadGlossary } from "@/lib/content/glossary";
 import { articleExists } from "@/lib/content/loader";
+import { PILLARS } from "@/lib/content/tree";
 
 export const metadata: Metadata = {
-  title: "Browse — Q4N$P",
-  description: "Browse equity-compensation topics by pillar.",
+  title: "Knowledge tree - Q4N$P",
+  description: "Browse equity compensation topics by pillar.",
 };
 
 export default function BrowsePage() {
+  const terms = loadGlossary();
+  const pillars = PILLARS.map((pillar) => ({
+    ...pillar,
+    nodes: pillar.nodes.map((node) => ({
+      ...node,
+      ready: articleExists(node.pillarSlug, node.slug),
+    })),
+    readyCount: pillar.nodes.filter((node) =>
+      articleExists(node.pillarSlug, node.slug)
+    ).length,
+  }));
+
   return (
     <PortalShell>
-      <header className="mb-8">
-        <h1 className="font-head text-heading text-3xl mb-2">Browse topics</h1>
-        <p className="text-[var(--text-body)]">
-          Seven pillars covering the equity-compensation lifecycle, from award
-          types through tax, accounting, and administration.
+      <header className="mb-8 space-y-3">
+        <h1 className="font-head text-5xl text-[var(--text-head)]">
+          Knowledge tree
+        </h1>
+        <p className="max-w-4xl text-lg leading-8 text-[var(--text-body)]">
+          Seven professional-grade pillars, US-scoped. Reading is open and drafting remains grounded in the reviewed library.
         </p>
+        <div className="flex flex-wrap gap-5 text-sm text-[var(--text-muted)]">
+          <span className="inline-flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#22b45a]" />
+            Reviewed
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#f28c38]" />
+            In progress
+          </span>
+        </div>
       </header>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {PILLARS.map((p) => {
-          const ready = p.nodes.filter((n) =>
-            articleExists(n.pillarSlug, n.slug)
-          ).length;
-          return (
-            <Link
-              key={p.id}
-              href={`/p/${p.slug}`}
-              className="q-card-link block p-5"
-              style={{ textDecoration: "none" }}
-            >
-              <div className="flex items-baseline justify-between gap-3 mb-1">
-                <h2 className="font-head text-heading text-xl">{p.title}</h2>
-                <span className="text-xs text-[var(--text-muted)] shrink-0">
-                  {ready} article{ready === 1 ? "" : "s"}
-                </span>
-              </div>
-              <p className="text-sm text-[var(--text-muted)]">
-                {p.nodes.length} topic{p.nodes.length === 1 ? "" : "s"}
-              </p>
-            </Link>
-          );
-        })}
-      </div>
+      <KnowledgeCenter pillars={pillars} terms={terms} />
     </PortalShell>
   );
 }

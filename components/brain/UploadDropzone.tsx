@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 
-const ACCEPT = ".md,.markdown,.txt,.pdf,.docx,.csv,.tsv,.xlsx,.html,.htm,.json";
+const ACCEPT =
+  ".md,.markdown,.txt,.pdf,.docx,.csv,.tsv,.xlsx,.html,.htm,.json";
 
 export default function UploadDropzone({
   onFiles,
@@ -31,22 +32,25 @@ export default function UploadDropzone({
         setOver(false);
         if (!disabled) handle(e.dataTransfer.files);
       }}
-      className="rounded-xl border-2 border-dashed p-6 text-center transition-colors"
+      className="rounded-[24px] border-2 border-dashed p-6 text-center transition-colors"
       style={{
         borderColor: over ? "var(--accent)" : "var(--border)",
-        background: over ? "var(--surface-2)" : "transparent",
+        background: over ? "var(--surface-2)" : "white",
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      <p className="text-[var(--text-body)] mb-1">Drop files here to add them to your wiki</p>
-      <p className="text-xs text-[var(--text-muted)] mb-3">
-        Markdown, text, PDF, Word, spreadsheets, HTML, JSON · up to 10 at a time
+      <p className="mb-1 text-[var(--text-body)]">
+        Drop files here to add them to the workspace
+      </p>
+      <p className="mb-3 text-xs text-[var(--text-muted)]">
+        Markdown, text, PDF, Word, spreadsheets, HTML, and JSON. Up to 10
+        files at a time.
       </p>
       <button
         type="button"
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
-        className="inline-flex items-center rounded-lg bg-[var(--accent-solid)] text-[var(--accent-on)] px-4 font-medium"
+        className="inline-flex items-center rounded-xl bg-[var(--accent-solid)] px-4 font-medium text-[var(--accent-on)]"
         style={{ minHeight: 44 }}
       >
         Choose files

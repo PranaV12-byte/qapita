@@ -16,13 +16,13 @@ export default function BrainStats({
   onErase: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="q-shell-card flex flex-wrap items-center gap-4 p-5">
       <div className="flex gap-4">
         <Stat label="Sources" value={String(sources)} />
         <Stat label="Passages" value={String(passages)} />
         <Stat
           label="Last health check"
-          value={lastLintAt ? new Date(lastLintAt).toLocaleDateString() : "—"}
+          value={lastLintAt ? new Date(lastLintAt).toLocaleDateString() : "Not run"}
         />
       </div>
       <div className="ml-auto flex items-center gap-2">
@@ -30,22 +30,26 @@ export default function BrainStats({
           type="button"
           onClick={onRunLint}
           disabled={linting}
-          className="rounded-lg border border-[var(--border)] text-sm text-[var(--text-body)] px-3 hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+          className="rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text-body)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
           style={{ minHeight: 44 }}
         >
-          {linting ? "Checking…" : "Run health check"}
+          {linting ? "Checking..." : "Run health check"}
         </button>
         <button
           type="button"
           onClick={() => {
-            if (confirm("Erase your entire wiki? This removes all your uploaded sources. The shared foundation stays.")) {
+            if (
+              confirm(
+                "Erase the entire workspace? This removes uploaded sources while leaving the shared foundation intact."
+              )
+            ) {
               onErase();
             }
           }}
-          className="rounded-lg border border-[var(--border)] text-sm text-[var(--text-muted)] px-3 hover:border-[var(--danger)] hover:text-[var(--danger)]"
+          className="rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text-muted)] hover:border-[var(--danger)] hover:text-[var(--danger)]"
           style={{ minHeight: 44 }}
         >
-          Erase my wiki
+          Erase workspace
         </button>
       </div>
     </div>
@@ -55,8 +59,10 @@ export default function BrainStats({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-lg font-head text-[var(--text-head)]">{value}</div>
-      <div className="text-xs text-[var(--text-muted)]">{label}</div>
+      <div className="text-2xl font-head text-[var(--text-head)]">{value}</div>
+      <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
+        {label}
+      </div>
     </div>
   );
 }

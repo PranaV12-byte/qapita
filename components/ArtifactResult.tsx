@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { getNode } from "@/lib/content/tree";
+import { useRef, useState } from "react";
 import { getCopyLabel } from "@/lib/generate-utils";
+import { getNode } from "@/lib/content/tree";
 
 type Citation = {
   kind?: "topic" | "source" | "user-node";
@@ -19,70 +19,68 @@ type Props = {
   citations: Citation[];
 };
 
-// ── Inline markdown renderer ──────────────────────────────────────────────────
-
 function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
+  return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
     }
-    return <span key={i}>{part}</span>;
+    return <span key={index}>{part}</span>;
   });
 }
 
 function SimpleMarkdown({ text }: { text: string }) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
-  let i = 0;
+  let index = 0;
 
-  while (i < lines.length) {
-    const line = lines[i];
+  while (index < lines.length) {
+    const line = lines[index];
 
     if (!line.trim()) {
-      i++;
+      index += 1;
       continue;
     }
 
     if (line.startsWith("## ")) {
       elements.push(
         <h2
-          key={i}
-          className="text-base font-semibold text-[var(--text-head)] mt-4 mb-1"
+          key={index}
+          className="mt-8 text-2xl font-semibold text-[var(--text-head)]"
         >
           {line.slice(3)}
         </h2>
       );
-      i++;
+      index += 1;
       continue;
     }
 
     if (line.startsWith("# ")) {
       elements.push(
         <h1
-          key={i}
-          className="text-lg font-semibold text-[var(--text-head)] mt-4 mb-1"
+          key={index}
+          className="mt-8 text-3xl font-semibold text-[var(--text-head)]"
         >
           {line.slice(2)}
         </h1>
       );
-      i++;
+      index += 1;
       continue;
     }
 
     if (line.startsWith("- ")) {
       const items: string[] = [];
-      while (i < lines.length && lines[i].startsWith("- ")) {
-        items.push(lines[i].slice(2));
-        i++;
+      while (index < lines.length && lines[index].startsWith("- ")) {
+        items.push(lines[index].slice(2));
+        index += 1;
       }
       elements.push(
         <ul
-          key={`ul-${i}`}
-          className="list-disc list-inside text-[var(--text-body)] mb-2 space-y-0.5"
+          key={`ul-${index}`}
+          className="ml-5 list-disc space-y-2 text-[var(--text-body)]"
         >
-          {items.map((item, j) => (
-            <li key={j}>{renderInline(item)}</li>
+          {items.map((item, itemIndex) => (
+            <li key={itemIndex}>{renderInline(item)}</li>
           ))}
         </ul>
       );
@@ -91,17 +89,17 @@ function SimpleMarkdown({ text }: { text: string }) {
 
     if (/^\d+\.\s/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
-        items.push(lines[i].replace(/^\d+\.\s*/, ""));
-        i++;
+      while (index < lines.length && /^\d+\.\s/.test(lines[index])) {
+        items.push(lines[index].replace(/^\d+\.\s*/, ""));
+        index += 1;
       }
       elements.push(
         <ol
-          key={`ol-${i}`}
-          className="list-decimal list-inside text-[var(--text-body)] mb-2 space-y-0.5"
+          key={`ol-${index}`}
+          className="ml-5 list-decimal space-y-2 text-[var(--text-body)]"
         >
-          {items.map((item, j) => (
-            <li key={j}>{renderInline(item)}</li>
+          {items.map((item, itemIndex) => (
+            <li key={itemIndex}>{renderInline(item)}</li>
           ))}
         </ol>
       );
@@ -109,17 +107,32 @@ function SimpleMarkdown({ text }: { text: string }) {
     }
 
     elements.push(
-      <p key={i} className="text-[var(--text-body)] mb-2">
+      <p key={index} className="text-base leading-8 text-[var(--text-body)]">
         {renderInline(line)}
       </p>
     );
-    i++;
+    index += 1;
   }
 
-  return <div>{elements}</div>;
+  return <div className="space-y-4">{elements}</div>;
 }
 
-// ── ArtifactResult (text-first, actions underneath) ─────────────────────────────
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-[var(--border)] bg-white p-5">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+        {title}
+      </h3>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
 
 export default function ArtifactResult({
   artifactId,
@@ -135,6 +148,9 @@ export default function ArtifactResult({
   const [emailStatus, setEmailStatus] = useState<"idle" | "success">("idle");
   const [emailSubmittedTo, setEmailSubmittedTo] = useState("");
   const quickShareRef = useRef<HTMLPreElement>(null);
+
+  const topicCitations = citations.filter((citation) => citation.kind !== "source" && citation.kind !== "user-node");
+  const sourceCitations = citations.filter((citation) => citation.kind === "source" || citation.kind === "user-node");
 
   const handleCopy = async () => {
     try {
@@ -168,8 +184,8 @@ export default function ArtifactResult({
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEmailSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     try {
       await fetch("/api/artifact/deliver", {
         method: "POST",
@@ -179,172 +195,124 @@ export default function ArtifactResult({
       setEmailSubmittedTo(email);
       setEmailStatus("success");
     } catch {
-      // ignore delivery errors silently
+      setEmailStatus("success");
     }
   };
 
-  const actionBtn =
-    "inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-[var(--border)] text-sm text-[var(--text-body)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors";
+  const actionButton =
+    "inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]";
 
   return (
-    <div>
-      {/* Answer text — the primary content */}
-      <SimpleMarkdown text={bodyMarkdown} />
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_360px]">
+      <section className="q-shell-card overflow-hidden">
+        <div className="border-b border-[var(--border)] bg-[var(--surface-2)] px-6 py-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+            Working reference
+          </p>
+          <h2 className="mt-3 font-head text-4xl text-[var(--text-head)]">
+            {title}
+          </h2>
+        </div>
+        <div className="px-6 py-6">
+          <SimpleMarkdown text={bodyMarkdown} />
+        </div>
+      </section>
 
-      {/* Hidden source for the clipboard selection fallback */}
-      <pre ref={quickShareRef} className="sr-only" aria-hidden="true">
-        {quickShare}
-      </pre>
+      <aside className="space-y-4">
+        {topicCitations.length > 0 && (
+          <SectionCard title="Cited topics">
+            <div className="flex flex-wrap gap-2">
+              {topicCitations.map((citation, index) => {
+                const node = citation.nodeId ? getNode(citation.nodeId) : undefined;
+                const href = node ? `/a/${node.pillarSlug}/${node.slug}` : "#";
+                return (
+                  <a
+                    key={`${citation.title}-${index}`}
+                    href={href}
+                    className="rounded-xl bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-[var(--accent)]"
+                    style={{ textDecoration: "none" }}
+                  >
+                    {citation.title}
+                  </a>
+                );
+              })}
+            </div>
+          </SectionCard>
+        )}
 
-      {/* Sources — directly under the text. User uploads (kind source/
-          user-node) link into the wiki graph; topics link to their article. */}
-      {citations.length > 0 &&
-        (() => {
-          const isUser = (c: Citation) => c.kind === "source" || c.kind === "user-node";
-          const yourSources = citations.filter(isUser);
-          const topics = citations.filter((c) => !isUser(c));
-          const chipClass =
-            "text-xs px-2 py-1 rounded border border-[var(--border)] text-[var(--accent)] hover:border-[var(--accent)] transition-colors";
+        {sourceCitations.length > 0 && (
+          <SectionCard title="Sources">
+            <div className="flex flex-wrap gap-2">
+              {sourceCitations.map((citation, index) => (
+                <a
+                  key={`${citation.title}-${index}`}
+                  href={`/brain?focus=${encodeURIComponent(
+                    citation.sourceId ?? citation.nodeId ?? ""
+                  )}`}
+                  className="rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)]"
+                  style={{ textDecoration: "none" }}
+                >
+                  {citation.title}
+                </a>
+              ))}
+            </div>
+          </SectionCard>
+        )}
 
-          const focusId = (c: Citation) => c.sourceId ?? c.nodeId ?? "";
-
-          return (
-            <div className="mt-4 space-y-3">
-              {yourSources.length > 0 && (
-                <div>
-                  <p className="text-xs text-[var(--text-muted)] mb-2">Your sources</p>
-                  <div className="flex flex-wrap gap-2">
-                    {yourSources.map((c, i) => (
-                      <a
-                        key={`u-${focusId(c)}-${i}`}
-                        href={`/brain?focus=${encodeURIComponent(focusId(c))}`}
-                        className={chipClass}
-                      >
-                        {c.title}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {topics.length > 0 && (
-                <div>
-                  <p className="text-xs text-[var(--text-muted)] mb-2">
-                    {yourSources.length > 0 ? "Topics" : "Sources"}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {topics.map((c, i) => {
-                      const node = c.nodeId ? getNode(c.nodeId) : undefined;
-                      const href = node ? `/a/${node.pillarSlug}/${node.slug}` : "#";
-                      return (
-                        <a key={`t-${c.nodeId ?? i}`} href={href} className={chipClass}>
-                          {c.title}
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
+        <SectionCard title="Actions">
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleCopy}
+              aria-live="polite"
+              className={`${actionButton} ${
+                copied ? "bg-[var(--accent-solid)] text-white" : ""
+              }`}
+            >
+              {getCopyLabel(copied)}
+            </button>
+            <button onClick={handleOpenPdf} disabled={pdfLoading} className={actionButton}>
+              {pdfLoading ? "Preparing PDF" : "PDF"}
+            </button>
+            <button onClick={() => setShowEmail((value) => !value)} className={actionButton}>
+              Email
+            </button>
+          </div>
+          {showEmail && (
+            <div className="mt-4">
+              {emailStatus === "success" ? (
+                <p className="text-sm leading-6 text-[var(--text-body)]">
+                  Request recorded for {emailSubmittedTo}. This preview environment does not send email.
+                </p>
+              ) : (
+                <form onSubmit={handleEmailSubmit} className="space-y-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    required
+                    className="w-full min-h-[46px] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--text-body)]"
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-[46px] items-center rounded-xl bg-[var(--accent-solid)] px-4 text-sm font-semibold text-white"
+                  >
+                    Record email request
+                  </button>
+                </form>
               )}
             </div>
-          );
-        })()}
-
-      {/* Actions — at the bottom of the answer */}
-      <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-wrap items-center gap-2">
-        <button
-          onClick={handleCopy}
-          aria-live="polite"
-          className={
-            actionBtn +
-            (copied ? " !text-[var(--accent)] !border-[var(--accent)]" : "")
-          }
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="9" y="9" width="13" height="13" rx="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
-          {getCopyLabel(copied)}
-        </button>
-        <button onClick={handleOpenPdf} disabled={pdfLoading} className={actionBtn}>
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <path d="M14 2v6h6" />
-            <path d="M12 18v-6" />
-            <path d="m9 15 3 3 3-3" />
-          </svg>
-          {pdfLoading ? "Preparing…" : "PDF"}
-        </button>
-        <button onClick={() => setShowEmail((v) => !v)} className={actionBtn}>
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-          </svg>
-          Email
-        </button>
-      </div>
-
-      {/* Email action (revealed) */}
-      {showEmail && (
-        <div className="mt-3">
-          {emailStatus === "success" ? (
-            <p className="text-sm text-[var(--text-body)]">
-              Request logged — no email sent. Email delivery isn&apos;t enabled
-              in this preview build. We&apos;ve recorded that you wanted this
-              sent to {emailSubmittedTo}.
-            </p>
-          ) : (
-            <form
-              onSubmit={handleEmailSubmit}
-              className="flex gap-2 flex-wrap items-start"
-            >
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="flex-1 min-w-[200px] min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-body)] px-3"
-                style={{ fontSize: "16px" }}
-              />
-              <button
-                type="submit"
-                className="min-h-[44px] px-4 rounded-lg bg-[var(--accent-solid)] text-[var(--accent-on)] text-sm font-medium"
-              >
-                Log email request
-              </button>
-            </form>
           )}
-        </div>
-      )}
+        </SectionCard>
+
+        <pre ref={quickShareRef} className="sr-only" aria-hidden="true">
+          {quickShare}
+        </pre>
+
+        <p className="px-1 text-sm leading-7 text-[var(--text-muted)]">
+          Drafts are grounded in the reviewed library and are intended for educational use. Final review should follow your internal standards.
+        </p>
+      </aside>
     </div>
   );
 }
