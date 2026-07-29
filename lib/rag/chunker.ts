@@ -13,17 +13,38 @@ export function splitLeaf(
   if (!trimmed) return [];
   if (trimmed.length <= maxChars) return [trimmed];
 
-  const paragraphs = trimmed
+  const rawParagraphs = trimmed
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
+
+  // A paragraph longer than maxChars can't be hard-truncated — that both
+  // drops its tail content and cuts mid-word (e.g. "...ordinar" |
+  // "y compensation..."). Break it at the last word boundary before the
+  // limit instead, so every piece the accumulation loop below sees already
+  // fits and nothing is lost.
+  const paragraphs: string[] = [];
+  for (const para of rawParagraphs) {
+    if (para.length <= maxChars) {
+      paragraphs.push(para);
+      continue;
+    }
+    let rest = para;
+    while (rest.length > maxChars) {
+      const cut = rest.lastIndexOf(" ", maxChars);
+      const at = cut > 0 ? cut : maxChars;
+      paragraphs.push(rest.slice(0, at).trim());
+      rest = rest.slice(at).trim();
+    }
+    if (rest) paragraphs.push(rest);
+  }
 
   const chunks: string[] = [];
   let current = "";
 
   for (const para of paragraphs) {
     if (!current) {
-      current = para.length <= maxChars ? para : para.slice(0, maxChars);
+      current = para;
       continue;
     }
     const joined = current + "\n\n" + para;
@@ -31,9 +52,10 @@ export function splitLeaf(
       current = joined;
     } else {
       chunks.push(current);
-      const tail = current.slice(-overlap);
-      const seeded = tail + "\n\n" + para;
-      current = seeded.length <= maxChars ? seeded : seeded.slice(0, maxChars);
+      // A raw character-count slice can land mid-word; drop any partial
+      // leading word so the overlap always starts clean.
+      const tail = current.slice(-overlap).replace(/^\S*/, "").trimStart();
+      current = tail ? `${tail}\n\n${para}` : para;
     }
   }
   if (current) chunks.push(current);

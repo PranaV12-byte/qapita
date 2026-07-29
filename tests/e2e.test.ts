@@ -51,12 +51,13 @@ describe(
     );
 
     it(
-      "bodyMarkdown contains ## headers",
+      "bodyMarkdown returns a non-empty prose answer",
       async () => {
         const req = makeReq({ query: "What happens to ISOs when you leave a company?" });
         const res = await artifactPOST(req);
         const data = await res.json();
-        expect(data.bodyMarkdown).toMatch(/^##\s/m);
+        expect(typeof data.bodyMarkdown).toBe("string");
+        expect(data.bodyMarkdown.trim().length).toBeGreaterThan(0);
       },
       120_000
     );

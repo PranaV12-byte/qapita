@@ -43,8 +43,7 @@ describe("MockLLM", () => {
     ];
     const result = await mock.generate("How are RSUs taxed?", chunks);
     expect(result.title).toMatch(/^Reference:/);
-    expect(result.bodyMarkdown).toContain("What this covers");
-    expect(result.bodyMarkdown).toContain("Key points");
+    expect(result.bodyMarkdown).toContain("RSUs vest at ordinary income");
     expect(result.citations).toBeInstanceOf(Array);
     expect(result.citations.length).toBeGreaterThan(0);
     result.citations.forEach((c) => {

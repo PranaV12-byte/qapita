@@ -190,9 +190,16 @@ export async function authorNodeSynthesis(
   opts: MaintainOpts = {}
 ): Promise<string> {
   const template = (): string => {
+    // Each passage's lead sentence must end in terminal punctuation before
+    // joining — otherwise two unrelated passages fuse into one run-on
+    // sentence (e.g. a fragment cut mid-clause butting straight into the
+    // next passage's opening words).
     const lead = passages
       .slice(0, 2)
-      .map((p) => leadSentences(p.text, 1))
+      .map((p) => {
+        const s = leadSentences(p.text, 1);
+        return /[.!?]$/.test(s) ? s : `${s}.`;
+      })
       .join(" ")
       .trim();
     const bySource = new Map<string, string>();
