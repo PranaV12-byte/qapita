@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { getBrainId } from "@/lib/brain/id";
 import { brainStore } from "@/lib/brain/store";
 import { composeGraphModel } from "@/lib/brain/graph";
-import { loadLintReport } from "@/lib/brain/lint";
 import { loadAllArticles } from "@/lib/content/loader";
 import BrainClient from "./client";
 
@@ -34,10 +33,8 @@ export default async function BrainPage() {
     <BrainClient
       brainId={brainId ?? ""}
       model={model}
-      sources={manifest ? Object.values(manifest.sources) : []}
       counts={manifest?.counts ?? { sources: 0, passages: 0 }}
       lint={manifest?.lint ?? { lastLintAt: null, appendsSinceLint: 0 }}
-      lintReport={brainId ? loadLintReport(brainId) : null}
     />
   );
 }

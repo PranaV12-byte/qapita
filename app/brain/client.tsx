@@ -5,28 +5,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import BrainGraph from "@/components/brain/BrainGraph";
 import UploadDropzone from "@/components/brain/UploadDropzone";
 import IngestQueue, { type QueuedJob } from "@/components/brain/IngestQueue";
-import SourceTable from "@/components/brain/SourceTable";
 import BrainStats from "@/components/brain/BrainStats";
-import LintPanel from "@/components/brain/LintPanel";
 import NotePane from "@/components/brain/NotePane";
 import type { GraphModel, RenderNode } from "@/lib/brain/graph";
-import type { BrainSourceMeta } from "@/lib/brain/store";
 import type { JobView } from "@/lib/brain/jobs";
-import type { LintReport } from "@/lib/brain/lint";
 
 type Props = {
   brainId: string;
   model: GraphModel;
-  sources: BrainSourceMeta[];
   counts: { sources: number; passages: number };
   lint: { lastLintAt: string | null; appendsSinceLint: number };
-  lintReport: LintReport | null;
 };
 
 const TERMINAL = new Set(["done", "blocked", "needs-review"]);
 type NoteKind = "topic" | "source" | "user-node" | "general" | "pillar";
 
-export default function BrainClient({ brainId, model, sources, counts, lint, lintReport }: Props) {
+export default function BrainClient({ brainId, model, counts, lint }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<QueuedJob[]>([]);
@@ -184,18 +178,6 @@ export default function BrainClient({ brainId, model, sources, counts, lint, lin
     }
   }, [router]);
 
-  const onApplyFinding = useCallback(
-    async (findingId: string, action: "apply" | "dismiss") => {
-      await fetch("/api/brain/lint/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ findingId, action }),
-      });
-      router.refresh();
-    },
-    [router]
-  );
-
   const focusNode = useCallback(
     (nodeId: string) => {
       select(nodeId);
@@ -279,16 +261,6 @@ export default function BrainClient({ brainId, model, sources, counts, lint, lin
           <kbd className="px-1 rounded border border-[var(--border)]">Ctrl</kbd>+
           <kbd className="px-1 rounded border border-[var(--border)]">K</kbd> to jump to any note.
         </p>
-      </section>
-
-      <section>
-        <h2 className="font-head text-heading text-xl mb-2">Your sources</h2>
-        <SourceTable sources={sources} onDelete={onDelete} onFocus={(id) => focusNode(`source:${id}`)} />
-      </section>
-
-      <section>
-        <h2 className="font-head text-heading text-xl mb-2">Health check</h2>
-        <LintPanel report={lintReport} onApply={onApplyFinding} />
       </section>
     </div>
   );
