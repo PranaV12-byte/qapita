@@ -66,37 +66,12 @@ export default function AppShell({ children }: AppShellProps) {
       <header className="fixed inset-x-0 top-0 z-40 h-[72px] border-b border-white/10 bg-[var(--shell)] shadow-[0_10px_30px_rgba(61,31,116,0.22)]">
         <div className="flex h-full items-center gap-4 px-4 md:px-6">
           <BrandLockup />
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            aria-label="Open search"
-            className="hidden min-h-[48px] flex-1 items-center gap-3 rounded-xl border border-white/15 bg-white/12 px-4 text-left text-sm text-white/70 transition hover:bg-white/14 lg:flex"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <span className="truncate">Search topics, articles, artifacts...</span>
-            <span className="ml-auto rounded-md border border-white/20 px-2 py-1 text-[11px] uppercase tracking-wide text-white/65">
-              Ctrl K
-            </span>
-          </button>
-          <div className="ml-auto hidden lg:flex">
+          <div className="ml-auto hidden lg:block">
             <button
               type="button"
-              onClick={() => setCollapsed((value) => !value)}
-              aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-white/15 text-white/80 transition hover:bg-white/10"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Open search"
+              className="flex min-h-[46px] w-[360px] max-w-[40vw] items-center gap-3 rounded-xl border border-white/15 bg-white/12 px-4 text-left text-sm text-white/70 transition hover:bg-white/14"
             >
               <svg
                 width="18"
@@ -109,10 +84,10 @@ export default function AppShell({ children }: AppShellProps) {
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <path d="M4 7h16" />
-                <path d="M4 12h16" />
-                <path d="M4 17h16" />
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
               </svg>
+              <span className="truncate">Search topics, articles, artifacts...</span>
             </button>
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
@@ -163,15 +138,47 @@ export default function AppShell({ children }: AppShellProps) {
         </div>
       </header>
 
-      <div className="min-h-screen pt-[72px]">
+      <div className="min-h-screen pb-[60px] pt-[72px]">
         <aside
-          className="fixed bottom-0 left-0 top-[72px] z-30 hidden border-r border-[var(--border)] bg-[var(--shell-soft)]/80 backdrop-blur lg:block"
+          className="fixed left-0 top-[72px] z-30 hidden border-r border-[var(--border)] bg-[var(--shell-soft)]/80 backdrop-blur lg:block"
           style={{
+            bottom: 60,
             width: collapsed ? 88 : 276,
             transition: "width 220ms ease",
           }}
         >
           <div className="flex h-full flex-col px-3 py-5">
+            <div className="mb-3 flex items-center justify-between px-2">
+              {!collapsed && (
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                  Navigation
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setCollapsed((value) => !value)}
+                aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+                className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-[var(--border)] bg-white text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={{
+                    transform: collapsed ? "rotate(180deg)" : "none",
+                    transition: "transform 160ms ease",
+                  }}
+                >
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+            </div>
             <nav aria-label="Primary navigation" className="space-y-1">
               {navLinks.map((link) => {
                 const active = isActive(pathname, link.href);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+import { BrandCluster } from "@/components/brand/Logos";
 import { LensProvider } from "@/components/lens/LensProvider";
 
 const montserrat = Montserrat({
@@ -33,33 +34,24 @@ export default function RootLayout({
       <head>
         <meta name="robots" content="noindex" />
       </head>
-      <body className="bg-bg text-body font-sans">
+      <body className="bg-bg pb-[60px] text-body font-sans">
         <LensProvider>
           <AppShell>
             <main className="w-full">{children}</main>
           </AppShell>
         </LensProvider>
-        <footer className="border-t border-white/10 bg-[var(--shell)] px-4 py-3 text-white/90 lg:pl-[304px]">
-          <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 font-medium">
+        <footer className="fixed inset-x-0 bottom-0 z-40 h-[60px] border-t border-white/10 bg-[var(--shell)] px-4 text-white/90">
+          <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#28d05d]" />
               Endorsed by NASPP, National Association of Stock Plan Professionals
             </div>
-            <div className="flex items-center gap-3">
-              <span className="rounded-md bg-white/90 px-2 py-1">
-                <img
-                  src="/brand/naspp.png"
-                  alt="NASPP"
-                  className="h-5 w-auto"
-                />
-              </span>
-              <span className="h-5 w-px bg-white/20" />
-              <img
-                src="/brand/qapita.png"
-                alt="Qapita"
-                className="h-5 w-auto"
-              />
-            </div>
+            <BrandCluster
+              className="inline-flex items-center"
+              qapitaClassName="h-6 w-auto"
+              nasppClassName="h-5 w-auto object-contain"
+              separatorClassName="mx-4 h-6 w-px bg-white/50"
+            />
           </div>
         </footer>
       </body>

@@ -207,7 +207,7 @@ export default function ArtifactResult({
       <section className="q-shell-card overflow-hidden">
         <div className="border-b border-[var(--border)] bg-[var(--surface-2)] px-6 py-5">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-            Working reference
+            Draft
           </p>
           <h2 className="mt-3 font-head text-4xl text-[var(--text-head)]">
             {title}

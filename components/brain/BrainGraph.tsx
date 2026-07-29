@@ -610,7 +610,6 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
       {/* Filter chips */}
       <div className="absolute top-2 left-2 z-10 flex gap-1.5">
         {chip("all", "All")}
-        {chip("topics", "Topics")}
         {chip("files", "Your files")}
       </div>
 
@@ -684,13 +683,6 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
           </div>
         </div>
       )}
-
-      {/* Legend */}
-      <div className="absolute bottom-2 left-2 z-10 flex flex-wrap gap-3 text-[11px] text-[var(--text-muted)] bg-[var(--surface-1)]/80 backdrop-blur rounded-lg px-2 py-1 border border-[var(--border)]">
-        <span><span style={{ color: "var(--text-muted)" }}>●</span> topics</span>
-        <span><span style={{ color: "var(--accent)" }}>●</span> your topics</span>
-        <span><span style={{ color: "var(--accent-line)" }}>●</span> your sources</span>
-      </div>
     </div>
   );
 }

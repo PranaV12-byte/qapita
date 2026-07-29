@@ -4,9 +4,10 @@ import Link from "next/link";
 export function NasppLogo({ className }: { className?: string }) {
   return (
     <img
-      src="/brand/naspp.png"
+      src="/brand/naspp-deep.png"
       alt="NASPP"
-      className={className}
+      className={`${className ?? ""} bg-transparent`}
+      style={{ backgroundColor: "transparent" }}
       draggable={false}
     />
   );
@@ -15,7 +16,7 @@ export function NasppLogo({ className }: { className?: string }) {
 export function QapitaLogo({ className }: { className?: string }) {
   return (
     <img
-      src="/brand/qapita.png"
+      src="/brand/qapita-white-full.png"
       alt="Qapita"
       className={className}
       draggable={false}
@@ -23,21 +24,50 @@ export function QapitaLogo({ className }: { className?: string }) {
   );
 }
 
+export function BrandCluster({
+  className,
+  qapitaClassName,
+  nasppClassName,
+  separatorClassName,
+}: {
+  className?: string;
+  qapitaClassName?: string;
+  nasppClassName?: string;
+  separatorClassName?: string;
+}) {
+  return (
+    <span
+      className={className ?? "inline-flex items-center"}
+      aria-label="Qapita and NASPP"
+      role="img"
+    >
+      <QapitaLogo className={qapitaClassName ?? "h-8 w-auto"} />
+      <span
+        className={separatorClassName ?? "mx-4 h-7 w-px bg-white/40"}
+        aria-hidden="true"
+      />
+      <NasppLogo className={nasppClassName ?? "h-5 w-auto object-contain"} />
+    </span>
+  );
+}
+
 export function BrandLockup({ compact = false }: { compact?: boolean }) {
-  const qapita = compact ? "h-7" : "h-8";
+  const qapita = compact ? "h-7 w-auto" : "h-8 w-auto";
+  const naspp = compact ? "h-4 w-auto object-contain" : "h-5 w-auto object-contain";
+  const separator = compact ? "mx-3 h-6 w-px bg-white/40" : "mx-4 h-7 w-px bg-white/40";
 
   return (
     <Link
       href="/"
-      aria-label="Qapita EquityIQ home"
-      className="inline-flex items-center gap-3"
+      aria-label="Qapita and NASPP home"
+      className="inline-flex items-center"
       style={{ textDecoration: "none" }}
     >
-      <span className="inline-flex items-center rounded-xl bg-white/96 px-3 py-2 shadow-sm">
-        <QapitaLogo className={`${qapita} w-auto`} />
-      </span>
-      <span className="h-7 w-px bg-white/25" aria-hidden="true" />
-      <span className="font-head text-xl text-white">EquityIQ</span>
+      <BrandCluster
+        qapitaClassName={qapita}
+        nasppClassName={naspp}
+        separatorClassName={separator}
+      />
     </Link>
   );
 }

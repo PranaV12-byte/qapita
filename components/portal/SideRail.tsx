@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { PILLARS } from "@/lib/content/tree";
+import { DISPLAY_PILLARS } from "@/lib/content/tree";
 
 /**
  * Fixed 280px left rail for desktop (lg+): accordion of pillars → nodes.
@@ -25,7 +25,7 @@ export default function SideRail() {
 
   const [expanded, setExpanded] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
-    for (const p of PILLARS) init[p.id] = p.slug === activePillarSlug;
+    for (const p of DISPLAY_PILLARS) init[p.id] = p.slug === activePillarSlug;
     return init;
   });
 
@@ -39,7 +39,7 @@ export default function SideRail() {
         Browse all topics
       </Link>
       <ul className="space-y-1">
-        {PILLARS.map((p) => {
+        {DISPLAY_PILLARS.map((p) => {
           const isOpen = expanded[p.id];
           return (
             <li key={p.id}>

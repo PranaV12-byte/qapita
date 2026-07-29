@@ -43,7 +43,6 @@ export default async function ArticlePage({
 
   const { frontmatter, content } = article;
   const resolvedPillar = getPillar(pillar);
-  const reviewed = frontmatter.status === "signed_off";
 
   return (
     <PortalShell measure>
@@ -61,22 +60,6 @@ export default async function ArticlePage({
         <h1 className="font-head text-5xl leading-tight text-[var(--text-head)]">
           {frontmatter.title}
         </h1>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--text-muted)]">
-          <span
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold"
-            style={{
-              backgroundColor: reviewed ? "#eefaf2" : "#fff3eb",
-              color: reviewed ? "#22a84f" : "#e67a22",
-            }}
-          >
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: reviewed ? "#22b45a" : "#f28c38" }}
-            />
-            {reviewed ? "Reviewed and signed off" : "Draft reference"}
-          </span>
-          <span>Last updated {frontmatter.updatedAt}</span>
-        </div>
       </header>
 
       <PlainLanguageCallout text={frontmatter.summaryPlain} />

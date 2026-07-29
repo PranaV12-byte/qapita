@@ -5,7 +5,7 @@ import KnowledgeCenter from "@/components/knowledge/KnowledgeCenter";
 import PortalShell from "@/components/portal/PortalShell";
 import { loadGlossary } from "@/lib/content/glossary";
 import { articleExists } from "@/lib/content/loader";
-import { PILLARS, getPillar } from "@/lib/content/tree";
+import { DISPLAY_PILLARS, PILLARS, getPillar } from "@/lib/content/tree";
 
 type Params = { pillar: string };
 
@@ -35,7 +35,7 @@ export default async function PillarPage({
   if (!resolved) notFound();
 
   const terms = loadGlossary();
-  const pillars = PILLARS.map((item) => ({
+  const pillars = DISPLAY_PILLARS.map((item) => ({
     ...item,
     nodes: item.nodes.map((node) => ({
       ...node,

@@ -3,7 +3,7 @@ import KnowledgeCenter from "@/components/knowledge/KnowledgeCenter";
 import PortalShell from "@/components/portal/PortalShell";
 import { loadGlossary } from "@/lib/content/glossary";
 import { articleExists } from "@/lib/content/loader";
-import { PILLARS } from "@/lib/content/tree";
+import { DISPLAY_PILLARS } from "@/lib/content/tree";
 
 export const metadata: Metadata = {
   title: "Glossary - Q4N$P",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function GlossaryPage() {
   const terms = loadGlossary();
-  const pillars = PILLARS.map((pillar) => ({
+  const pillars = DISPLAY_PILLARS.map((pillar) => ({
     ...pillar,
     nodes: pillar.nodes.map((node) => ({
       ...node,

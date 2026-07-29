@@ -31,7 +31,6 @@ type ApiResponse = {
 };
 
 type Turn = { id: number; query: string; result: ApiResponse };
-type OutputFormat = "text" | "pdf" | "script";
 
 type Props = {
   initialQuery?: string;
@@ -55,7 +54,7 @@ export default function GenerateClient({
   const [emptyHint, setEmptyHint] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [wikiSources, setWikiSources] = useState(0);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>("text");
+  const [hideExamples, setHideExamples] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,6 +95,7 @@ export default function GenerateClient({
     setError(false);
     setOffline(false);
     setLastQuery(submitQuery);
+    setHideExamples(true);
 
     const timer = setTimeout(() => setLoadingStage("drafting"), 600);
 
@@ -191,32 +191,6 @@ export default function GenerateClient({
             }}
           />
 
-          <div className="mt-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-              Output format
-            </p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {(["text", "pdf", "script"] as OutputFormat[]).map((format) => {
-                const active = outputFormat === format;
-                return (
-                  <button
-                    key={format}
-                    type="button"
-                    onClick={() => setOutputFormat(format)}
-                    className="min-h-[44px] rounded-xl border px-5 text-sm font-semibold capitalize transition"
-                    style={{
-                      borderColor: active ? "var(--accent)" : "var(--border)",
-                      backgroundColor: active ? "var(--accent-solid)" : "white",
-                      color: active ? "white" : "var(--text-body)",
-                    }}
-                  >
-                    {format}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           <button
             onClick={handleSubmit}
             disabled={isSubmitDisabled(query, loading)}
@@ -263,6 +237,7 @@ export default function GenerateClient({
           )}
         </section>
 
+        {!hideExamples && (
         <section className="mt-8">
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             Try an example
@@ -281,6 +256,7 @@ export default function GenerateClient({
             ))}
           </div>
         </section>
+        )}
       </div>
 
       {loading && (
@@ -304,14 +280,6 @@ export default function GenerateClient({
         <div ref={resultRef} className="mt-10 space-y-8">
           {turns.map((turn) => (
             <section key={turn.id} className="space-y-4">
-              <div className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                  Draft request
-                </p>
-                <p className="mt-2 text-lg leading-8 text-[var(--text-primary)]">
-                  {turn.query}
-                </p>
-              </div>
               {turn.result.fallbackUsed && (
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-5 text-sm leading-7 text-[var(--text-body)]">
                   The request was aligned to the closest curated scenario available in the library:

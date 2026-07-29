@@ -108,6 +108,9 @@ export const PILLARS: Pillar[] = [
 
 export const ALL_NODES: TreeNode[] = PILLARS.flatMap((p) => p.nodes);
 
+// The visible Knowledge Tree mirrors the complete content taxonomy.
+export const DISPLAY_PILLARS: Pillar[] = PILLARS;
+
 export function getNode(id: string): TreeNode | undefined {
   return ALL_NODES.find((n) => n.id === id);
 }

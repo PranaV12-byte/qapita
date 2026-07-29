@@ -20,16 +20,6 @@ type Props = {
   initialPillarSlug?: string;
 };
 
-function countTone(readyCount: number, total: number): string {
-  if (readyCount === total) return "bg-[#eefaf2] text-[#22a84f]";
-  if (readyCount === 0) return "bg-[#fff3eb] text-[#e67a22]";
-  return "bg-[#eefaf2] text-[#22a84f]";
-}
-
-function rowTone(ready: boolean): string {
-  return ready ? "bg-[#eefaf2] text-[#22a84f]" : "bg-[#fff3eb] text-[#e67a22]";
-}
-
 export default function KnowledgeCenter({
   pillars,
   terms,
@@ -82,11 +72,7 @@ export default function KnowledgeCenter({
             );
           })}
         </div>
-        {tab === "tree" ? (
-          <p className="text-sm text-[var(--text-muted)]">
-            Reviewed and in-progress topics across the seven pillars.
-          </p>
-        ) : (
+        {tab === "glossary" ? (
           <div className="w-full max-w-sm">
             <input
               type="search"
@@ -96,7 +82,7 @@ export default function KnowledgeCenter({
               className="w-full min-h-[48px] rounded-xl border border-[var(--border)] bg-white px-4 text-sm text-[var(--text-body)]"
             />
           </div>
-        )}
+        ) : null}
       </div>
 
       {tab === "tree" ? (
@@ -126,14 +112,7 @@ export default function KnowledgeCenter({
                   <span className="font-head text-[1.65rem] leading-tight text-[var(--text-head)]">
                     {pillar.title}
                   </span>
-                  <span
-                    className={`ml-auto rounded-full px-3 py-1 text-xs font-semibold ${countTone(
-                      pillar.readyCount,
-                      pillar.nodes.length
-                    )}`}
-                  >
-                    {pillar.readyCount} of {pillar.nodes.length}
-                  </span>
+                  <span className="ml-auto" />
                   <svg
                     width="18"
                     height="18"
@@ -163,7 +142,7 @@ export default function KnowledgeCenter({
                             ? `/a/${node.pillarSlug}/${node.slug}`
                             : `/p/${pillar.slug}`
                         }
-                        className="flex items-center gap-4 border-b border-r border-[var(--border)] px-5 py-4 last:border-b-0 md:[&:nth-last-child(-n+2)]:border-b-0"
+                        className="flex items-center gap-4 border-b border-[var(--border)] px-5 py-4 md:border-r md:[&:nth-child(2n)]:border-r-0"
                         style={{ textDecoration: "none" }}
                       >
                         <div className="min-w-0 flex-1">
@@ -171,15 +150,14 @@ export default function KnowledgeCenter({
                             {node.title}
                           </p>
                         </div>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${rowTone(
-                            node.ready
-                          )}`}
-                        >
-                          {node.ready ? "Reviewed" : "In progress"}
-                        </span>
                       </Link>
                     ))}
+                    {pillar.nodes.length % 2 === 1 && (
+                      <div
+                        aria-hidden="true"
+                        className="hidden border-b border-[var(--border)] md:block"
+                      />
+                    )}
                   </div>
                 )}
               </section>

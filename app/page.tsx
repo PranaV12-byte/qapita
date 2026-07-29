@@ -1,6 +1,6 @@
 import Link from "next/link";
 import PortalShell from "@/components/portal/PortalShell";
-import { PILLARS } from "@/lib/content/tree";
+import { DISPLAY_PILLARS } from "@/lib/content/tree";
 
 function pillarSummary(title: string): string {
   return title.replace(/\s*\([^)]*\)/g, "").replace(/ & /g, ", ");
@@ -75,7 +75,7 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {PILLARS.map((pillar) => (
+            {DISPLAY_PILLARS.map((pillar) => (
               <Link
                 key={pillar.id}
                 href={`/p/${pillar.slug}`}

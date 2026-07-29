@@ -123,7 +123,7 @@ function JobCard({
               className="rounded border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-body)] px-2"
               style={{ fontSize: "16px", minHeight: 44 }}
             >
-              <option value="">Let the wiki decide</option>
+              <option value="">Choose a placement</option>
               {v.health.suggestedNodeId && (
                 <option value={v.health.suggestedNodeId}>
                   Suggested: {nodeLabel(v.health.suggestedNodeId)}

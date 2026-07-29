@@ -7,7 +7,7 @@ import UploadDropzone from "@/components/brain/UploadDropzone";
 import IngestQueue, { type QueuedJob } from "@/components/brain/IngestQueue";
 import BrainStats from "@/components/brain/BrainStats";
 import NotePane from "@/components/brain/NotePane";
-import type { GraphModel, RenderNode } from "@/lib/brain/graph";
+import type { GraphModel } from "@/lib/brain/graph";
 import type { JobView } from "@/lib/brain/jobs";
 
 type Props = {
@@ -27,7 +27,6 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [linting, setLinting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
-  const [listView, setListView] = useState(false);
   const initialRead = useRef(false);
 
   const focusIds = useMemo(() => {
@@ -227,74 +226,30 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
 
       {/* Graph-first main view + note reader */}
       <section id="brain-graph">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2">
           <h2 className="font-head text-heading text-xl">The graph</h2>
-          <button
-            type="button"
-            onClick={() => setListView((v) => !v)}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] underline"
-          >
-            {listView ? "Graph view" : "List view"}
-          </button>
         </div>
 
-        {listView ? (
-          <ListView model={model} onSelect={select} />
-        ) : (
-          <div
-            className="relative rounded-xl border border-[var(--border)] overflow-hidden"
-            style={{ height: "min(70vh, 640px)", minHeight: 460 }}
-          >
-            <BrainGraph model={model} focusIds={focusIds} selectedId={selectedId} onSelect={select} />
-            <NotePane
-              noteId={selectedId}
-              resolveTitle={resolveTitle}
-              onNavigate={select}
-              onClose={() => select(null)}
-              onAsk={onAsk}
-              onDeleteSource={onDelete}
-            />
-          </div>
-        )}
+        <div
+          className="relative rounded-xl border border-[var(--border)] overflow-hidden"
+          style={{ height: "min(70vh, 640px)", minHeight: 460 }}
+        >
+          <BrainGraph model={model} focusIds={focusIds} selectedId={selectedId} onSelect={select} />
+          <NotePane
+            noteId={selectedId}
+            resolveTitle={resolveTitle}
+            onNavigate={select}
+            onClose={() => select(null)}
+            onAsk={onAsk}
+            onDeleteSource={onDelete}
+          />
+        </div>
         <p className="mt-2 text-xs text-[var(--text-muted)]">
           Tip: scroll to zoom, drag to pan, drag a node to reposition it, press{" "}
           <kbd className="px-1 rounded border border-[var(--border)]">Ctrl</kbd>+
           <kbd className="px-1 rounded border border-[var(--border)]">K</kbd> to jump to any note.
         </p>
       </section>
-    </div>
-  );
-}
-
-// Accessible / mobile fallback: the same nodes as a plain nested list.
-function ListView({ model, onSelect }: { model: GraphModel; onSelect: (id: string) => void }) {
-  const pillars = model.nodes.filter((n) => n.kind === "pillar");
-  return (
-    <div className="border border-[var(--border)] rounded-xl p-4 space-y-3">
-      {pillars.map((p) => {
-        const topics = model.edges
-          .filter((e) => e.kind === "tree" && e.from === p.id)
-          .map((e) => model.nodes.find((n) => n.id === e.to))
-          .filter((n): n is RenderNode => !!n);
-        return (
-          <div key={p.id}>
-            <p className="font-head text-[var(--text-head)]">{p.label}</p>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {topics.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => onSelect(t.id)}
-                  className="text-xs rounded border border-[var(--border)] px-2 py-1 text-[var(--text-body)] hover:border-[var(--accent)]"
-                  style={{ minHeight: 36 }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
