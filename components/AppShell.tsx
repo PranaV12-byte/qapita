@@ -66,7 +66,7 @@ export default function AppShell({ children }: AppShellProps) {
       <header className="fixed inset-x-0 top-0 z-40 h-[72px] border-b border-white/10 bg-[var(--shell)] shadow-[0_10px_30px_rgba(61,31,116,0.22)]">
         <div className="flex h-full items-center gap-4 px-4 md:px-6">
           <BrandLockup />
-          <div className="ml-auto hidden lg:block">
+          <div className="ml-auto hidden items-center gap-3 lg:flex">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -88,6 +88,12 @@ export default function AppShell({ children }: AppShellProps) {
                 <path d="m21 21-4.3-4.3" />
               </svg>
               <span className="truncate">Search topics, articles, artifacts...</span>
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-[46px] items-center justify-center whitespace-nowrap rounded-xl bg-white px-5 text-sm font-semibold text-[var(--shell)] transition hover:bg-white/90"
+            >
+              Sign in
             </button>
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
