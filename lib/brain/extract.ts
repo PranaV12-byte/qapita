@@ -3,6 +3,8 @@ import matter from "gray-matter";
 import { extractTitleAndLead } from "../rag/textProbe";
 import { BRAIN_MAX_FILE_MB } from "../rag/config";
 
+type SpreadsheetSheet = { sheet: string; data: unknown[][] };
+
 // ── Local extraction (SPEC-BRAIN.md Phase 2) ────────────────────────────────────
 // Pure: takes a filename + raw bytes, returns {title, markdown, meta} or a typed
 // {code, message} failure. No brain writes, no network — everything here runs
@@ -108,7 +110,7 @@ function decodeText(buffer: Buffer): string {
 
 // ── Lazy loaders with defensive CJS/ESM interop unwrap ──────────────────────────
 // unpdf ships proper named ESM exports (confirmed via its own .d.ts) — no
-// unwrap needed. mammoth/turndown/exceljs are CJS; whether a bundler's dynamic
+// unwrap needed. mammoth/turndown are CJS; whether a bundler's dynamic
 // import() surfaces their exports directly or behind `.default` isn't
 // guaranteed across bundlers, so each checks for the member it actually needs
 // and falls back to `.default` — the same defensive pattern proven in the
@@ -126,20 +128,6 @@ async function loadMammoth(): Promise<{
 async function loadTurndownService(): Promise<new () => { turndown(html: string): string }> {
   const mod = (await import("turndown")) as unknown as Record<string, unknown>;
   return (mod.default ?? mod) as new () => { turndown(html: string): string };
-}
-
-type MinimalWorkbook = {
-  xlsx: { load(buffer: Buffer): Promise<unknown> };
-  eachSheet(cb: (worksheet: MinimalWorksheet) => void): void;
-};
-type MinimalWorksheet = {
-  name: string;
-  eachRow(cb: (row: { values: unknown }) => void): void;
-};
-
-async function loadExcelWorkbookCtor(): Promise<new () => MinimalWorkbook> {
-  const mod = (await import("exceljs")) as unknown as Record<string, unknown>;
-  return (mod.Workbook ? mod : (mod.default as Record<string, unknown>)).Workbook as new () => MinimalWorkbook;
 }
 
 // ── Per-format extractors ────────────────────────────────────────────────────────
@@ -191,23 +179,21 @@ function cellToText(value: unknown): string {
 }
 
 async function extractXlsx(buffer: Buffer, fileName: string): Promise<ExtractResult> {
-  const Workbook = await loadExcelWorkbookCtor();
-  const wb = new Workbook();
-  await wb.xlsx.load(buffer);
+  const { default: readWorkbook } = await import("read-excel-file/node");
+  const sheets = (await readWorkbook(buffer)) as SpreadsheetSheet[];
 
   const sections: string[] = [];
   let rowsEmitted = 0;
-  wb.eachSheet((worksheet) => {
-    if (rowsEmitted >= MAX_TABLE_ROWS) return;
-    const lines: string[] = [`## ${worksheet.name}`, ""];
-    worksheet.eachRow((row) => {
-      if (rowsEmitted >= MAX_TABLE_ROWS) return;
-      const raw = Array.isArray(row.values) ? (row.values as unknown[]).slice(1) : [];
-      lines.push("| " + raw.map(cellToText).join(" | ") + " |");
+  for (const worksheet of sheets) {
+    if (rowsEmitted >= MAX_TABLE_ROWS) break;
+    const lines: string[] = [`## ${worksheet.sheet}`, ""];
+    for (const row of worksheet.data) {
+      if (rowsEmitted >= MAX_TABLE_ROWS) break;
+      lines.push("| " + row.map(cellToText).join(" | ") + " |");
       rowsEmitted++;
-    });
+    }
     if (lines.length > 2) sections.push(lines.join("\n"));
-  });
+  }
 
   const markdown = sections.join("\n\n");
   if (markdown.trim().length === 0) {

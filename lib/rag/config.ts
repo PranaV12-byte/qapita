@@ -56,7 +56,7 @@ export const CLASSIFY_NODE_CONFIDENCE = num(
 export const GENERAL_NODE_ID = "general";
 export const GENERAL_NODE_TITLE = "General equity compensation";
 
-// Models (local via @xenova/transformers).
+// Models (local via Transformers.js).
 // Default = all-MiniLM-L6-v2 (384-dim), which is cached locally and runs offline.
 // To upgrade to bge-base once its weights are on disk, set:
 //   EMBEDDER_MODEL=Xenova/bge-base-en-v1.5

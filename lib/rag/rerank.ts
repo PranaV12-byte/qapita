@@ -28,7 +28,7 @@ export class CrossEncoderReranker implements Reranker {
     if (!this.loading) {
       this.loading = (async () => {
         const { AutoTokenizer, AutoModelForSequenceClassification, env } =
-          await import("@xenova/transformers");
+          await import("@huggingface/transformers");
         env.allowRemoteModels = ALLOW_REMOTE_MODELS;
         this.tokenizer = (await AutoTokenizer.from_pretrained(
           RERANKER_MODEL

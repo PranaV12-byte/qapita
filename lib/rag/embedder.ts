@@ -19,7 +19,7 @@ const POOL_OPTS = { pooling: "mean", normalize: true } as const;
 const BATCH = 32;
 
 /**
- * Local bge-base-en-v1.5 embedder via @xenova/transformers.
+ * Local bge-base-en-v1.5 embedder via Transformers.js.
  * Asymmetric: queries get the bge instruction prefix, passages do not
  * (see the model README — mean pooling + normalize for both).
  */
@@ -33,7 +33,7 @@ export class TransformersEmbedder implements Embedder {
     if (this.pipe) return this.pipe;
     if (this.loading) return this.loading;
     this.loading = (async () => {
-      const { pipeline, env } = await import("@xenova/transformers");
+      const { pipeline, env } = await import("@huggingface/transformers");
       env.allowRemoteModels = ALLOW_REMOTE_MODELS;
       const p = await pipeline("feature-extraction", EMBEDDER_MODEL);
       this.pipe = p as unknown as PipelineFn;
