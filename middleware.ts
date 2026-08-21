@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BRAIN_COOKIE, BRAIN_HEADER, isValidBrainId } from "./lib/brain/id";
-import { auth0 } from "./lib/auth0";
 
 /**
  * Guarantees every visitor has an anonymous brain identity — the seam that
@@ -22,10 +21,7 @@ export async function middleware(request: NextRequest) {
   const forwardedHeaders = new Headers(request.headers);
   forwardedHeaders.set(BRAIN_HEADER, brainId);
 
-  const forwardedRequest = new NextRequest(request, { headers: forwardedHeaders });
-  const response = auth0
-    ? await auth0.middleware(forwardedRequest)
-    : NextResponse.next({ request: { headers: forwardedHeaders } });
+  const response = NextResponse.next({ request: { headers: forwardedHeaders } });
 
   if (!existing) {
     response.cookies.set(BRAIN_COOKIE, brainId, {
