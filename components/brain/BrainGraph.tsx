@@ -30,9 +30,18 @@ type Props = {
   focusIds?: string[];
   selectedId?: string | null;
   onSelect: (nodeId: string | null) => void;
+  coverage?: CoverageSummary;
 };
 
-type Filter = "all" | "topics" | "files";
+export type CoverageSummary = {
+  totalTopics: number;
+  coveredTopics: number;
+  percent: number;
+  coveredTopicIds: string[];
+  coveredSourceIds: string[];
+};
+
+type Filter = "all" | "covered" | "files";
 type Transform = { k: number; tx: number; ty: number };
 
 type Palette = {
@@ -46,29 +55,31 @@ type Palette = {
   accent: string;
   accentLine: string;
   accentOn: string;
+  coverage: string;
 };
 
 function readPalette(): Palette {
   const cs = getComputedStyle(document.documentElement);
   const v = (name: string, fallback: string) => cs.getPropertyValue(name).trim() || fallback;
   return {
-    bg: v("--surface-1", "#1A1A1F"),
-    border: v("--border", "#3A3A44"),
-    borderStrong: v("--border-strong", "#55555F"),
-    surface2: v("--surface-2", "#24242B"),
-    textMuted: v("--text-muted", "#9A9AA5"),
-    textPrimary: v("--text-primary", "#D4D4DA"),
-    textHead: v("--text-head", "#F0EEE8"),
-    accent: v("--accent", "#5FAE9E"),
-    accentLine: v("--accent-line", "#4E9E8C"),
-    accentOn: v("--accent-on", "#EAF3F0"),
+    bg: v("--graph-bg", "#17152F"),
+    border: v("--graph-border", "#514870"),
+    borderStrong: v("--graph-border-strong", "#8174AA"),
+    surface2: v("--graph-surface", "#211D3F"),
+    textMuted: v("--graph-muted", "#B7B1C7"),
+    textPrimary: v("--graph-text", "#E8E5F0"),
+    textHead: v("--graph-head", "#FFFFFF"),
+    accent: v("--primary-purple", "#7C3AED"),
+    accentLine: v("--primary-purple", "#7C3AED"),
+    accentOn: v("--graph-head", "#FFFFFF"),
+    coverage: v("--naspp-yellow", "#F5C518"),
   };
 }
 
-function passesFilter(kind: RenderNode["kind"], filter: Filter): boolean {
+function passesFilter(node: Pick<RenderNode, "id" | "kind">, filter: Filter, coverage: CoverageSummary): boolean {
   if (filter === "all") return true;
-  if (filter === "topics") return kind !== "source";
-  return kind === "source" || kind === "user-node"; // "files"
+  if (filter === "files") return node.kind === "pillar" || node.kind === "source" || coverage.coveredTopicIds.includes(node.id);
+  return node.kind === "pillar" || coverage.coveredTopicIds.includes(node.id) || coverage.coveredSourceIds.includes(node.id);
 }
 
 /** Base world radius per node: connected hubs (higher degree) read larger. */
@@ -77,7 +88,7 @@ function worldRadius(n: RenderNode): number {
   return base + Math.min(8, Math.sqrt(n.degree ?? 0) * 2.2);
 }
 
-export default function BrainGraph({ model, focusIds = [], selectedId, onSelect }: Props) {
+export default function BrainGraph({ model, focusIds = [], selectedId, onSelect, coverage = { totalTopics: 0, coveredTopics: 0, percent: 0, coveredTopicIds: [], coveredSourceIds: [] } }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -106,18 +117,6 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
   const selectedRef = useRef<string | null>(selectedId ?? null);
   const focusRef = useRef<Set<string>>(new Set());
   const filterRef = useRef<Filter>("all");
-  useEffect(() => {
-    selectedRef.current = selectedId ?? null;
-    kick();
-  }, [selectedId]);
-  useEffect(() => {
-    focusRef.current = new Set(focusIds);
-    kick();
-  }, [focusIds]);
-  useEffect(() => {
-    filterRef.current = filter;
-    kick();
-  }, [filter]);
 
   const nodeById = useMemo(() => new Map(model.nodes.map((n) => [n.id, n])), [model.nodes]);
 
@@ -141,7 +140,7 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
     let best: SimNode | null = null;
     let bestD = Infinity;
     for (const n of nodesRef.current) {
-      if (!passesFilter(n.kind, filterRef.current)) continue;
+      if (!passesFilter(n, filterRef.current, coverage)) continue;
       const [px, py] = project(n.x ?? 0, n.y ?? 0);
       const rHit = Math.max(worldRadius(n) * k, 10) + 12;
       const d = Math.hypot(px - sx, py - sy);
@@ -190,6 +189,19 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
     rafRef.current = requestAnimationFrame(step);
   }, []);
 
+  useEffect(() => {
+    selectedRef.current = selectedId ?? null;
+    kick();
+  }, [selectedId, kick]);
+  useEffect(() => {
+    focusRef.current = new Set(focusIds);
+    kick();
+  }, [focusIds, kick]);
+  useEffect(() => {
+    filterRef.current = filter;
+    kick();
+  }, [filter, kick]);
+
   // ── Draw ── (plain per-render fn stored in a ref so the rAF loop always
   // calls the latest closure — no stale model.edges after an upload/delete).
   const draw = () => {
@@ -226,7 +238,9 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
     for (const e of model.edges) {
       const a = nodePos.get(e.from);
       const b = nodePos.get(e.to);
-      if (!a || !b) continue;
+      const from = nodeById.get(e.from);
+      const to = nodeById.get(e.to);
+      if (!a || !b || !from || !to || !passesFilter(from, flt, coverage) || !passesFilter(to, flt, coverage)) continue;
       const dim = neigh && !(neigh.has(e.from) && neigh.has(e.to));
       ctx.strokeStyle = e.kind === "weave" ? pal.accentLine : pal.border;
       ctx.globalAlpha = dim ? 0.06 : e.kind === "weave" ? 0.55 : e.kind === "related" ? 0.3 : 0.4;
@@ -240,43 +254,41 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
 
-    const now = performance.now();
-
     // ── nodes ──
     for (const n of nodesRef.current) {
       const [px, py] = nodePos.get(n.id)!;
       const r = Math.max(worldRadius(n) * k, 2.5);
-      const filteredOut = !passesFilter(n.kind, flt);
+      const filteredOut = !passesFilter(n, flt, coverage);
       const dim = (neigh && !neigh.has(n.id)) || filteredOut;
       const isSel = n.id === selectedRef.current;
       const isFocus = focusRef.current.has(n.id) || focusRef.current.has(n.id.replace(/^source:/, ""));
 
       ctx.globalAlpha = filteredOut ? 0.12 : dim ? 0.28 : 1;
 
-      // focus pulse ring
+      // Focus and selection use static rings so the workspace stays calm.
       if (isFocus && !filteredOut) {
-        const t = (now % 1600) / 1600;
         ctx.beginPath();
-        ctx.arc(px, py, r + 4 + t * 12, 0, Math.PI * 2);
-        ctx.strokeStyle = pal.accent;
-        ctx.globalAlpha = (1 - t) * 0.9;
-        ctx.lineWidth = 2;
+        ctx.arc(px, py, r + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = pal.coverage;
+        ctx.globalAlpha = 0.95;
+        ctx.lineWidth = 3;
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
 
-      const teal = n.kind === "user-node" || n.kind === "source";
+      const coveredTopic = n.kind === "topic" && coverage.coveredTopicIds.includes(n.id);
+      const coveredSource = n.kind === "source" && coverage.coveredSourceIds.includes(n.id);
       ctx.beginPath();
       ctx.arc(px, py, r, 0, Math.PI * 2);
-      ctx.fillStyle = n.kind === "source" ? pal.accentLine : n.kind === "user-node" ? pal.accent : pal.surface2;
+      ctx.fillStyle = coveredSource || coveredTopic ? pal.coverage : n.kind === "user-node" ? pal.accent : pal.surface2;
       ctx.fill();
       ctx.lineWidth = isSel ? 3 : n.kind === "user-node" ? 2 : 1.5;
       ctx.strokeStyle = isSel
         ? pal.accentOn
         : n.kind === "pillar"
           ? pal.borderStrong
-          : teal
-            ? pal.accent
+          : coveredSource || coveredTopic
+            ? pal.coverage
             : pal.textMuted;
       ctx.stroke();
     }
@@ -284,9 +296,8 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
 
     // ── labels (zoom-fade) ──
     ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
     for (const n of nodesRef.current) {
-      const filteredOut = !passesFilter(n.kind, flt);
+      const filteredOut = !passesFilter(n, flt, coverage);
       if (filteredOut) continue;
       const isSel = n.id === selectedRef.current;
       const isHover = hoverRef.current === n.id;
@@ -296,23 +307,40 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
         isSel ||
         isHover ||
         isFocus ||
+        (n.kind === "topic" && coverage.coveredTopicIds.includes(n.id)) ||
         (n.kind !== "topic" ? k >= 0.55 : k >= 0.85) ||
         (n.kind === "user-node" && k >= 0.7);
       if (!show) continue;
       const [px, py] = nodePos.get(n.id)!;
       const r = Math.max(worldRadius(n) * k, 2.5);
-      const fontPx = n.kind === "pillar" ? 14 : 12;
+      const fontPx = n.kind === "pillar" ? 13 : 12;
       ctx.font = `${n.kind === "pillar" ? 600 : 400} ${fontPx}px Inter, system-ui, sans-serif`;
-      const label = n.label.length > 36 ? n.label.slice(0, 35) + "…" : n.label;
+      const label = isSel || isHover || isFocus || n.kind === "pillar" ? n.label : n.label.length > 36 ? n.label.slice(0, 35) + "…" : n.label;
+      const wx = n.x ?? 0;
+      const wy = n.y ?? 0;
+      const radialLength = Math.hypot(wx, wy) || 1;
+      const offsetX = (wx / radialLength) * (r + 12);
+      const offsetY = (wy / radialLength) * (r + 12);
+      const labelX = px + offsetX;
+      const labelY = py + offsetY;
+      const labelBaseline =
+        Math.abs(offsetY) < 5 ? "middle" : offsetY > 0 ? "top" : "bottom";
+      const labelTop =
+        labelBaseline === "top"
+          ? labelY - 2
+          : labelBaseline === "middle"
+            ? labelY - fontPx / 2 - 2
+            : labelY - fontPx - 2;
       ctx.globalAlpha = isSel || isHover || n.kind === "pillar" ? 1 : 0.85;
-      // subtle readability backing
+      // Keep taxonomy labels outside the graph centre as the number of pillars grows.
       ctx.fillStyle = pal.bg;
       const tw = ctx.measureText(label).width;
       ctx.globalAlpha = 0.55;
-      ctx.fillRect(px - tw / 2 - 3, py - r - fontPx - 8, tw + 6, fontPx + 4);
+      ctx.fillRect(labelX - tw / 2 - 3, labelTop, tw + 6, fontPx + 4);
       ctx.globalAlpha = isSel || isHover ? 1 : 0.9;
-      ctx.fillStyle = isSel ? pal.textHead : pal.textPrimary;
-      ctx.fillText(label, px, py - r - 6);
+      ctx.fillStyle = isSel || isHover ? pal.textHead : n.kind === "topic" && coverage.coveredTopicIds.includes(n.id) ? pal.coverage : pal.textPrimary;
+      ctx.textBaseline = labelBaseline;
+      ctx.fillText(label, labelX, labelY);
     }
     ctx.globalAlpha = 1;
   };
@@ -322,6 +350,9 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
   useEffect(() => {
     const nodes: SimNode[] = model.nodes.map((n) => ({ ...n, x: n.x, y: n.y }));
     const idIndex = new Map(nodes.map((n) => [n.id, n]));
+    const anchors = new Map(
+      nodes.map((node) => [node.id, { x: node.x ?? 0, y: node.y ?? 0 }])
+    );
     const links: SimLink[] = model.edges
       .filter((e) => idIndex.has(e.from) && idIndex.has(e.to))
       .map((e) => ({ source: e.from, target: e.to, kind: e.kind }));
@@ -341,8 +372,20 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
           .strength((l) => (l.kind === "tree" ? 0.5 : l.kind === "weave" ? 0.35 : 0.12))
       )
       .force("collide", forceCollide<SimNode>().radius((d) => worldRadius(d) + 7))
-      .force("x", forceX(0).strength(0.035))
-      .force("y", forceY(0).strength(0.035))
+      // Retain the deterministic radial taxonomy layout as the graph grows.
+      // A center-only gravity force pulled neighbouring pillar labels together.
+      .force(
+        "x",
+        forceX<SimNode>((d) => anchors.get(d.id)?.x ?? 0).strength((d) =>
+          d.kind === "pillar" ? 0.3 : 0.035
+        )
+      )
+      .force(
+        "y",
+        forceY<SimNode>((d) => anchors.get(d.id)?.y ?? 0).strength((d) =>
+          d.kind === "pillar" ? 0.3 : 0.035
+        )
+      )
       .alpha(0.9)
       .alphaDecay(0.028);
     sim.stop(); // we tick manually in the rAF loop
@@ -586,8 +629,8 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
       aria-pressed={filter === val}
       className={`rounded-full px-3 text-xs border transition-colors ${
         filter === val
-          ? "border-[var(--accent)] text-[var(--accent)] bg-[var(--surface-2)]"
-          : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-body)]"
+          ? "border-[var(--primary-purple)] text-white bg-[var(--primary-purple)]"
+          : "border-white/15 text-white/60 hover:text-white"
       }`}
       style={{ minHeight: 32 }}
     >
@@ -610,23 +653,24 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
       {/* Filter chips */}
       <div className="absolute top-2 left-2 z-10 flex gap-1.5">
         {chip("all", "All")}
-        {chip("files", "Your files")}
+        {chip("covered", "Covered")}
+        {chip("files", "Sources")}
       </div>
 
       {/* Zoom / fit / find controls — 44px tap targets */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
         {[
           { label: "+", fn: () => zoomAt(size.current.w / 2, size.current.h / 2, 1.25), aria: "Zoom in" },
-          { label: "−", fn: () => zoomAt(size.current.w / 2, size.current.h / 2, 1 / 1.25), aria: "Zoom out" },
-          { label: "⤢", fn: () => { fitToContent(true); kick(); }, aria: "Fit to view" },
-          { label: "⌕", fn: () => { setQsOpen(true); setQsQuery(""); }, aria: "Find a note (Ctrl-K)" },
+          { label: "-", fn: () => zoomAt(size.current.w / 2, size.current.h / 2, 1 / 1.25), aria: "Zoom out" },
+          { label: "Fit", fn: () => { fitToContent(true); kick(); }, aria: "Fit to view" },
+          { label: "Find", fn: () => { setQsOpen(true); setQsQuery(""); }, aria: "Find a note (Ctrl-K)" },
         ].map((c) => (
           <button
             key={c.aria}
             type="button"
             aria-label={c.aria}
             onClick={c.fn}
-            className="flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-1)]/90 backdrop-blur text-[var(--text-body)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="flex items-center justify-center rounded-lg border border-white/15 bg-[#211d3f]/95 text-white/80 backdrop-blur hover:border-[var(--primary-purple)] hover:text-white"
             style={{ width: 44, height: 44 }}
           >
             {c.label}
@@ -648,7 +692,7 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
               onKeyDown={(e) => {
                 if (e.key === "Enter" && qsMatches[0]) chooseQs(qsMatches[0]);
               }}
-              placeholder="Find a note…"
+              placeholder="Find a note..."
               className="w-full bg-transparent px-4 py-3 text-[var(--text-primary)] focus:outline-none placeholder:text-[var(--text-muted)]"
               style={{ fontSize: 16 }}
             />
@@ -673,7 +717,7 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect 
                       />
                       <span className="text-sm text-[var(--text-body)] truncate">{n.label}</span>
                       <span className="ml-auto text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
-                        {n.kind === "user-node" ? "your topic" : n.kind === "source" ? "your file" : n.kind}
+                        {n.kind === "user-node" ? "custom" : n.kind}
                       </span>
                     </button>
                   </li>

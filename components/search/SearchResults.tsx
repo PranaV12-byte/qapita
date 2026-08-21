@@ -48,7 +48,7 @@ export default function SearchResults({
           type="search"
           value={q}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Search topics, articles, and glossary terms"
+          placeholder="Search the library, glossary, and related guidance"
           className="w-full min-h-[52px] rounded-2xl border border-[var(--border)] bg-white px-5 text-base text-[var(--text-body)]"
           autoFocus
         />
@@ -95,7 +95,7 @@ export default function SearchResults({
           No results matched this search. Browse the
           {" "}
           <Link href="/browse" className="text-[var(--accent)] hover:underline">
-            knowledge tree
+            library
           </Link>
           {" "}
           for a broader starting point.

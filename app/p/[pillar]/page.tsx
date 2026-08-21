@@ -50,7 +50,7 @@ export default async function PillarPage({
     <PortalShell>
       <Breadcrumb
         items={[
-          { label: "Knowledge tree", href: "/browse" },
+          { label: "Knowledge Tree", href: "/browse" },
           { label: resolved.title },
         ]}
       />
@@ -58,6 +58,9 @@ export default async function PillarPage({
         <h1 className="font-head text-5xl text-[var(--text-head)]">
           {resolved.title}
         </h1>
+        <p className="mt-3 max-w-3xl text-lg leading-8 text-[var(--text-body)]">
+          Browse this knowledge group, then open a published Wiki article or start a draft from guidance that matches your situation.
+        </p>
       </div>
       <KnowledgeCenter
         pillars={pillars}

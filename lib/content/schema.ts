@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const ArticleSchema = z.object({
   id: z.string(),
-  pillar: z.number().int().min(1).max(7),
+  pillar: z.number().int().min(1).max(9),
   slug: z.string(),
   title: z.string(),
   status: z.enum(["generated", "signed_off"]),

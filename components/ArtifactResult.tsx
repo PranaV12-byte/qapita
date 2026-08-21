@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCopyLabel } from "@/lib/generate-utils";
 import { getNode } from "@/lib/content/tree";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type Citation = {
   kind?: "topic" | "source" | "user-node";
@@ -119,9 +120,11 @@ function SimpleMarkdown({ text }: { text: string }) {
 
 function SectionCard({
   title,
+  description,
   children,
 }: {
   title: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -129,6 +132,9 @@ function SectionCard({
       <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
         {title}
       </h3>
+      {description ? (
+        <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">{description}</p>
+      ) : null}
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -141,16 +147,27 @@ export default function ArtifactResult({
   quickShare,
   citations,
 }: Props) {
+  const { user, emailMode, testRecipientMasked } = useAuth();
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState("");
-  const [emailStatus, setEmailStatus] = useState<"idle" | "success">("idle");
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [emailSubmittedTo, setEmailSubmittedTo] = useState("");
+  const [emailError, setEmailError] = useState("");
   const quickShareRef = useRef<HTMLPreElement>(null);
 
   const topicCitations = citations.filter((citation) => citation.kind !== "source" && citation.kind !== "user-node");
   const sourceCitations = citations.filter((citation) => citation.kind === "source" || citation.kind === "user-node");
+
+  useEffect(() => {
+    if (!user) return;
+    const pendingArtifact = sessionStorage.getItem("equityiq:pending-email");
+    if (pendingArtifact === artifactId) {
+      sessionStorage.removeItem("equityiq:pending-email");
+      setShowEmail(true);
+    }
+  }, [artifactId, user]);
 
   const handleCopy = async () => {
     try {
@@ -186,17 +203,46 @@ export default function ArtifactResult({
 
   const handleEmailSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setEmailStatus("sending");
+    setEmailError("");
     try {
-      await fetch("/api/artifact/deliver", {
+      const response = await fetch("/api/artifact/deliver", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artifactId, channel: "email", email }),
+        body: JSON.stringify({
+          artifactId,
+          channel: "email",
+          email: email || undefined,
+          title,
+          bodyMarkdown,
+          citations,
+        }),
       });
-      setEmailSubmittedTo(email);
+      const result = await response.json().catch(() => ({})) as {
+        recipientMasked?: string;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(result.error || "email_delivery_failed");
+      setEmailSubmittedTo(result.recipientMasked || email);
       setEmailStatus("success");
-    } catch {
-      setEmailStatus("success");
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "email_delivery_failed";
+      setEmailError(
+        reason === "email_not_configured"
+          ? "Email is not configured yet. Add the Resend values and try again."
+          : "The email could not be sent. Check the connection and try again."
+      );
+      setEmailStatus("error");
     }
+  };
+
+  const handleEmailOpen = () => {
+    if (!user) {
+      sessionStorage.setItem("equityiq:pending-email", artifactId);
+      window.dispatchEvent(new Event("equityiq:open-sign-in"));
+      return;
+    }
+    setShowEmail((value) => !value);
   };
 
   const actionButton =
@@ -207,7 +253,7 @@ export default function ArtifactResult({
       <section className="q-shell-card overflow-hidden">
         <div className="border-b border-[var(--border)] bg-[var(--surface-2)] px-6 py-5">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-            Draft
+            Draft ready for review
           </p>
           <h2 className="mt-3 font-head text-4xl text-[var(--text-head)]">
             {title}
@@ -220,7 +266,10 @@ export default function ArtifactResult({
 
       <aside className="space-y-4">
         {topicCitations.length > 0 && (
-          <SectionCard title="Cited topics">
+          <SectionCard
+            title="Related topics"
+            description="Review the guidance behind this communication or start a more focused draft from one of these topics."
+          >
             <div className="flex flex-wrap gap-2">
               {topicCitations.map((citation, index) => {
                 const node = citation.nodeId ? getNode(citation.nodeId) : undefined;
@@ -237,11 +286,21 @@ export default function ArtifactResult({
                 );
               })}
             </div>
+            <a
+              href={topicCitations[0]?.nodeId ? `/a/${getNode(topicCitations[0].nodeId!)?.pillarSlug}/${getNode(topicCitations[0].nodeId!)?.slug}` : "/browse"}
+              className="mt-4 inline-flex text-sm font-semibold text-[var(--accent)]"
+              style={{ textDecoration: "none" }}
+            >
+              Browse related topics
+            </a>
           </SectionCard>
         )}
 
         {sourceCitations.length > 0 && (
-          <SectionCard title="Sources">
+          <SectionCard
+            title="Supporting sources"
+            description="These references supported the draft or were brought in from your workspace."
+          >
             <div className="flex flex-wrap gap-2">
               {sourceCitations.map((citation, index) => (
                 <a
@@ -259,7 +318,10 @@ export default function ArtifactResult({
           </SectionCard>
         )}
 
-        <SectionCard title="Actions">
+        <SectionCard
+          title="Actions"
+          description="Use the draft in the format that best fits your review and delivery workflow."
+        >
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleCopy}
@@ -273,7 +335,7 @@ export default function ArtifactResult({
             <button onClick={handleOpenPdf} disabled={pdfLoading} className={actionButton}>
               {pdfLoading ? "Preparing PDF" : "PDF"}
             </button>
-            <button onClick={() => setShowEmail((value) => !value)} className={actionButton}>
+            <button onClick={handleEmailOpen} className={actionButton}>
               Email
             </button>
           </div>
@@ -281,23 +343,37 @@ export default function ArtifactResult({
             <div className="mt-4">
               {emailStatus === "success" ? (
                 <p className="text-sm leading-6 text-[var(--text-body)]">
-                  Request recorded for {emailSubmittedTo}. This preview environment does not send email.
+                  Email sent to {emailSubmittedTo} with the PDF attached.
                 </p>
               ) : (
                 <form onSubmit={handleEmailSubmit} className="space-y-3">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    required
-                    className="w-full min-h-[46px] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--text-body)]"
-                  />
+                  {emailMode === "production" ? (
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      required
+                      className="w-full min-h-[46px] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--text-body)]"
+                    />
+                  ) : (
+                    <p className="rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-body)]">
+                      Demo mode sends to {testRecipientMasked || "the configured Resend inbox"}.
+                    </p>
+                  )}
+                  {emailStatus === "error" && (
+                    <p className="text-sm leading-6 text-[var(--danger)]">{emailError}</p>
+                  )}
                   <button
                     type="submit"
+                    disabled={emailStatus === "sending"}
                     className="inline-flex min-h-[46px] items-center rounded-xl bg-[var(--accent-solid)] px-4 text-sm font-semibold text-white"
                   >
-                    Record email request
+                    {emailStatus === "sending"
+                      ? "Sending email"
+                      : emailMode === "test"
+                        ? "Send demo email"
+                        : "Send email"}
                   </button>
                 </form>
               )}
@@ -310,7 +386,7 @@ export default function ArtifactResult({
         </pre>
 
         <p className="px-1 text-sm leading-7 text-[var(--text-muted)]">
-          Drafts are grounded in the reviewed library and are intended for educational use. Final review should follow your internal standards.
+          Review the draft against your internal standards before sending it to employees.
         </p>
       </aside>
     </div>

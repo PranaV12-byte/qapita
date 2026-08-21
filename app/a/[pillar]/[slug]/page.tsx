@@ -7,6 +7,7 @@ import FaqAccordion from "@/components/article/FaqAccordion";
 import PlainLanguageCallout from "@/components/article/PlainLanguageCallout";
 import RelatedNodes from "@/components/article/RelatedNodes";
 import Sources from "@/components/article/Sources";
+import StatusBadge from "@/components/article/StatusBadge";
 import { mdxComponents } from "@/components/mdx/mdxComponents";
 import PortalShell from "@/components/portal/PortalShell";
 import { loadArticle } from "@/lib/content/loader";
@@ -15,7 +16,9 @@ import { ALL_NODES, getPillar } from "@/lib/content/tree";
 type Params = { pillar: string; slug: string };
 
 export function generateStaticParams() {
-  return ALL_NODES.map((node) => ({ pillar: node.pillarSlug, slug: node.slug }));
+  return ALL_NODES
+    .filter((node) => node.contentState !== "planned")
+    .map((node) => ({ pillar: node.pillarSlug, slug: node.slug }));
 }
 
 export async function generateMetadata({
@@ -48,7 +51,7 @@ export default async function ArticlePage({
     <PortalShell measure>
       <Breadcrumb
         items={[
-          { label: "Knowledge tree", href: "/browse" },
+          { label: "Knowledge Tree", href: "/browse" },
           ...(resolvedPillar
             ? [{ label: resolvedPillar.title, href: `/p/${resolvedPillar.slug}` }]
             : []),
@@ -56,42 +59,52 @@ export default async function ArticlePage({
         ]}
       />
 
-      <header className="mb-8 space-y-4">
-        <h1 className="font-head text-5xl leading-tight text-[var(--text-head)]">
+      <header className="v9-article-heading">
+        <div className="v9-article-meta"><StatusBadge status={frontmatter.status} /><span>NASPP guidance</span></div>
+        <h1>
           {frontmatter.title}
         </h1>
+        <p>
+          Review the guidance below, then move into drafting when you are ready to prepare a communication.
+        </p>
       </header>
+
+      {resolvedPillar && (
+        <Link href={`/p/${resolvedPillar.slug}`} className="mb-6 inline-flex text-sm font-semibold text-[var(--primary-purple)]" style={{ textDecoration: "none" }}>
+          <span aria-hidden="true" className="mr-2">←</span> Back to {resolvedPillar.title} in Knowledge Tree
+        </Link>
+      )}
 
       <PlainLanguageCallout text={frontmatter.summaryPlain} />
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1.25fr)_380px]">
-        <article className="space-y-8 rounded-[24px] border border-[var(--border)] bg-white px-6 py-7 md:px-8">
+      <div className="v9-article-layout">
+        <article className="v9-article-body">
           <MDXRemote source={content} components={mdxComponents} />
         </article>
 
-        <aside className="space-y-4">
-          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
+        <aside className="v9-article-aside">
+          <div className="v9-article-panel">
             <FaqAccordion faqs={frontmatter.faqs} />
           </div>
-          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
-            <h2 className="font-head text-2xl text-[var(--text-head)]">
-              Need this for a specific situation?
+          <div className="v9-article-panel v9-article-draft-panel">
+            <h2>
+              Ready to use this topic?
             </h2>
             <p className="mt-2 text-sm leading-7 text-[var(--text-body)]">
-              Prepare a draft grounded in this topic and ready for internal review.
+              Start a draft from this guidance and prepare a communication that is ready for internal review.
             </p>
             <Link
               href={`/generate?nodeId=${frontmatter.id}`}
-              className="mt-4 inline-flex min-h-[48px] items-center rounded-xl bg-[var(--accent-solid)] px-5 text-sm font-semibold text-white"
+              className="v9-primary-button mt-4"
               style={{ textDecoration: "none" }}
             >
-              Generate a draft
+              Draft from this topic
             </Link>
           </div>
-          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
+          <div className="v9-article-panel">
             <Sources sources={frontmatter.sources} />
           </div>
-          <div className="rounded-[24px] border border-[var(--border)] bg-white p-5">
+          <div className="v9-article-panel">
             <RelatedNodes ids={frontmatter.related} />
           </div>
         </aside>

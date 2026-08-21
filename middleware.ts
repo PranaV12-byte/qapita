@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BRAIN_COOKIE, BRAIN_HEADER, isValidBrainId } from "./lib/brain/id";
+import { auth0 } from "./lib/auth0";
 
 /**
  * Guarantees every visitor has an anonymous brain identity — the seam that
@@ -11,7 +12,7 @@ import { BRAIN_COOKIE, BRAIN_HEADER, isValidBrainId } from "./lib/brain/id";
 export { BRAIN_COOKIE, BRAIN_HEADER };
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Validate before trusting: a malformed/tampered cookie value must never
   // reach a route handler that uses it as a filesystem path component.
   const raw = request.cookies.get(BRAIN_COOKIE)?.value;
@@ -21,9 +22,10 @@ export function middleware(request: NextRequest) {
   const forwardedHeaders = new Headers(request.headers);
   forwardedHeaders.set(BRAIN_HEADER, brainId);
 
-  const response = NextResponse.next({
-    request: { headers: forwardedHeaders },
-  });
+  const forwardedRequest = new NextRequest(request, { headers: forwardedHeaders });
+  const response = auth0
+    ? await auth0.middleware(forwardedRequest)
+    : NextResponse.next({ request: { headers: forwardedHeaders } });
 
   if (!existing) {
     response.cookies.set(BRAIN_COOKIE, brainId, {
@@ -39,10 +41,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
-    "/generate",
-    "/brain",
-    "/api/artifact/:path*",
-    "/api/brain/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

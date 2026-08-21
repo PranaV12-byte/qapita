@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { getNode } from "@/lib/content/tree";
+import { articleExists } from "@/lib/content/loader";
 
 export default function RelatedNodes({ ids }: { ids: string[] }) {
-  const nodes = ids.map(getNode).filter((n): n is NonNullable<typeof n> => Boolean(n));
+  const nodes = ids
+    .map(getNode)
+    .filter((n): n is NonNullable<typeof n> => Boolean(n))
+    .filter((n) => articleExists(n.pillarSlug, n.slug));
   if (!nodes.length) return null;
   return (
     <section className="mt-8">

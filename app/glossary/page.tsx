@@ -30,7 +30,7 @@ export default function GlossaryPage() {
           Glossary
         </h1>
         <p className="mt-3 max-w-3xl text-lg leading-8 text-[var(--text-body)]">
-          {terms.length} equity compensation terms, written for practical reference and linked back to the knowledge tree.
+          {terms.length} plain-language equity compensation terms, written for practical reference and linked back to the library.
         </p>
       </header>
       <KnowledgeCenter pillars={pillars} terms={terms} initialTab="glossary" />

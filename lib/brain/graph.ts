@@ -99,7 +99,7 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
   const edges: RenderEdge[] = [];
   const angleOf = new Map<string, number>();
 
-  // ── Foundation: 7 pillars on a ring, topics fanned around each ──
+  // ── Foundation: taxonomy pillars on a ring, topics fanned around each ──
   PILLARS.forEach((pillar, pi) => {
     const pillarAngle = -90 + (360 / PILLARS.length) * pi;
     angleOf.set(`pillar:${pillar.slug}`, pillarAngle);

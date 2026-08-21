@@ -1,7 +1,7 @@
 import type { Article } from "@/lib/content/schema";
 
 const MAP: Record<Article["status"], { label: string; color: string }> = {
-  generated: { label: "Draft reference", color: "var(--draft)" },
+  generated: { label: "Draft", color: "var(--draft)" },
   signed_off: { label: "Reviewed", color: "var(--certified)" },
 };
 

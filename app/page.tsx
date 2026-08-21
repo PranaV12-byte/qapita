@@ -1,104 +1,38 @@
 import Link from "next/link";
-import PortalShell from "@/components/portal/PortalShell";
 import { DISPLAY_PILLARS } from "@/lib/content/tree";
 
-function pillarSummary(title: string): string {
-  return title.replace(/\s*\([^)]*\)/g, "").replace(/ & /g, ", ");
-}
+const suggestions = [
+  "Explain an RSU vesting event to employees in clear language.",
+  "Prepare an update about changes to our stock option plan.",
+  "Draft a professional note about tax withholding for an exercise.",
+];
 
 export default function HomePage() {
-  return (
-    <PortalShell>
-      <div className="space-y-8">
-        <section className="q-shell-card overflow-hidden">
-          <div className="grid gap-10 px-6 py-8 md:px-10 md:py-12 lg:grid-cols-[minmax(0,1.2fr)_360px] lg:items-end">
-            <div className="space-y-6">
-              <div className="q-chip w-fit border border-[#8fd5a6] bg-[#eefaf2] text-[#22894f]">
-                <span className="inline-block h-2 w-2 rounded-full bg-[#22b45a]" />
-                Endorsed by NASPP
-              </div>
-              <div className="space-y-4">
-                <h1 className="font-head text-4xl leading-tight text-[var(--text-head)] md:text-6xl">
-                  Increase your EquityIQ.
-                </h1>
-                <p className="max-w-3xl text-lg leading-8 text-[var(--text-body)]">
-                  Professional-grade US equity compensation knowledge and ready-to-share drafting for the teams who run stock plans.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/generate"
-                  className="inline-flex min-h-[50px] items-center rounded-xl bg-[var(--accent-solid)] px-6 text-sm font-semibold text-white"
-                  style={{ textDecoration: "none" }}
-                >
-                  Generate a draft
-                </Link>
-                <Link
-                  href="/browse"
-                  className="inline-flex min-h-[50px] items-center rounded-xl border border-[var(--accent)] px-6 text-sm font-semibold text-[var(--accent)]"
-                  style={{ textDecoration: "none" }}
-                >
-                  Browse the knowledge tree
-                </Link>
-              </div>
-            </div>
-            <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)] p-6">
-              <p className="text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">
-                Working reference
-              </p>
-              <h2 className="mt-3 font-head text-2xl text-[var(--text-head)]">
-                Describe your situation and prepare a document you can share.
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-[var(--text-body)]">
-                Move from tax withholding questions to participant communications with a structured draft grounded in the reviewed library.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="font-head text-3xl text-[var(--text-head)]">
-                The knowledge tree
-              </h2>
-              <p className="mt-2 text-[var(--text-body)]">
-                Seven core pillars across award design, lifecycle events, tax, accounting, compliance, and administration.
-              </p>
-            </div>
-            <Link
-              href="/browse"
-              className="text-sm font-semibold text-[var(--accent)]"
-              style={{ textDecoration: "none" }}
-            >
-              View all 7 pillars
-            </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {DISPLAY_PILLARS.map((pillar) => (
-              <Link
-                key={pillar.id}
-                href={`/p/${pillar.slug}`}
-                className="q-card-link block p-5"
-                style={{ textDecoration: "none" }}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-                  {String(pillar.id).padStart(2, "0")}
-                </p>
-                <h3 className="mt-3 font-head text-2xl leading-tight text-[var(--text-head)]">
-                  {pillar.title}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-[var(--text-body)]">
-                  {pillar.nodes
-                    .slice(0, 3)
-                    .map((node) => pillarSummary(node.title))
-                    .join(", ")}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
+  return <div className="v9-page v9-home">
+    <section className="v9-home-hero">
+      <div className="v9-home-copy">
+        <span className="v9-endorsement"><i /> Endorsed by NASPP</span>
+        <h1>The equity answers you need,<br />backed by NASPP.</h1>
+        <p>Clear stock plan guidance and employee-ready communications, built for the teams who run equity programs.</p>
       </div>
-    </PortalShell>
-  );
+    </section>
+    <section className="v9-home-prompt-wrap">
+      <form action="/generate" method="get" className="v9-home-prompt">
+        <label htmlFor="home-question">What do you need to communicate?</label>
+        <div className="v9-home-input-row"><textarea id="home-question" name="q" rows={2} placeholder="Describe the stock plan situation or employee communication you need to prepare..." /><button type="submit">Ask EquityIQ <span aria-hidden="true">→</span></button></div>
+      </form>
+      <div className="v9-suggestion-row">{suggestions.map((suggestion) => <Link key={suggestion} href={`/generate?q=${encodeURIComponent(suggestion)}`}>{suggestion}</Link>)}</div>
+    </section>
+    <section className="v9-home-next">
+      <div><p className="v9-eyebrow">Start where you are</p><h2>Move from question to clear next step.</h2></div>
+      <div className="v9-home-choices">
+        <Link href="/generate" className="v9-choice-card"><span className="v9-choice-icon">↗</span><div><h3>Ask a question</h3><p>Describe the situation and prepare a professional first draft.</p><strong>Prepare a draft →</strong></div></Link>
+        <Link href="/browse" className="v9-choice-card"><span className="v9-choice-icon">⌘</span><div><h3>Learn a topic</h3><p>Browse practical guidance across the EquityIQ Knowledge Tree.</p><strong>Explore the Knowledge Tree →</strong></div></Link>
+      </div>
+    </section>
+    <section className="v9-home-library">
+      <div className="v9-home-library-head"><div><p className="v9-eyebrow">Knowledge Tree</p><h2>Explore the topics behind the work.</h2></div><Link href="/browse">View all topics →</Link></div>
+      <div className="v9-pillar-preview">{DISPLAY_PILLARS.slice(0, 6).map((pillar) => <Link key={pillar.id} href={`/p/${pillar.slug}`}><small>{String(pillar.id).padStart(2, "0")}</small><strong>{pillar.title}</strong><span>{pillar.nodes.length} topics</span></Link>)}</div>
+    </section>
+  </div>;
 }

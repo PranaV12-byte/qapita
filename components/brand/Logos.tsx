@@ -2,16 +2,7 @@
 import Link from "next/link";
 
 export function NasppLogo({ className }: { className?: string }) {
-  return (
-    <span className="inline-flex items-center rounded-md bg-white px-2 py-1">
-      <img
-        src="/brand/naspp-deep.png"
-        alt="NASPP"
-        className={className}
-        draggable={false}
-      />
-    </span>
-  );
+  return <img src="/brand/naspp-transparent.png" alt="NASPP" className={className} draggable={false} />;
 }
 
 export function QapitaLogo({ className }: { className?: string }) {
@@ -23,6 +14,10 @@ export function QapitaLogo({ className }: { className?: string }) {
       draggable={false}
     />
   );
+}
+
+export function QapitaMark({ className }: { className?: string }) {
+  return <img src="/brand/qapita-mark-white.png" alt="Qapita" className={className} draggable={false} />;
 }
 
 export function BrandCluster({

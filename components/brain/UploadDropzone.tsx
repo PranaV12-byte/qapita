@@ -40,11 +40,10 @@ export default function UploadDropzone({
       }}
     >
       <p className="mb-1 text-[var(--text-body)]">
-        Drop files here to add them to the workspace
+        Add company sources to support future drafts
       </p>
       <p className="mb-3 text-xs text-[var(--text-muted)]">
-        Markdown, text, PDF, Word, spreadsheets, HTML, and JSON. Up to 10
-        files at a time.
+        Upload plan documents, policy notes, spreadsheets, or reference files. Up to 10 files at a time.
       </p>
       <button
         type="button"

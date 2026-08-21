@@ -106,7 +106,7 @@ export default function SearchOverlay({
               type="search"
               value={q}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="Search topics, articles, and glossary terms"
+              placeholder="Search the library, glossary, and related guidance"
               className="w-full bg-transparent py-2 text-base text-[var(--text-body)] placeholder:text-[var(--text-muted)] focus:outline-none"
             />
             <button

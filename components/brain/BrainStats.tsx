@@ -1,68 +1,19 @@
 "use client";
 
-export default function BrainStats({
-  sources,
-  passages,
-  lastLintAt,
-  linting,
-  onRunLint,
-  onErase,
-}: {
-  sources: number;
-  passages: number;
-  lastLintAt: string | null;
-  linting: boolean;
-  onRunLint: () => void;
-  onErase: () => void;
-}) {
-  return (
-    <div className="q-shell-card flex flex-wrap items-center gap-4 p-5">
-      <div className="flex gap-4">
-        <Stat label="Sources" value={String(sources)} />
-        <Stat label="Passages" value={String(passages)} />
-        <Stat
-          label="Last health check"
-          value={lastLintAt ? new Date(lastLintAt).toLocaleDateString() : "Not run"}
-        />
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onRunLint}
-          disabled={linting}
-          className="rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text-body)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
-          style={{ minHeight: 44 }}
-        >
-          {linting ? "Checking..." : "Run health check"}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (
-              confirm(
-                "Erase the entire workspace? This removes uploaded sources while leaving the shared foundation intact."
-              )
-            ) {
-              onErase();
-            }
-          }}
-          className="rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--text-muted)] hover:border-[var(--danger)] hover:text-[var(--danger)]"
-          style={{ minHeight: 44 }}
-        >
-          Erase workspace
-        </button>
-      </div>
+import type { CoverageSummary } from "@/components/brain/BrainGraph";
+
+export default function BrainStats({ sources, passages, lastLintAt, coverage }: { sources: number; passages: number; lastLintAt: string | null; coverage: CoverageSummary }) {
+  return <div className="v9-brain-stats">
+    <div className="grid grid-cols-2 gap-3">
+      <Stat label="Company sources" value={String(sources)} />
+      <Stat label="Connected passages" value={String(passages)} />
+      <Stat label="Workspace check" value={lastLintAt ? new Date(lastLintAt).toLocaleDateString() : "Not run"} />
+      <Stat label="Topics connected" value={`${coverage.coveredTopics} / ${coverage.totalTopics}`} />
     </div>
-  );
+    <p>Coverage is shown in the graph and reflects company-source connections.</p>
+  </div>;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-2xl font-head text-[var(--text-head)]">{value}</div>
-      <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-        {label}
-      </div>
-    </div>
-  );
+  return <div><div className="truncate text-lg font-semibold text-[#1f2937]">{value}</div><div className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[#9ca3af]">{label}</div></div>;
 }

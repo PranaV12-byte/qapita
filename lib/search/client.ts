@@ -4,6 +4,7 @@ import {
   SEARCH_STORE_FIELDS,
   type SearchDoc,
 } from "./types";
+import { ALL_NODES, getPillar } from "@/lib/content/tree";
 
 export type SearchHit = SearchResult & {
   title: string;
@@ -15,12 +16,25 @@ export type SearchHit = SearchResult & {
 
 let docsPromise: Promise<SearchDoc[]> | null = null;
 
+const plannedTopicDocs: SearchDoc[] = ALL_NODES
+  .filter((node) => node.contentState === "planned")
+  .map((node) => ({
+    id: `t-${node.id}`,
+    type: "topic" as const,
+    title: node.title,
+    path: `/p/${node.pillarSlug}`,
+    pillar: getPillar(node.pillarSlug)?.title,
+    summary: "A planned library topic. Guidance is being prepared.",
+    text: `${node.title} ${getPillar(node.pillarSlug)?.title ?? ""}`,
+  }));
+
 /** Fetch the prebuilt search index once (cached across calls). */
 export function loadSearchDocs(): Promise<SearchDoc[]> {
   if (!docsPromise) {
     docsPromise = fetch("/search-index.json")
       .then((r) => (r.ok ? r.json() : []))
-      .catch(() => []);
+      .catch(() => [])
+      .then((docs: SearchDoc[]) => [...docs, ...plannedTopicDocs]);
   }
   return docsPromise;
 }

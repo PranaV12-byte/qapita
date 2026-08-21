@@ -6,8 +6,8 @@ import { articleExists } from "@/lib/content/loader";
 import { DISPLAY_PILLARS } from "@/lib/content/tree";
 
 export const metadata: Metadata = {
-  title: "Knowledge tree - Q4N$P",
-  description: "Browse equity compensation topics by pillar.",
+  title: "Knowledge Tree - Q4N$P",
+  description: "Browse equity compensation guidance by topic group.",
 };
 
 export default function BrowsePage() {
@@ -27,10 +27,10 @@ export default function BrowsePage() {
     <PortalShell>
       <header className="mb-8 space-y-3">
         <h1 className="font-head text-5xl text-[var(--text-head)]">
-          Knowledge tree
+          Knowledge Tree
         </h1>
         <p className="max-w-4xl text-lg leading-8 text-[var(--text-body)]">
-          Seven professional-grade pillars, US-scoped. Reading is open and drafting remains grounded in the knowledge library.
+          Explore the complete map of EquityIQ topics. Published topics open directly into the Wiki; planned topics show where the knowledge base is growing next.
         </p>
       </header>
       <KnowledgeCenter pillars={pillars} terms={terms} />

@@ -75,23 +75,34 @@ export default function SideRail() {
                 <ul className="ml-[6px] border-l border-[var(--border)]">
                   {p.nodes.map((n) => {
                     const active = n.slug === activeSlug && p.slug === activePillarSlug;
+                    const planned = n.contentState === "planned";
                     return (
                       <li key={n.id}>
-                        <Link
-                          href={`/a/${n.pillarSlug}/${n.slug}`}
-                          className="block py-1.5 pl-3 -ml-px border-l transition-colors"
-                          style={{
-                            textDecoration: "none",
-                            borderColor: active
-                              ? "var(--accent)"
-                              : "transparent",
-                            color: active
-                              ? "var(--accent)"
-                              : "var(--text-muted)",
-                          }}
-                        >
-                          {n.title}
-                        </Link>
+                        {planned ? (
+                          <span
+                            aria-disabled="true"
+                            className="block cursor-default py-1.5 pl-3 -ml-px border-l text-[var(--text-muted)]"
+                            style={{ borderColor: "transparent" }}
+                          >
+                            {n.title}
+                          </span>
+                        ) : (
+                          <Link
+                            href={`/a/${n.pillarSlug}/${n.slug}`}
+                            className="block py-1.5 pl-3 -ml-px border-l transition-colors"
+                            style={{
+                              textDecoration: "none",
+                              borderColor: active
+                                ? "var(--accent)"
+                                : "transparent",
+                              color: active
+                                ? "var(--accent)"
+                                : "var(--text-muted)",
+                            }}
+                          >
+                            {n.title}
+                          </Link>
+                        )}
                       </li>
                     );
                   })}

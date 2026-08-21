@@ -1,6 +1,6 @@
 export type SearchDoc = {
   id: string;
-  type: "article" | "glossary";
+  type: "article" | "glossary" | "topic";
   title: string;
   path: string;
   pillar?: string;

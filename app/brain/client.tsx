@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import BrainGraph from "@/components/brain/BrainGraph";
+import BrainGraph, { type CoverageSummary } from "@/components/brain/BrainGraph";
 import UploadDropzone from "@/components/brain/UploadDropzone";
 import IngestQueue, { type QueuedJob } from "@/components/brain/IngestQueue";
 import BrainStats from "@/components/brain/BrainStats";
@@ -27,6 +27,8 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [linting, setLinting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
+  const [brainView, setBrainView] = useState<"sources" | "graph">("sources");
+  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const initialRead = useRef(false);
 
   const focusIds = useMemo(() => {
@@ -36,18 +38,37 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
 
   const nodeIdSet = useMemo(() => new Set(model.nodes.map((n) => n.id)), [model.nodes]);
 
-  // title (label) → node id, for resolving [[wiki-links]] in note bodies.
-  const titleToId = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const n of model.nodes) m.set(n.label.trim().toLowerCase(), n.id);
-    return m;
+  const coverage = useMemo<CoverageSummary>(() => {
+    const topics = model.nodes.filter((node) => node.kind === "topic");
+    const coveredTopics = topics.filter((node) => (node.feedingSourceIds?.length ?? 0) > 0);
+    const coveredTopicIds = coveredTopics.map((node) => node.id);
+    const coveredTopicSet = new Set(coveredTopicIds);
+    const coveredSourceIds = model.nodes
+      .filter((node) => node.kind === "source")
+      .filter((node) => node.feedsNodeIds?.some((id) => coveredTopicSet.has(id)) || coveredTopics.some((topic) => topic.feedingSourceIds?.includes(node.id.replace(/^source:/, ""))))
+      .map((node) => node.id);
+    return {
+      totalTopics: topics.length,
+      coveredTopics: coveredTopics.length,
+      percent: topics.length ? Math.round((coveredTopics.length / topics.length) * 100) : 0,
+      coveredTopicIds,
+      coveredSourceIds,
+    };
   }, [model.nodes]);
+
+  const titleToId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const node of model.nodes) {
+      map.set(node.label.trim().toLowerCase(), node.id);
+    }
+    return map;
+  }, [model.nodes]);
+
   const resolveTitle = useCallback(
     (title: string) => titleToId.get(title.trim().toLowerCase()) ?? null,
     [titleToId]
   );
 
-  // Selecting a node opens its note; sync ?note= without a server round-trip.
   const select = useCallback((id: string | null) => {
     setSelectedId(id);
     const url = new URL(window.location.href);
@@ -56,8 +77,6 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
     window.history.replaceState(null, "", url);
   }, []);
 
-  // Deep links: ?note=<id> opens that note; a citation's ?focus=<id> resolves
-  // to a node (source:<id> or a bare node id) and opens it too. Runs once.
   useEffect(() => {
     if (initialRead.current) return;
     initialRead.current = true;
@@ -77,11 +96,10 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
     }
   }, [searchParams, focusIds, nodeIdSet]);
 
-  // ── Upload ──
   const onFiles = useCallback(async (files: File[]) => {
     setBanner(null);
     const fd = new FormData();
-    files.forEach((f) => fd.append("files", f));
+    files.forEach((file) => fd.append("files", file));
     const res = await fetch("/api/brain/sources", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) {
@@ -89,23 +107,25 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
       return;
     }
     setJobs((prev) => [
-      ...data.jobs.map((j: { jobId: string; fileName: string }) => ({ ...j, view: null })),
+      ...data.jobs.map((job: { jobId: string; fileName: string }) => ({
+        ...job,
+        view: null,
+      })),
       ...prev,
     ]);
   }, []);
 
-  // ── Poll active jobs ──
   useEffect(() => {
-    const active = jobs.filter((j) => !j.view || !TERMINAL.has(j.view.stage));
+    const active = jobs.filter((job) => !job.view || !TERMINAL.has(job.view.stage));
     if (active.length === 0) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
       const updates = await Promise.all(
-        active.map(async (j) => {
+        active.map(async (job) => {
           try {
-            const res = await fetch(`/api/brain/ingest/${j.jobId}`);
+            const res = await fetch(`/api/brain/ingest/${job.jobId}`);
             if (!res.ok) return null;
-            return { jobId: j.jobId, view: (await res.json()) as JobView };
+            return { jobId: job.jobId, view: (await res.json()) as JobView };
           } catch {
             return null;
           }
@@ -114,16 +134,18 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
       if (cancelled) return;
       let anyDone = false;
       setJobs((prev) =>
-        prev.map((j) => {
-          const u = updates.find((x) => x && x.jobId === j.jobId);
-          if (u) {
-            if (u.view.stage === "done" && (!j.view || j.view.stage !== "done")) anyDone = true;
-            return { ...j, view: u.view };
+        prev.map((job) => {
+          const update = updates.find((item) => item && item.jobId === job.jobId);
+          if (update) {
+            if (update.view.stage === "done" && (!job.view || job.view.stage !== "done")) {
+              anyDone = true;
+            }
+            return { ...job, view: update.view };
           }
-          return j;
+          return job;
         })
       );
-      if (anyDone) router.refresh(); // pull the fresh graph + sources
+      if (anyDone) router.refresh();
     }, 500);
     return () => {
       cancelled = true;
@@ -140,7 +162,7 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
       });
       if (res.ok) {
         const view = (await res.json()) as JobView;
-        setJobs((prev) => prev.map((j) => (j.jobId === jobId ? { ...j, view } : j)));
+        setJobs((prev) => prev.map((job) => (job.jobId === jobId ? { ...job, view } : job)));
         if (view.stage === "done") router.refresh();
       }
     },
@@ -180,7 +202,10 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
   const focusNode = useCallback(
     (nodeId: string) => {
       select(nodeId);
-      document.getElementById("brain-graph")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById("brain-graph")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     },
     [select]
   );
@@ -193,63 +218,22 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
     [router]
   );
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-head text-heading text-3xl mb-1">My Brain</h1>
-          <p className="text-[var(--text-body)] text-sm max-w-2xl">
-            Your personal equity-comp wiki — the shared foundation with your own files woven in.
-            Explore the graph, click any node to read it, and every question you ask is answered
-            against this graph.
-          </p>
-        </div>
-      </header>
-
-      <BrainStats
-        sources={counts.sources}
-        passages={counts.passages}
-        lastLintAt={lint.lastLintAt}
-        linting={linting}
-        onRunLint={onRunLint}
-        onErase={onErase}
-      />
-
-      {banner && (
-        <p className="text-sm text-[var(--danger)] border border-[var(--danger)] rounded-lg px-3 py-2">
-          {banner}
-        </p>
-      )}
-
-      <UploadDropzone onFiles={onFiles} />
-      <IngestQueue jobs={jobs} onConfirm={onConfirm} onFocusNode={focusNode} />
-
-      {/* Graph-first main view + note reader */}
-      <section id="brain-graph">
-        <div className="mb-2">
-          <h2 className="font-head text-heading text-xl">The graph</h2>
-        </div>
-
-        <div
-          className="relative rounded-xl border border-[var(--border)] overflow-hidden"
-          style={{ height: "min(70vh, 640px)", minHeight: 460 }}
-        >
-          <BrainGraph model={model} focusIds={focusIds} selectedId={selectedId} onSelect={select} />
-          <NotePane
-            noteId={selectedId}
-            resolveTitle={resolveTitle}
-            onNavigate={select}
-            onClose={() => select(null)}
-            onAsk={onAsk}
-            onDeleteSource={onDelete}
-          />
-        </div>
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          Tip: scroll to zoom, drag to pan, drag a node to reposition it, press{" "}
-          <kbd className="px-1 rounded border border-[var(--border)]">Ctrl</kbd>+
-          <kbd className="px-1 rounded border border-[var(--border)]">K</kbd> to jump to any note.
-        </p>
+  return <div className="v9-brain-page">
+    <div className="v9-brain-mobile-tabs"><button onClick={() => setBrainView("sources")} className={brainView === "sources" ? "is-active" : ""}>Sources</button><button onClick={() => setBrainView("graph")} className={brainView === "graph" ? "is-active" : ""}>Graph</button></div>
+    {banner && <p className="v9-brain-banner">{banner}</p>}
+    <div className="v9-brain-workspace">
+      <aside className={`v9-brain-sources ${brainView === "sources" ? "is-visible" : ""}`}>
+        <div className="v9-brain-source-head"><div><p className="v9-eyebrow">Brain</p><h1>Your documents</h1><p>Add trusted plan material and see where it connects to the Knowledge Tree.</p></div><div className="relative"><button type="button" className="v9-brain-more" aria-label="Workspace actions" aria-expanded={maintenanceOpen} onClick={() => setMaintenanceOpen((current) => !current)}>•••</button>{maintenanceOpen && <div className="v9-brain-actions"><button onClick={() => { setMaintenanceOpen(false); onRunLint(); }} disabled={linting}>{linting ? "Checking..." : "Run workspace check"}</button><button className="is-danger" onClick={() => { setMaintenanceOpen(false); if (window.confirm("Erase the entire workspace? This removes uploaded sources while leaving the shared foundation intact.")) onErase(); }}>Erase workspace</button></div>}</div></div>
+        <BrainStats sources={counts.sources} passages={counts.passages} lastLintAt={lint.lastLintAt} coverage={coverage} />
+        <div className="v9-brain-upload"><UploadDropzone onFiles={onFiles} /></div>
+        <IngestQueue jobs={jobs} onConfirm={onConfirm} onFocusNode={focusNode} />
+      </aside>
+      <section id="brain-graph" className={`v9-brain-graph ${brainView === "graph" ? "is-visible" : ""}`}>
+        <div className="v9-graph-topline"><div><p className="v9-eyebrow">Knowledge map</p><h2>Connected graph</h2></div><div className="v9-graph-legend"><span><i className="is-purple" />EquityIQ topics</span><span><i className="is-yellow" />Company sources</span></div></div>
+        <div className="v9-graph-canvas"><BrainGraph model={model} focusIds={focusIds} selectedId={selectedId} onSelect={select} coverage={coverage} /><NotePane noteId={selectedId} resolveTitle={resolveTitle} onNavigate={select} onClose={() => select(null)} onAsk={onAsk} onDeleteSource={onDelete} /></div>
+        <div className="v9-coverage"><div><strong>Your coverage</strong><span>{coverage.coveredTopics} of {coverage.totalTopics} topics connected</span></div><div className="v9-coverage-track"><i style={{ width: `${coverage.percent}%` }} /></div><b>{coverage.percent}%</b></div>
+        <p className="v9-graph-help">Scroll to zoom, drag to pan, drag a node to reposition it, or press Ctrl + K to find a note.</p>
       </section>
     </div>
-  );
+  </div>;
 }

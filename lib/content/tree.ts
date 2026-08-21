@@ -4,6 +4,8 @@ export type TreeNode = {
   slug: string;
   title: string;
   pillarSlug: string;
+  /** Planned topics are visible in the taxonomy before a curated article exists. */
+  contentState?: "published" | "planned";
 };
 
 export type Pillar = {
@@ -26,6 +28,9 @@ export const PILLARS: Pillar[] = [
       { id: "1.5", pillar: 1, slug: "psus", title: "Performance share units (PSUs)", pillarSlug: "awards" },
       { id: "1.6", pillar: 1, slug: "sars-phantom", title: "SARs & phantom equity", pillarSlug: "awards" },
       { id: "1.7", pillar: 1, slug: "dividends", title: "Dividends & dividend equivalents", pillarSlug: "awards" },
+      { id: "1.8", pillar: 1, slug: "llc-equity-instruments", title: "LLC equity instruments", pillarSlug: "awards", contentState: "planned" },
+      { id: "1.9", pillar: 1, slug: "growth-shares-international", title: "Growth shares (international)", pillarSlug: "awards", contentState: "planned" },
+      { id: "1.10", pillar: 1, slug: "advisory-shares-warrants", title: "Advisory shares & warrants", pillarSlug: "awards", contentState: "planned" },
     ],
   },
   {
@@ -38,6 +43,8 @@ export const PILLARS: Pillar[] = [
       { id: "2.3", pillar: 2, slug: "exercise", title: "Exercise", pillarSlug: "lifecycle" },
       { id: "2.4", pillar: 2, slug: "settlement-release", title: "Settlement & release", pillarSlug: "lifecycle" },
       { id: "2.5", pillar: 2, slug: "liquidity-exits", title: "Liquidity & exits", pillarSlug: "lifecycle" },
+      { id: "2.6", pillar: 2, slug: "grant-approval-documentation", title: "Grant approval & documentation", pillarSlug: "lifecycle", contentState: "planned" },
+      { id: "2.7", pillar: 2, slug: "termination-post-employment", title: "Termination & post-employment", pillarSlug: "lifecycle", contentState: "planned" },
     ],
   },
   {
@@ -53,6 +60,8 @@ export const PILLARS: Pillar[] = [
       { id: "3.6", pillar: 3, slug: "cost-basis-reporting", title: "Cost basis & reporting", pillarSlug: "tax" },
       { id: "3.7", pillar: 3, slug: "section-409a", title: "Section 409A deferred compensation", pillarSlug: "tax" },
       { id: "3.8", pillar: 3, slug: "280g-golden-parachute", title: "280G golden parachute", pillarSlug: "tax" },
+      { id: "3.9", pillar: 3, slug: "international-global-tax", title: "International & global tax", pillarSlug: "tax", contentState: "planned" },
+      { id: "3.10", pillar: 3, slug: "qualified-small-business-stock", title: "Qualified Small Business Stock (QSBS)", pillarSlug: "tax", contentState: "planned" },
     ],
   },
   {
@@ -64,6 +73,8 @@ export const PILLARS: Pillar[] = [
       { id: "4.2", pillar: 4, slug: "expense-forfeitures", title: "Expense recognition & forfeitures", pillarSlug: "accounting" },
       { id: "4.3", pillar: 4, slug: "modifications", title: "Modifications", pillarSlug: "accounting" },
       { id: "4.4", pillar: 4, slug: "eps-dilution", title: "EPS & dilution", pillarSlug: "accounting" },
+      { id: "4.5", pillar: 4, slug: "asc-718-fundamentals", title: "ASC 718 fundamentals", pillarSlug: "accounting", contentState: "planned" },
+      { id: "4.6", pillar: 4, slug: "performance-award-accounting", title: "Performance award accounting", pillarSlug: "accounting", contentState: "planned" },
     ],
   },
   {
@@ -78,6 +89,7 @@ export const PILLARS: Pillar[] = [
       { id: "5.5", pillar: 5, slug: "10k-10q", title: "10-K / 10-Q equity disclosures", pillarSlug: "securities-law" },
       { id: "5.6", pillar: 5, slug: "year-end-filings", title: "Year-end IRS filings (W-2, 3921, 3922)", pillarSlug: "securities-law" },
       { id: "5.7", pillar: 5, slug: "rule-144", title: "Rule 144 & resale restrictions", pillarSlug: "securities-law" },
+      { id: "5.8", pillar: 5, slug: "insider-trading-compliance", title: "Insider trading compliance", pillarSlug: "securities-law", contentState: "planned" },
     ],
   },
   {
@@ -90,6 +102,10 @@ export const PILLARS: Pillar[] = [
       { id: "6.3", pillar: 6, slug: "award-design-trends", title: "Award design trends", pillarSlug: "plan-design" },
       { id: "6.4", pillar: 6, slug: "benchmarking", title: "Benchmarking", pillarSlug: "plan-design" },
       { id: "6.5", pillar: 6, slug: "409a-valuations", title: "409A valuations & fair market value", pillarSlug: "plan-design" },
+      { id: "6.6", pillar: 6, slug: "plan-governance-shareholder-approval", title: "Plan governance & shareholder approval", pillarSlug: "plan-design", contentState: "planned" },
+      { id: "6.7", pillar: 6, slug: "repricing-modifications-tender-offers", title: "Repricing, modifications & tender offers", pillarSlug: "plan-design", contentState: "planned" },
+      { id: "6.8", pillar: 6, slug: "corporate-actions-adjustments", title: "Corporate actions: stock splits & adjustments", pillarSlug: "plan-design", contentState: "planned" },
+      { id: "6.9", pillar: 6, slug: "equity-plan-technology-hris", title: "Equity plan technology, automation & HRIS integration", pillarSlug: "plan-design", contentState: "planned" },
     ],
   },
   {
@@ -102,6 +118,34 @@ export const PILLARS: Pillar[] = [
       { id: "7.3", pillar: 7, slug: "job-life-events", title: "Job & life events", pillarSlug: "admin-ops" },
       { id: "7.4", pillar: 7, slug: "advisor-broker", title: "Advisor & broker coordination", pillarSlug: "admin-ops" },
       { id: "7.5", pillar: 7, slug: "compliance-calendar", title: "Compliance calendar", pillarSlug: "admin-ops" },
+    ],
+  },
+  {
+    id: 8,
+    title: "Financial planning & advisory",
+    slug: "financial-planning",
+    nodes: [
+      { id: "8.1", pillar: 8, slug: "exercise-disposition-strategies", title: "Exercise & disposition strategies", pillarSlug: "financial-planning", contentState: "planned" },
+      { id: "8.2", pillar: 8, slug: "year-end-tax-planning", title: "Year-end tax planning", pillarSlug: "financial-planning", contentState: "planned" },
+      { id: "8.3", pillar: 8, slug: "concentrated-stock-diversification", title: "Concentrated stock & diversification", pillarSlug: "financial-planning", contentState: "planned" },
+      { id: "8.4", pillar: 8, slug: "retirement-planning", title: "Retirement planning", pillarSlug: "financial-planning", contentState: "planned" },
+      { id: "8.5", pillar: 8, slug: "life-events", title: "Life events", pillarSlug: "financial-planning", contentState: "planned" },
+      { id: "8.6", pillar: 8, slug: "high-net-worth-estate-planning", title: "High net worth & estate planning", pillarSlug: "financial-planning", contentState: "planned" },
+    ],
+  },
+  {
+    id: 9,
+    title: "Special situations",
+    slug: "special-situations",
+    nodes: [
+      { id: "9.1", pillar: 9, slug: "fundraising-instruments", title: "Fundraising instruments", pillarSlug: "special-situations", contentState: "planned" },
+      { id: "9.2", pillar: 9, slug: "down-rounds", title: "Down rounds", pillarSlug: "special-situations", contentState: "planned" },
+      { id: "9.3", pillar: 9, slug: "private-company-equity-administration", title: "Private company equity administration", pillarSlug: "special-situations", contentState: "planned" },
+      { id: "9.4", pillar: 9, slug: "tender-offers-secondary-liquidity", title: "Tender offers & secondary liquidity programs", pillarSlug: "special-situations", contentState: "planned" },
+      { id: "9.5", pillar: 9, slug: "private-company-liquidity-guides", title: "Private company liquidity: employee & employer guides", pillarSlug: "special-situations", contentState: "planned" },
+      { id: "9.6", pillar: 9, slug: "mergers-acquisitions-plan-treatment", title: "M&A: plan treatment & administration", pillarSlug: "special-situations", contentState: "planned" },
+      { id: "9.7", pillar: 9, slug: "ipo-pre-ipo-administration", title: "IPO & pre-IPO administration", pillarSlug: "special-situations", contentState: "planned" },
+      { id: "9.8", pillar: 9, slug: "job-transitions-negotiations", title: "Job transitions & negotiations", pillarSlug: "special-situations", contentState: "planned" },
     ],
   },
 ];
