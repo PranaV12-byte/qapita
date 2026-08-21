@@ -21,14 +21,6 @@ type NotePage = {
   backlinks: Backlink[];
 };
 
-const KIND_LABEL: Record<NoteKind, string> = {
-  topic: "Topic",
-  source: "Your source",
-  "user-node": "Your topic",
-  general: "General",
-  pillar: "Pillar",
-};
-
 type Props = {
   noteId: string | null;
   resolveTitle: (title: string) => string | null;
@@ -84,9 +76,6 @@ export default function NotePane({ noteId, resolveTitle, onNavigate, onClose, on
       {/* header */}
       <div className="flex items-start justify-between gap-2 p-4 border-b border-[var(--border)] shrink-0">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
-            {page ? KIND_LABEL[page.kind] : "Loading…"}
-          </p>
           <h3 className="font-head text-lg text-[var(--text-head)] truncate">{page?.title ?? noteId}</h3>
           {metaEntries.length > 0 && (
             <p className="text-xs text-[var(--text-muted)] mt-0.5">
@@ -165,9 +154,6 @@ export default function NotePane({ noteId, resolveTitle, onNavigate, onClose, on
                                 }}
                               />
                               <span className="text-sm text-[var(--text-body)] truncate">{b.title}</span>
-                              <span className="ml-auto text-[10px] uppercase tracking-wide text-[var(--text-muted)] shrink-0">
-                                {b.kind === "answer" ? "answer" : b.kind === "user-node" ? "your topic" : b.kind === "source" ? "your file" : b.kind}
-                              </span>
                             </span>
                             {b.snippet && (
                               <span className="block text-xs text-[var(--text-muted)] mt-0.5 truncate">{b.snippet}</span>

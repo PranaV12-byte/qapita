@@ -15,7 +15,7 @@ const links: NavItem[] = [
   { label: "Knowledge Tree", href: "/browse", icon: "tree" },
   { label: "Wiki", href: "/wiki", icon: "book" },
   { label: "Brain", href: "/brain", icon: "brain" },
-  { label: "Archive", href: "/archive", icon: "archive" },
+  { label: "Archive", href: "#archive", icon: "archive", disabled: true },
   { label: "Learn", href: "#learn", icon: "learn", disabled: true },
 ];
 
@@ -78,6 +78,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const railWidth = expanded ? 180 : 60;
   const openSignIn = () => { setMoreOpen(false); setSignInOpen(true); };
+  const searchLabel = pathname === "/" || pathname.startsWith("/generate")
+    ? "Search topics or ask a question"
+    : pathname === "/browse" || pathname.startsWith("/p/") || pathname.startsWith("/glossary")
+      ? "Search knowledge base"
+      : "Search";
 
   return <>
     <aside className={`v9-rail ${expanded ? "is-expanded" : "is-collapsed"}`} style={{ width: railWidth }}>
@@ -106,10 +111,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="v9-app" style={{ "--rail-width": `${railWidth}px` } as CSSProperties}>
       <header className="v9-topbar">
         <BrandCluster className="v9-brand-cluster" qapitaClassName="v9-qapita" nasppClassName="v9-naspp" separatorClassName="v9-brand-divider" />
-        <button type="button" className="v9-search-trigger" onClick={() => setSearchOpen(true)} aria-label="Search topics and articles"><Icon name="search" /><span>Search topics, articles, artifacts...</span><kbd>Ctrl K</kbd></button>
+        <button type="button" className="v9-search-trigger" onClick={() => setSearchOpen(true)} aria-label={searchLabel}><Icon name="search" /><span>{searchLabel}</span><kbd>Ctrl K</kbd></button>
       </header>
       <main className="v9-main">{children}</main>
-      <footer className="v9-footer"><span>Endorsed by NASPP, National Association of Stock Plan Professionals</span><BrandCluster className="v9-footer-brand" qapitaClassName="h-[18px] w-auto" nasppClassName="h-[18px] w-auto" separatorClassName="mx-3 h-[18px] w-px bg-gray-300" /></footer>
+      <footer className="v9-footer"><span>Endorsed by NASPP</span><BrandCluster variant="light" className="v9-footer-brand" qapitaClassName="h-[18px] w-auto" nasppClassName="h-[18px] w-auto" separatorClassName="mx-3 h-[18px] w-px bg-gray-300" /></footer>
     </div>
 
     <nav className="v9-bottom-nav" aria-label="Mobile navigation">
@@ -150,5 +155,5 @@ function SignInModal({ open, onClose, configured, returnTo, restoreFocusRef }: {
     { label: "Continue with Google", connection: "google-oauth2", icon: <GoogleIcon /> },
     { label: "Continue with company SSO", connection: process.env.NEXT_PUBLIC_AUTH0_SSO_CONNECTION || "equityiq-demo-okta", icon: <Icon name="sso" size={20} /> },
   ];
-  return <div className="v9-auth-layer" role="dialog" aria-modal="true" aria-labelledby="v9-sign-in-title"><button type="button" className="v9-auth-backdrop" onClick={onClose} aria-label="Close sign in" /><div className="v9-auth-modal" ref={modalRef}><button type="button" className="v9-auth-close" onClick={onClose} aria-label="Close sign in"><Icon name="close" /></button><BrandCluster className="v9-auth-brand" qapitaClassName="v9-auth-qapita" nasppClassName="v9-auth-naspp" separatorClassName="v9-auth-divider" /><h2 id="v9-sign-in-title">Sign in to save and export</h2><p>Your current page will open after authentication.</p><div className="v9-auth-options">{options.map((option) => <a key={option.label} href={configured ? `/auth/login?connection=${encodeURIComponent(option.connection)}&returnTo=${encodeURIComponent(returnTo)}` : undefined} aria-disabled={!configured} className={!configured ? "is-disabled" : undefined}><span>{option.icon}</span>{option.label}</a>)}</div>{!configured && <small>Authentication is not configured in this environment.</small>}</div></div>;
+  return <div className="v9-auth-layer" role="dialog" aria-modal="true" aria-labelledby="v9-sign-in-title"><button type="button" className="v9-auth-backdrop" onClick={onClose} aria-label="Close sign in" /><div className="v9-auth-modal" ref={modalRef}><button type="button" className="v9-auth-close" onClick={onClose} aria-label="Close sign in"><Icon name="close" /></button><BrandCluster variant="light" className="v9-auth-brand" qapitaClassName="v9-auth-qapita" nasppClassName="v9-auth-naspp" separatorClassName="v9-auth-divider" /><h2 id="v9-sign-in-title">Sign in to save and export</h2><p>Your current page will open after authentication.</p><div className="v9-auth-options">{options.map((option) => <a key={option.label} href={configured ? `/auth/login?connection=${encodeURIComponent(option.connection)}&returnTo=${encodeURIComponent(returnTo)}` : undefined} aria-disabled={!configured} className={!configured ? "is-disabled" : undefined}><span>{option.icon}</span>{option.label}</a>)}</div>{!configured && <small>Authentication is not configured in this environment.</small>}</div></div>;
 }

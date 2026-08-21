@@ -11,19 +11,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   header: {
-    borderWidth: 1,
-    borderColor: "#E5DCF6",
-    borderRadius: 14,
-    overflow: "hidden",
+    borderBottomWidth: 2,
+    borderBottomColor: "#633EA5",
     marginBottom: 22,
+    paddingBottom: 14,
   },
   headerTop: {
-    backgroundColor: "#F4EFFD",
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingVertical: 4,
   },
   label: {
-    fontSize: 8,
+    fontSize: 9,
     color: "#633EA5",
     textTransform: "uppercase",
     letterSpacing: 1.4,
@@ -76,7 +73,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#633EA5",
+    borderTopWidth: 1,
+    borderTopColor: "#E5DCF6",
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 34,
     paddingVertical: 12,
     flexDirection: "row",
@@ -85,7 +84,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 8,
-    color: "#F7F3FF",
+    color: "#6C6283",
     lineHeight: 1.4,
     maxWidth: 320,
   },
@@ -96,7 +95,7 @@ const styles = StyleSheet.create({
   separator: {
     width: 1,
     height: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#633EA5",
     marginHorizontal: 10,
   },
   nasppLogo: {
@@ -134,7 +133,7 @@ export function EquityBriefPDF({
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Text style={styles.label}>EquityIQ draft</Text>
+            <Text style={styles.label}>EquityIQ reference</Text>
             <Text style={styles.title}>{title}</Text>
           </View>
           <View style={styles.metaRow}>
@@ -157,7 +156,7 @@ export function EquityBriefPDF({
         </View>
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Prepared for working review within EquityIQ. Confirm final wording, recipients, and approval requirements before distribution.
+            Endorsed by NASPP
           </Text>
           <View style={styles.footerBrandRow}>
             <Image src={qapitaLogoSrc} style={styles.qapitaLogo} />

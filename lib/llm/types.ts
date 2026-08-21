@@ -9,6 +9,13 @@ export type ArtifactResult = {
   quickShare: string;
 };
 
+export type ArtifactFormat = "reference" | "pdf" | "email" | "comparison";
+
+export type GenerateOptions = {
+  format?: ArtifactFormat;
+  embedder?: import("@/lib/rag/types").Embedder;
+};
+
 export interface LLMProvider {
-  generate(query: string, chunks: RetrievalChunk[]): Promise<ArtifactResult>;
+  generate(query: string, chunks: RetrievalChunk[], options?: GenerateOptions): Promise<ArtifactResult>;
 }

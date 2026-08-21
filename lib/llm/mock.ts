@@ -1,4 +1,4 @@
-import type { ArtifactResult, LLMProvider } from "@/lib/llm/types";
+import type { ArtifactResult, GenerateOptions, LLMProvider } from "@/lib/llm/types";
 import type { RetrievalChunk, Citation, Embedder } from "@/lib/rag/types";
 import { getNode } from "@/lib/content/tree";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE, FALLBACK_THRESHOLD } from "@/lib/rag/config";
@@ -273,14 +273,18 @@ export class MockLLM implements LLMProvider {
   async generate(
     query: string,
     chunks: RetrievalChunk[],
-    opts: { embedder?: Embedder } = {}
+    opts: GenerateOptions = {}
   ): Promise<ArtifactResult> {
     if (process.env.MOCK_DELAY !== "false") {
       const delay = 1200 + (Math.random() * 600 - 300);
       await new Promise<void>((r) => setTimeout(r, delay));
     }
 
-    const title = `Reference: ${query.slice(0, 80)}`;
+    const title = opts.format === "email"
+      ? `Email draft: ${query.slice(0, 72)}`
+      : opts.format === "comparison"
+        ? `Comparison: ${query.slice(0, 72)}`
+        : `Reference: ${query.slice(0, 80)}`;
     const curated = chunks.filter((c) => c.tier === "curated");
     const scrape = chunks.filter((c) => c.tier === "scrape");
     const user = chunks.filter((c) => c.tier === "user");

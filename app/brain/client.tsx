@@ -29,7 +29,28 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
   const [banner, setBanner] = useState<string | null>(null);
   const [brainView, setBrainView] = useState<"sources" | "graph">("sources");
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const graphSectionRef = useRef<HTMLElement | null>(null);
   const initialRead = useRef(false);
+
+  useEffect(() => {
+    if (counts.sources > 0 || searchParams.get("focus") || searchParams.get("note")) setBrainView("graph");
+  }, [counts.sources, searchParams]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => setFullscreen(document.fullscreenElement === graphSectionRef.current);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && fullscreen && !document.fullscreenElement) setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => { document.removeEventListener("fullscreenchange", onFullscreenChange); window.removeEventListener("keydown", onKeyDown); };
+  }, [fullscreen]);
+
+  useEffect(() => {
+    document.body.classList.toggle("v9-brain-fullscreen-active", fullscreen);
+    return () => document.body.classList.remove("v9-brain-fullscreen-active");
+  }, [fullscreen]);
 
   const focusIds = useMemo(() => {
     const f = searchParams.get("focus");
@@ -218,21 +239,32 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
     [router]
   );
 
+  const toggleFullscreen = useCallback(async () => {
+    const element = graphSectionRef.current;
+    if (!element) return;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (element.requestFullscreen) await element.requestFullscreen();
+      else setFullscreen((current) => !current);
+    } catch {
+      setFullscreen((current) => !current);
+    }
+  }, []);
+
   return <div className="v9-brain-page">
     <div className="v9-brain-mobile-tabs"><button onClick={() => setBrainView("sources")} className={brainView === "sources" ? "is-active" : ""}>Sources</button><button onClick={() => setBrainView("graph")} className={brainView === "graph" ? "is-active" : ""}>Graph</button></div>
     {banner && <p className="v9-brain-banner">{banner}</p>}
     <div className="v9-brain-workspace">
       <aside className={`v9-brain-sources ${brainView === "sources" ? "is-visible" : ""}`}>
-        <div className="v9-brain-source-head"><div><p className="v9-eyebrow">Brain</p><h1>Your documents</h1><p>Add trusted plan material and see where it connects to the Knowledge Tree.</p></div><div className="relative"><button type="button" className="v9-brain-more" aria-label="Workspace actions" aria-expanded={maintenanceOpen} onClick={() => setMaintenanceOpen((current) => !current)}>•••</button>{maintenanceOpen && <div className="v9-brain-actions"><button onClick={() => { setMaintenanceOpen(false); onRunLint(); }} disabled={linting}>{linting ? "Checking..." : "Run workspace check"}</button><button className="is-danger" onClick={() => { setMaintenanceOpen(false); if (window.confirm("Erase the entire workspace? This removes uploaded sources while leaving the shared foundation intact.")) onErase(); }}>Erase workspace</button></div>}</div></div>
+        <div className="v9-brain-source-head"><div><h1>Your documents</h1></div><div className="relative"><button type="button" className="v9-brain-more" aria-label="Workspace actions" aria-expanded={maintenanceOpen} onClick={() => setMaintenanceOpen((current) => !current)}>•••</button>{maintenanceOpen && <div className="v9-brain-actions"><button onClick={() => { setMaintenanceOpen(false); onRunLint(); }} disabled={linting}>{linting ? "Checking..." : "Run workspace check"}</button><button className="is-danger" onClick={() => { setMaintenanceOpen(false); if (window.confirm("Erase the entire workspace? This removes uploaded sources while leaving the shared foundation intact.")) onErase(); }}>Erase workspace</button></div>}</div></div>
         <BrainStats sources={counts.sources} passages={counts.passages} lastLintAt={lint.lastLintAt} coverage={coverage} />
         <div className="v9-brain-upload"><UploadDropzone onFiles={onFiles} /></div>
         <IngestQueue jobs={jobs} onConfirm={onConfirm} onFocusNode={focusNode} />
       </aside>
-      <section id="brain-graph" className={`v9-brain-graph ${brainView === "graph" ? "is-visible" : ""}`}>
-        <div className="v9-graph-topline"><div><p className="v9-eyebrow">Knowledge map</p><h2>Connected graph</h2></div><div className="v9-graph-legend"><span><i className="is-purple" />EquityIQ topics</span><span><i className="is-yellow" />Company sources</span></div></div>
+      <section id="brain-graph" ref={graphSectionRef} className={`v9-brain-graph ${brainView === "graph" ? "is-visible" : ""} ${fullscreen ? "is-fullscreen" : ""}`}>
+        <div className="v9-graph-topline"><div><h2>Knowledge graph</h2></div><div className="v9-graph-actions"><div className="v9-graph-legend"><span><i className="is-purple" />EquityIQ topics</span><span><i className="is-yellow" />Company sources</span></div><button type="button" onClick={() => void toggleFullscreen()} aria-label={fullscreen ? "Exit fullscreen graph" : "Open graph fullscreen"}>{fullscreen ? "Exit" : "Fullscreen"}</button></div></div>
         <div className="v9-graph-canvas"><BrainGraph model={model} focusIds={focusIds} selectedId={selectedId} onSelect={select} coverage={coverage} /><NotePane noteId={selectedId} resolveTitle={resolveTitle} onNavigate={select} onClose={() => select(null)} onAsk={onAsk} onDeleteSource={onDelete} /></div>
         <div className="v9-coverage"><div><strong>Your coverage</strong><span>{coverage.coveredTopics} of {coverage.totalTopics} topics connected</span></div><div className="v9-coverage-track"><i style={{ width: `${coverage.percent}%` }} /></div><b>{coverage.percent}%</b></div>
-        <p className="v9-graph-help">Scroll to zoom, drag to pan, drag a node to reposition it, or press Ctrl + K to find a note.</p>
       </section>
     </div>
   </div>;

@@ -6,6 +6,7 @@ import { SCENARIOS } from "@/lib/scenarios";
 import { getBrainId } from "@/lib/brain/id";
 import { brainStore } from "@/lib/brain/store";
 import { retrieveForBrain } from "@/lib/brain/retrieval";
+import type { ArtifactFormat } from "@/lib/llm/types";
 
 export const runtime = "nodejs";
 
@@ -14,9 +15,10 @@ export async function POST(req: NextRequest) {
     query?: string;
     scenarioId?: string;
     nodeId?: string;
+    format?: ArtifactFormat;
   };
 
-  const { query: rawQuery, scenarioId, nodeId } = body;
+  const { query: rawQuery, scenarioId, nodeId, format = "reference" } = body;
 
   if (!rawQuery && !scenarioId) {
     return NextResponse.json({ error: "empty_query" }, { status: 400 });
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
   const brainId = getBrainId(req.headers);
   const retrieval = await retrieveForBrain(query, brainId, { nodeId: boostNodeId });
   const provider = getLLMProvider();
-  const result = await provider.generate(query, retrieval.chunks);
+  const result = await provider.generate(query, retrieval.chunks, { format });
 
   const mode = process.env.LLM_PROVIDER ?? "mock";
   const matchedNodeIds = [

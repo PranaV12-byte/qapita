@@ -7,7 +7,6 @@ import FaqAccordion from "@/components/article/FaqAccordion";
 import PlainLanguageCallout from "@/components/article/PlainLanguageCallout";
 import RelatedNodes from "@/components/article/RelatedNodes";
 import Sources from "@/components/article/Sources";
-import StatusBadge from "@/components/article/StatusBadge";
 import { mdxComponents } from "@/components/mdx/mdxComponents";
 import PortalShell from "@/components/portal/PortalShell";
 import { loadArticle } from "@/lib/content/loader";
@@ -60,13 +59,8 @@ export default async function ArticlePage({
       />
 
       <header className="v9-article-heading">
-        <div className="v9-article-meta"><StatusBadge status={frontmatter.status} /><span>NASPP guidance</span></div>
-        <h1>
-          {frontmatter.title}
-        </h1>
-        <p>
-          Review the guidance below, then move into drafting when you are ready to prepare a communication.
-        </p>
+        <span className="v9-article-tag">{resolvedPillar?.title ?? "Wiki"}</span>
+        <h1>{frontmatter.title}</h1>
       </header>
 
       {resolvedPillar && (
@@ -75,7 +69,7 @@ export default async function ArticlePage({
         </Link>
       )}
 
-      <PlainLanguageCallout text={frontmatter.summaryPlain} />
+      <div className="v9-article-short-answer"><span>Short answer</span><PlainLanguageCallout text={frontmatter.summaryPlain} /></div>
 
       <div className="v9-article-layout">
         <article className="v9-article-body">
@@ -87,18 +81,14 @@ export default async function ArticlePage({
             <FaqAccordion faqs={frontmatter.faqs} />
           </div>
           <div className="v9-article-panel v9-article-draft-panel">
-            <h2>
-              Ready to use this topic?
-            </h2>
-            <p className="mt-2 text-sm leading-7 text-[var(--text-body)]">
-              Start a draft from this guidance and prepare a communication that is ready for internal review.
-            </p>
+            <h2>Need this for a specific situation?</h2>
+            <p className="mt-2 text-sm leading-7 text-[var(--text-body)]">Generate a ready-to-share answer grounded in this article.</p>
             <Link
               href={`/generate?nodeId=${frontmatter.id}`}
               className="v9-primary-button mt-4"
               style={{ textDecoration: "none" }}
             >
-              Draft from this topic
+              Generate a draft
             </Link>
           </div>
           <div className="v9-article-panel">

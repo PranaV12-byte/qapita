@@ -64,8 +64,8 @@ export async function renderArtifactPdf(title: string, bodyMarkdown: string) {
     title,
     sections: extractPdfSections(bodyMarkdown),
     date,
-    nasppLogoSrc: path.join(process.cwd(), "public", "brand", "naspp-deep.png"),
-    qapitaLogoSrc: path.join(process.cwd(), "public", "brand", "qapita-white-full.png"),
+    nasppLogoSrc: path.join(process.cwd(), "public", "brand", "naspp-transparent.png"),
+    qapitaLogoSrc: path.join(process.cwd(), "public", "brand", "qapita.png"),
   });
   return renderToBuffer(element);
 }

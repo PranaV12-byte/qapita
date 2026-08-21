@@ -639,11 +639,11 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect,
   );
 
   return (
-    <div ref={wrapRef} className="relative w-full h-full" style={{ touchAction: "none" }}>
+    <div ref={wrapRef} className="relative w-full h-full">
       <canvas
         ref={canvasRef}
         className="block w-full h-full select-none"
-        style={{ cursor: "grab" }}
+        style={{ cursor: "grab", touchAction: "none" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -651,14 +651,14 @@ export default function BrainGraph({ model, focusIds = [], selectedId, onSelect,
       />
 
       {/* Filter chips */}
-      <div className="absolute top-2 left-2 z-10 flex gap-1.5">
+      <div className="v9-graph-filters absolute top-2 left-2 z-10 flex gap-1.5">
         {chip("all", "All")}
         {chip("covered", "Covered")}
         {chip("files", "Sources")}
       </div>
 
       {/* Zoom / fit / find controls — 44px tap targets */}
-      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+      <div className="v9-graph-controls absolute top-2 right-2 z-10 flex flex-col gap-1">
         {[
           { label: "+", fn: () => zoomAt(size.current.w / 2, size.current.h / 2, 1.25), aria: "Zoom in" },
           { label: "-", fn: () => zoomAt(size.current.w / 2, size.current.h / 2, 1 / 1.25), aria: "Zoom out" },

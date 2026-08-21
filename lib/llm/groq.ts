@@ -1,4 +1,4 @@
-import type { ArtifactResult, LLMProvider } from "@/lib/llm/types";
+import type { ArtifactResult, GenerateOptions, LLMProvider } from "@/lib/llm/types";
 import type { RetrievalChunk, Citation } from "@/lib/rag/types";
 import { SYSTEM_PROMPT, buildUserMessage, rankAndCapChunks } from "@/lib/llm/prompt";
 import {
@@ -35,13 +35,14 @@ const ArtifactResultSchema = z.object({
 export class GroqProvider implements LLMProvider {
   async generate(
     query: string,
-    chunks: RetrievalChunk[]
+    chunks: RetrievalChunk[],
+    options: GenerateOptions = {}
   ): Promise<ArtifactResult> {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       console.log("provider_fallback: GROQ_API_KEY missing, falling back to mock");
       const { MockLLM } = await import("@/lib/llm/mock");
-      return new MockLLM().generate(query, chunks);
+      return new MockLLM().generate(query, chunks, options);
     }
 
     // Same confidence gate the mock uses: don't hand a real LLM a weak/
@@ -79,7 +80,7 @@ export class GroqProvider implements LLMProvider {
             model: "llama-3.3-70b-versatile",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: buildUserMessage(query, chunks) },
+              { role: "user", content: buildUserMessage(query, chunks, options.format) },
             ],
             temperature: 0,
             max_tokens: 2000,
@@ -144,13 +145,13 @@ export class GroqProvider implements LLMProvider {
             "provider_fallback: Groq failed after retry, falling back to mock"
           );
           const { MockLLM } = await import("@/lib/llm/mock");
-          return new MockLLM().generate(query, chunks);
+          return new MockLLM().generate(query, chunks, options);
         }
       }
     }
 
     // Unreachable but satisfies TypeScript
     const { MockLLM } = await import("@/lib/llm/mock");
-    return new MockLLM().generate(query, chunks);
+    return new MockLLM().generate(query, chunks, options);
   }
 }

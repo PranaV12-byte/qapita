@@ -1,8 +1,21 @@
 import type { Metadata } from "next";
+import { Geist, Inter } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import { LensProvider } from "@/components/lens/LensProvider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter-local",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Q4N$P - EquityIQ",
@@ -17,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${geist.variable} ${inter.variable}`}>
       <head>
         <meta name="robots" content="noindex" />
       </head>

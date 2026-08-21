@@ -157,7 +157,11 @@ export default function ArtifactResult({
   const [emailError, setEmailError] = useState("");
   const quickShareRef = useRef<HTMLPreElement>(null);
 
-  const topicCitations = citations.filter((citation) => citation.kind !== "source" && citation.kind !== "user-node");
+  const topicCitations = citations.filter((citation) => {
+    if (citation.kind === "source" || citation.kind === "user-node" || !citation.nodeId) return false;
+    const node = getNode(citation.nodeId);
+    return Boolean(node && node.contentState !== "planned");
+  });
   const sourceCitations = citations.filter((citation) => citation.kind === "source" || citation.kind === "user-node");
 
   useEffect(() => {
@@ -193,6 +197,7 @@ export default function ArtifactResult({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, bodyMarkdown, citations }),
       });
+      if (!res.ok) throw new Error("pdf_failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
@@ -249,22 +254,20 @@ export default function ArtifactResult({
     "inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]";
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_360px]">
-      <section className="q-shell-card overflow-hidden">
-        <div className="border-b border-[var(--border)] bg-[var(--surface-2)] px-6 py-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-            Draft ready for review
-          </p>
+    <div className="v9-artifact-layout">
+      <section className="v9-artifact-document">
+        <div className="v9-artifact-header">
+          <p>Your answer is ready</p>
           <h2 className="mt-3 font-head text-4xl text-[var(--text-head)]">
             {title}
           </h2>
         </div>
-        <div className="px-6 py-6">
+        <div className="v9-artifact-body">
           <SimpleMarkdown text={bodyMarkdown} />
         </div>
       </section>
 
-      <aside className="space-y-4">
+      <aside className="v9-artifact-aside">
         {topicCitations.length > 0 && (
           <SectionCard
             title="Related topics"
@@ -318,10 +321,7 @@ export default function ArtifactResult({
           </SectionCard>
         )}
 
-        <SectionCard
-          title="Actions"
-          description="Use the draft in the format that best fits your review and delivery workflow."
-        >
+        <SectionCard title="Actions">
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleCopy}
@@ -385,9 +385,6 @@ export default function ArtifactResult({
           {quickShare}
         </pre>
 
-        <p className="px-1 text-sm leading-7 text-[var(--text-muted)]">
-          Review the draft against your internal standards before sending it to employees.
-        </p>
       </aside>
     </div>
   );
