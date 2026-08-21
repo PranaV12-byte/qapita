@@ -1,0 +1,5 @@
+[build.environment]
+  # These are non-secret config values (a numeric threshold, public URLs/strings
+  # marked NEXT_PUBLIC_, an email "from" display string, and a delivery mode
+  # flag) that Netlify's build secrets scanner was flagging as false positives.
+  SECRETS_SCAN_OMIT_KEYS = "RETRIEVAL_FALLBACK_THRESHOLD,NEXT_PUBLIC_SITE_URL,EMAIL_FROM,NEXT_PUBLIC_AUTH0_SSO_CONNECTION,EMAIL_DELIVERY_MODE"
