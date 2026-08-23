@@ -1,12 +1,16 @@
 import React from "react";
+import fs from "node:fs";
 import path from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { EquityBriefPDF } from "@/lib/pdf/template";
+import type { Citation } from "@/lib/rag/types";
 
 export type PdfSection = {
   heading?: string;
   paragraphs: string[];
 };
+
+export class PdfPageLimitError extends Error {}
 
 function cleanInline(text: string): string {
   return text
@@ -54,18 +58,74 @@ export function extractPdfSections(bodyMarkdown: string): PdfSection[] {
     .slice(0, 8);
 }
 
-export async function renderArtifactPdf(title: string, bodyMarkdown: string) {
+function sentenceLimit(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  const candidates = text.slice(0, maxChars + 1).match(/[\s\S]*[.!?](?:\s|$)/);
+  return (candidates?.[0] ?? text.slice(0, maxChars)).trim();
+}
+
+function compactSections(
+  sections: PdfSection[],
+  citations: Citation[],
+  compact: boolean
+): PdfSection[] {
+  const maxSections = compact ? 3 : 6;
+  const maxParagraphs = compact ? 2 : 5;
+  const maxChars = compact ? 420 : 760;
+  const result = sections.slice(0, maxSections).map((section) => ({
+    heading: section.heading,
+    paragraphs: section.paragraphs
+      .slice(0, maxParagraphs)
+      .map((paragraph) => sentenceLimit(paragraph, maxChars)),
+  }));
+  if (citations.length > 0) {
+    result.push({
+      heading: "Sources",
+      paragraphs: citations.slice(0, compact ? 4 : 8).map((citation) => citation.title),
+    });
+  }
+  return result;
+}
+
+function imageDataUrl(fileName: string): string {
+  const fullPath = path.join(process.cwd(), "public", "brand", fileName);
+  const data = fs.readFileSync(fullPath).toString("base64");
+  return `data:image/png;base64,${data}`;
+}
+
+function pageCount(buffer: Buffer): number {
+  return (buffer.toString("latin1").match(/\/Type\s*\/Page\b/g) ?? []).length;
+}
+
+export async function renderArtifactPdf(
+  title: string,
+  bodyMarkdown: string,
+  citations: Citation[] = []
+) {
+  if (!title.trim() || !bodyMarkdown.trim()) {
+    throw new Error("A title and body are required to create a PDF.");
+  }
   const date = new Date().toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
-  const element = React.createElement(EquityBriefPDF, {
-    title,
-    sections: extractPdfSections(bodyMarkdown),
-    date,
-    nasppLogoSrc: path.join(process.cwd(), "public", "brand", "naspp-transparent.png"),
-    qapitaLogoSrc: path.join(process.cwd(), "public", "brand", "qapita.png"),
-  });
-  return renderToBuffer(element);
+  const sourceSections = extractPdfSections(bodyMarkdown);
+  const render = async (compact: boolean) => renderToBuffer(
+    React.createElement(EquityBriefPDF, {
+      title: sentenceLimit(title.trim(), 160),
+      sections: compactSections(sourceSections, citations, compact),
+      date,
+      nasppLogoSrc: imageDataUrl("naspp-transparent.png"),
+      qapitaLogoSrc: imageDataUrl("qapita.png"),
+      compact,
+    })
+  );
+
+  const standard = await render(false);
+  if (pageCount(standard) <= 2) return standard;
+
+  const compact = await render(true);
+  if (pageCount(compact) <= 2) return compact;
+  throw new PdfPageLimitError("The document is too long to fit the two-page PDF format.");
 }

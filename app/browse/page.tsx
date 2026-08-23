@@ -2,27 +2,15 @@ import type { Metadata } from "next";
 import PortalShell from "@/components/portal/PortalShell";
 import KnowledgeCenter from "@/components/knowledge/KnowledgeCenter";
 import { loadGlossary } from "@/lib/content/glossary";
-import { articleExists } from "@/lib/content/loader";
-import { DISPLAY_PILLARS } from "@/lib/content/tree";
 
 export const metadata: Metadata = {
-  title: "Knowledge Tree - Q4N$P",
+  title: "Knowledge Tree | EquityIQ",
   description: "Browse equity compensation guidance by topic group.",
 };
 
-export default function BrowsePage() {
+export default async function BrowsePage({ searchParams }: { searchParams: Promise<{ group?: string }> }) {
   const terms = loadGlossary();
-  const pillars = DISPLAY_PILLARS.map((pillar) => ({
-    ...pillar,
-    nodes: pillar.nodes.map((node) => ({
-      ...node,
-      ready: articleExists(node.pillarSlug, node.slug),
-    })),
-    readyCount: pillar.nodes.filter((node) =>
-      articleExists(node.pillarSlug, node.slug)
-    ).length,
-  }));
-
+  const { group } = await searchParams;
   return (
     <PortalShell>
       <header className="mb-8 space-y-3">
@@ -30,10 +18,10 @@ export default function BrowsePage() {
           Knowledge Tree
         </h1>
         <p className="max-w-4xl text-lg leading-8 text-[var(--text-body)]">
-          Explore the complete map of EquityIQ topics. Published topics open directly into the Wiki; planned topics show where the knowledge base is growing next.
+          Browse equity compensation topics and open the guidance that supports your work.
         </p>
       </header>
-      <KnowledgeCenter pillars={pillars} terms={terms} />
+      <KnowledgeCenter terms={terms} initialGroupId={group} />
     </PortalShell>
   );
 }

@@ -82,6 +82,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  compactSection: {
+    borderWidth: 1,
+    borderColor: "#E5DCF6",
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: "#FFFFFF",
+  },
+  compactParagraph: {
+    fontSize: 9,
+    lineHeight: 1.45,
+    color: "#372B4F",
+    marginBottom: 4,
+  },
   footerText: {
     fontSize: 8,
     color: "#6C6283",
@@ -119,6 +132,7 @@ type Props = {
   date: string;
   nasppLogoSrc: string;
   qapitaLogoSrc: string;
+  compact?: boolean;
 };
 
 export function EquityBriefPDF({
@@ -127,6 +141,7 @@ export function EquityBriefPDF({
   date,
   nasppLogoSrc,
   qapitaLogoSrc,
+  compact = false,
 }: Props) {
   return (
     <Document>
@@ -142,19 +157,19 @@ export function EquityBriefPDF({
         </View>
         <View style={styles.content}>
           {sections.map((section, index) => (
-            <View key={index} style={styles.section} wrap={false}>
+            <View key={index} style={compact ? styles.compactSection : styles.section} wrap={false}>
               {section.heading ? (
                 <Text style={styles.sectionHeading}>{section.heading}</Text>
               ) : null}
               {section.paragraphs.map((paragraph, paragraphIndex) => (
-                <Text key={paragraphIndex} style={styles.paragraph}>
+                <Text key={paragraphIndex} style={compact ? styles.compactParagraph : styles.paragraph}>
                   {paragraph}
                 </Text>
               ))}
             </View>
           ))}
         </View>
-        <View style={styles.footer}>
+        <View style={styles.footer} fixed>
           <Text style={styles.footerText}>
             Endorsed by NASPP
           </Text>

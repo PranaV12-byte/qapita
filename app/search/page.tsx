@@ -4,7 +4,7 @@ import PortalShell from "@/components/portal/PortalShell";
 import SearchResults from "@/components/search/SearchResults";
 
 export const metadata: Metadata = {
-  title: "Search - Q4N$P",
+  title: "Search | EquityIQ",
   description: "Search library topics, articles, and glossary terms.",
   robots: "noindex",
 };

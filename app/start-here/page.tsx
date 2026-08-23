@@ -6,7 +6,7 @@ import { START_HERE_CARDS } from "@/lib/content/start-here";
 import { getNode } from "@/lib/content/tree";
 
 export const metadata: Metadata = {
-  title: "Start here — Q4N$P",
+  title: "Start here | EquityIQ",
   description: "New to equity compensation? Begin with the basics.",
 };
 
@@ -17,7 +17,7 @@ export default function StartHerePage() {
         <header className="mb-6">
           <h1 className="font-head text-heading text-3xl mb-2">Start here</h1>
           <p className="text-[var(--text-body)]">
-            New to equity compensation? These six basics explain how it works —
+            New to equity compensation? These six basics explain how it works,
             in plain language.
           </p>
           <p className="mt-2 text-xs text-[var(--accent)]">

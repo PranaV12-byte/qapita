@@ -24,7 +24,7 @@ export async function logArtifact(
 ): Promise<{ logged: boolean }> {
   try {
     const entry = JSON.stringify({ ts: new Date().toISOString(), ...data });
-    if (process.env.VERCEL) {
+    if (process.env.VERCEL || process.env.NETLIFY) {
       console.log(entry);
       return { logged: true };
     }

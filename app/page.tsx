@@ -15,10 +15,15 @@ export default function HomePage() {
       </form>
     </section>
     <section className="v9-home-next">
-      <div><p className="v9-eyebrow">Start here</p><h2>Get the answer you need, then keep moving.</h2></div>
       <div className="v9-home-choices">
-        <Link href="/generate" className="v9-choice-card"><span className="v9-choice-icon">↗</span><div><h3>Ask a question</h3><p>Tell us what you&apos;re dealing with. Get an answer you can send to someone.</p><strong>ISO vs NSO · W-2 cost basis · Acquisition</strong></div></Link>
-        <Link href="/browse" className="v9-choice-card"><span className="v9-choice-icon">⌘</span><div><h3>Learn a topic</h3><p>Award types, tax rules, compliance, and more. Browse and read at your pace.</p><strong>ISOs · RSUs & RSAs · Multi-state taxation · ESPPs</strong></div></Link>
+        <Link href="/generate" className="v9-choice-card">
+          <span className="v9-choice-icon" aria-hidden="true">↗</span>
+          <div><h3>Ask a question</h3><p>Tell us what you&apos;re dealing with. Get an answer you can send to someone.</p><ul><li>ISO vs NSO for a board comparison</li><li>Fixing a W-2 cost basis error</li><li>Handling equity in an acquisition</li></ul></div>
+        </Link>
+        <Link href="/browse" className="v9-choice-card">
+          <span className="v9-choice-icon is-learning" aria-hidden="true">⌘</span>
+          <div><h3>Learn a topic</h3><p>Award types, tax rules, compliance, and more. Browse and read at your pace.</p><ul className="v9-topic-examples"><li>Stock options: ISOs</li><li>RSUs &amp; RSAs</li><li>Multi-state taxation</li><li>ESPPs</li></ul></div>
+        </Link>
       </div>
     </section>
   </div>;

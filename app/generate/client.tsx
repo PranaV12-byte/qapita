@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ArtifactResult from "@/components/ArtifactResult";
 import { getNode } from "@/lib/content/tree";
 import { isSubmitDisabled } from "@/lib/generate-utils";
@@ -38,6 +38,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
   const [lastQuery, setLastQuery] = useState("");
   const [storageReady, setStorageReady] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  const autoSubmitted = useRef(false);
   const nodeTitle = nodeId ? getNode(nodeId)?.title : undefined;
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
     if (turns.length) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [turns.length]);
 
-  const doSubmit = async (submitQuery: string) => {
+  const doSubmit = useCallback(async (submitQuery: string) => {
     if (!submitQuery.trim()) {
       setEmptyHint(true);
       return;
@@ -85,7 +86,13 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
     } finally {
       setLoading(false);
     }
-  };
+  }, [format, nodeId]);
+
+  useEffect(() => {
+    if (!storageReady || !initialQuery.trim() || autoSubmitted.current) return;
+    autoSubmitted.current = true;
+    void doSubmit(initialQuery);
+  }, [doSubmit, initialQuery, storageReady]);
 
   const reset = () => {
     setTurns([]);

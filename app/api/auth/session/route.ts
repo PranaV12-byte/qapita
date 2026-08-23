@@ -1,14 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth0, isAuth0Configured } from "@/lib/auth0";
 import { maskEmail } from "@/lib/email/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  // Auth0's middleware refreshes rolling session cookies. It runs here in the
-  // Node.js runtime rather than in the Edge middleware.
-  const authResponse = auth0 ? await auth0.middleware(request) : null;
+export async function GET() {
   const session = auth0 ? await auth0.getSession() : null;
   const user = session?.user
     ? {
@@ -26,10 +23,6 @@ export async function GET(request: NextRequest) {
     emailMode,
     testRecipientMasked: testRecipient ? maskEmail(testRecipient) : undefined,
   });
-
-  for (const cookie of authResponse?.cookies.getAll() ?? []) {
-    response.cookies.set(cookie);
-  }
 
   return response;
 }

@@ -18,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Q4N$P - EquityIQ",
+  title: "EquityIQ",
   description:
     "US equity compensation knowledge and drafting workspace for stock plan professionals.",
   robots: "noindex",

@@ -35,6 +35,11 @@ export const RERANK_POOL_SIZE = num(process.env.RERANK_POOL_SIZE, 40);
 // box. Set RERANK_ENABLED=true once ms-marco-MiniLM-L-6-v2 is available locally.
 export const RERANK_ENABLED = bool(process.env.RERANK_ENABLED, false);
 export const EMBEDDING_DIM = num(process.env.EMBEDDING_DIM, 384);
+/**
+ * The deploy-safe default does not require a model download. Set
+ * EMBEDDER_MODE=transformers only in an environment with the model weights.
+ */
+export const EMBEDDER_MODE = process.env.EMBEDDER_MODE ?? "hash";
 // Allow transformers.js to fetch models from the HF hub. Default false so an
 // offline machine fails fast against the local cache instead of hanging on a
 // blocked socket. Set true on a networked machine to download bge/rerankers once.
@@ -64,7 +69,10 @@ export const GENERAL_NODE_TITLE = "General equity compensation";
 //   EMBED_QUERY_PREFIX="Represent this sentence for searching relevant passages: "
 //   RERANK_ENABLED=true
 export const EMBEDDER_MODEL =
-  process.env.EMBEDDER_MODEL ?? "Xenova/all-MiniLM-L6-v2";
+  process.env.EMBEDDER_MODEL ??
+  (EMBEDDER_MODE === "transformers"
+    ? "Xenova/all-MiniLM-L6-v2"
+    : "equityiq-deterministic-hash-v1");
 export const RERANKER_MODEL =
   process.env.RERANKER_MODEL ?? "Xenova/ms-marco-MiniLM-L-6-v2";
 /** Query instruction prefix (asymmetric models only). Empty for MiniLM. */
@@ -93,7 +101,7 @@ export const NEIGHBOR_LIMIT = num(process.env.NEIGHBOR_LIMIT, 4);
 /** Minimum cosine for a neighbour candidate to be included. */
 export const NEIGHBOR_MIN_COSINE = num(process.env.NEIGHBOR_MIN_COSINE, 0.25);
 /** Per-file upload cap (megabytes) before extraction is attempted. */
-export const BRAIN_MAX_FILE_MB = num(process.env.BRAIN_MAX_FILE_MB, 15);
+export const BRAIN_MAX_FILE_MB = num(process.env.BRAIN_MAX_FILE_MB, 4);
 /** Per-file extracted-text cap (megabytes) after extraction. */
 export const BRAIN_MAX_TEXT_MB = num(process.env.BRAIN_MAX_TEXT_MB, 1.5);
 /** Soft cap on total passages per brain; surfaced in the UI, never silent. */

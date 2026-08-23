@@ -200,7 +200,13 @@ export default function ArtifactResult({
       if (!res.ok) throw new Error("pdf_failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "equityiq-draft.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
     } finally {
       setPdfLoading(false);
     }
@@ -233,7 +239,9 @@ export default function ArtifactResult({
     } catch (error) {
       const reason = error instanceof Error ? error.message : "email_delivery_failed";
       setEmailError(
-        reason === "email_not_configured"
+        reason === "recipient_required"
+          ? "Enter a recipient email address before sending."
+          : reason === "email_not_configured"
           ? "Email is not configured yet. Add the Resend values and try again."
           : "The email could not be sent. Check the connection and try again."
       );

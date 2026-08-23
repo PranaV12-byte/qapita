@@ -4,6 +4,7 @@ import { brainStore } from "@/lib/brain/store";
 import { loadGraph } from "@/lib/brain/weave";
 import { loadLintReport, runLint } from "@/lib/brain/lint";
 import { LINT_APPEND_THRESHOLD, LINT_STALE_DAYS } from "@/lib/rag/config";
+import { erasePersistedBrain, hydrateBrain } from "@/lib/brain/persistence";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest) {
   if (!brainId) {
     return NextResponse.json({ error: "missing_brain_id" }, { status: 400 });
   }
+  await hydrateBrain(brainId);
 
   const manifest = brainStore.loadManifest(brainId);
   if (!manifest) {
@@ -76,5 +78,6 @@ export async function DELETE(req: NextRequest) {
   }
 
   brainStore.eraseBrain(brainId);
+  await erasePersistedBrain(brainId);
   return NextResponse.json({ ok: true, erased: brainId });
 }

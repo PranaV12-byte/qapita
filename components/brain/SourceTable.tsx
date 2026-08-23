@@ -4,7 +4,7 @@ import { getNode } from "@/lib/content/tree";
 import type { BrainSourceMeta } from "@/lib/brain/store";
 
 function topicLabels(nodeIds: string[]): string {
-  if (nodeIds.length === 0) return "—";
+  if (nodeIds.length === 0) return "None";
   return nodeIds
     .map((id) => getNode(id)?.title ?? (id.startsWith("u-") ? "new topic" : id))
     .join(", ");
@@ -22,7 +22,7 @@ export default function SourceTable({
   if (sources.length === 0) {
     return (
       <p className="text-sm text-[var(--text-muted)]">
-        No sources yet — the graph above is the shared foundation everyone starts with. Add a file to make it yours.
+        No sources yet. Add a file to connect it to your workspace.
       </p>
     );
   }

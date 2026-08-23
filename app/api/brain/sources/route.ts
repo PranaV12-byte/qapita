@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrainId } from "@/lib/brain/id";
 import { brainStore } from "@/lib/brain/store";
-import { startIngestJob } from "@/lib/brain/jobs";
+import { runIngestJob, startIngestJob } from "@/lib/brain/jobs";
 import { BRAIN_BATCH_LIMIT, BRAIN_MAX_PASSAGES } from "@/lib/rag/config";
+import { hydrateBrain, persistBrain, brainStorageMode } from "@/lib/brain/persistence";
+import { persistJob } from "@/lib/brain/job-persistence";
 
 export const runtime = "nodejs";
 
@@ -17,6 +19,7 @@ export async function POST(req: NextRequest) {
   if (!brainId) {
     return NextResponse.json({ error: "missing_brain_id" }, { status: 400 });
   }
+  await hydrateBrain(brainId);
 
   const formData = await req.formData().catch(() => null);
   if (!formData) {
@@ -36,6 +39,13 @@ export async function POST(req: NextRequest) {
       { status: 413 }
     );
   }
+  const tooLarge = files.find((file) => file.size > 4 * 1024 * 1024);
+  if (tooLarge) {
+    return NextResponse.json(
+      { error: "file_too_large", message: `${tooLarge.name} exceeds the 4 MB upload limit.` },
+      { status: 413 }
+    );
+  }
 
   const manifest = brainStore.loadManifest(brainId);
   const currentPassages = manifest?.counts.passages ?? 0;
@@ -52,7 +62,13 @@ export async function POST(req: NextRequest) {
   const jobs = await Promise.all(
     files.map(async (file) => {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const jobId = startIngestJob(brainId, file.name, buffer);
+      const jobId = brainStorageMode === "netlify-blobs"
+        ? (await runIngestJob(brainId, file.name, buffer)).jobId
+        : startIngestJob(brainId, file.name, buffer);
+      if (brainStorageMode === "netlify-blobs") {
+        await persistBrain(brainId);
+        await persistJob(jobId);
+      }
       return { jobId, fileName: file.name };
     })
   );

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrainId } from "@/lib/brain/id";
 import { buildNotePage } from "@/lib/brain/wiki";
+import { hydrateBrain } from "@/lib/brain/persistence";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,7 @@ export const runtime = "nodejs";
  *  yet; user content requires the caller's brain. 404 for an unknown id. */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const brainId = getBrainId(req.headers);
+  await hydrateBrain(brainId);
   const { id } = await params;
 
   const page = await buildNotePage(brainId, decodeURIComponent(id));

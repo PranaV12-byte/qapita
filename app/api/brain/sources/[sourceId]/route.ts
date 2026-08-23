@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBrainId } from "@/lib/brain/id";
 import { brainStore } from "@/lib/brain/store";
 import { removeSource } from "@/lib/brain/weave";
+import { hydrateBrain, persistBrain } from "@/lib/brain/persistence";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,7 @@ export async function DELETE(
   if (!brainId) {
     return NextResponse.json({ error: "missing_brain_id" }, { status: 400 });
   }
+  await hydrateBrain(brainId);
   const { sourceId } = await params;
 
   const manifest = brainStore.loadManifest(brainId);
@@ -23,5 +25,6 @@ export async function DELETE(
   }
 
   const result = await removeSource(brainId, sourceId);
+  await persistBrain(brainId);
   return NextResponse.json({ ok: true, ...result });
 }

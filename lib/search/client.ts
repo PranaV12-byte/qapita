@@ -4,7 +4,7 @@ import {
   SEARCH_STORE_FIELDS,
   type SearchDoc,
 } from "./types";
-import { ALL_NODES, getPillar } from "@/lib/content/tree";
+import { V9_TAXONOMY, v9SearchText } from "@/lib/content/v9-taxonomy";
 
 export type SearchHit = SearchResult & {
   title: string;
@@ -16,17 +16,17 @@ export type SearchHit = SearchResult & {
 
 let docsPromise: Promise<SearchDoc[]> | null = null;
 
-const plannedTopicDocs: SearchDoc[] = ALL_NODES
-  .filter((node) => node.contentState === "planned")
-  .map((node) => ({
-    id: `t-${node.id}`,
+const plannedTopicDocs: SearchDoc[] = V9_TAXONOMY.flatMap((group) =>
+  group.subtopics.map((topic) => ({
+    id: `t-${topic.id}`,
     type: "topic" as const,
-    title: node.title,
-    path: `/p/${node.pillarSlug}`,
-    pillar: getPillar(node.pillarSlug)?.title,
-    summary: "A planned library topic. Guidance is being prepared.",
-    text: `${node.title} ${getPillar(node.pillarSlug)?.title ?? ""}`,
-  }));
+    title: topic.name,
+    path: `/browse?group=${encodeURIComponent(group.id)}`,
+    pillar: group.name,
+    summary: group.comingSoon ? "Coming soon." : "Browse this knowledge topic.",
+    text: v9SearchText(topic, group),
+  }))
+);
 
 /** Fetch the prebuilt search index once (cached across calls). */
 export function loadSearchDocs(): Promise<SearchDoc[]> {

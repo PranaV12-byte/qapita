@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { confirmJob, getJob, serializeJob } from "@/lib/brain/jobs";
+import { hydrateJob, persistJob } from "@/lib/brain/job-persistence";
+import { hydrateBrain, persistBrain } from "@/lib/brain/persistence";
 
 export const runtime = "nodejs";
 
@@ -20,7 +22,7 @@ export async function POST(
     );
   }
 
-  const job = getJob(jobId);
+  const job = await hydrateJob(jobId) ?? getJob(jobId);
   if (!job) {
     return NextResponse.json({ error: "job_not_found" }, { status: 404 });
   }
@@ -32,7 +34,10 @@ export async function POST(
   }
 
   try {
+    await hydrateBrain(job.brainId);
     await confirmJob(jobId, action, typeof body.nodeId === "string" ? body.nodeId : undefined);
+    await persistBrain(job.brainId);
+    await persistJob(jobId);
   } catch (err) {
     return NextResponse.json(
       { error: "confirm_failed", message: err instanceof Error ? err.message : String(err) },

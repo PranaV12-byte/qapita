@@ -94,6 +94,10 @@ export type JobView = Omit<JobRecord, "pending"> & {
 
 const jobs = new Map<string, JobRecord>();
 
+export function restoreJob(job: JobRecord): void {
+  jobs.set(job.jobId, job);
+}
+
 function touch(job: JobRecord): void {
   job.updatedAt = new Date().toISOString();
 }
@@ -241,9 +245,20 @@ async function runIngestPipeline(
  *  responds without waiting for extraction/embedding, and the client polls
  *  getJob()/serializeJob() for progress. */
 export function startIngestJob(brainId: string, fileName: string, buffer: Buffer): string {
+  const job = createJob(brainId, fileName);
+  runIngestPipeline(job.jobId, brainId, fileName, buffer).catch((err) => {
+    updateJob(job.jobId, {
+      stage: "blocked",
+      error: err instanceof Error ? err.message : String(err),
+    });
+  });
+  return job.jobId;
+}
+
+function createJob(brainId: string, fileName: string): JobRecord {
   const jobId = randomUUID();
   const now = new Date().toISOString();
-  jobs.set(jobId, {
+  const job: JobRecord = {
     jobId,
     brainId,
     fileName,
@@ -251,16 +266,23 @@ export function startIngestJob(brainId: string, fileName: string, buffer: Buffer
     progress: null,
     createdAt: now,
     updatedAt: now,
-  });
+  };
+  jobs.set(jobId, job);
+  return job;
+}
 
-  runIngestPipeline(jobId, brainId, fileName, buffer).catch((err) => {
-    updateJob(jobId, {
+/** Netlify path: finish a capped upload in this invocation, then persist its state. */
+export async function runIngestJob(brainId: string, fileName: string, buffer: Buffer): Promise<JobRecord> {
+  const job = createJob(brainId, fileName);
+  try {
+    await runIngestPipeline(job.jobId, brainId, fileName, buffer);
+  } catch (err) {
+    updateJob(job.jobId, {
       stage: "blocked",
       error: err instanceof Error ? err.message : String(err),
     });
-  });
-
-  return jobId;
+  }
+  return getJob(job.jobId)!;
 }
 
 /** Resolves a "needs-review" job: `action: "add"` weaves it in (optionally

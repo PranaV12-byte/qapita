@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth0, isAuth0Configured } from "./lib/auth0";
 import { BRAIN_COOKIE, BRAIN_HEADER, isValidBrainId } from "./lib/brain/id";
 
 /**
@@ -21,7 +22,31 @@ export async function middleware(request: NextRequest) {
   const forwardedHeaders = new Headers(request.headers);
   forwardedHeaders.set(BRAIN_HEADER, brainId);
 
+  const authResponse = isAuth0Configured && auth0
+    ? await auth0.middleware(request)
+    : null;
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth/");
+
+  // Auth0 owns all /auth/* redirects and callbacks. Its response must stay
+  // intact, but the anonymous Brain identity still needs to survive the flow.
+  if (authResponse && (isAuthRoute || authResponse.headers.has("location"))) {
+    if (!existing) {
+      authResponse.cookies.set(BRAIN_COOKIE, brainId, {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: ONE_YEAR_SECONDS,
+        path: "/",
+      });
+    }
+    return authResponse;
+  }
+
   const response = NextResponse.next({ request: { headers: forwardedHeaders } });
+
+  // Keep Auth0's rolling-session cookies on ordinary application requests.
+  for (const cookie of authResponse?.cookies.getAll() ?? []) {
+    response.cookies.set(cookie);
+  }
 
   if (!existing) {
     response.cookies.set(BRAIN_COOKIE, brainId, {

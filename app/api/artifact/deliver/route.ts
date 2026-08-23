@@ -41,18 +41,22 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.RESEND_API_KEY;
   const mode = process.env.EMAIL_DELIVERY_MODE === "production" ? "production" : "test";
   const recipient = mode === "test" ? process.env.RESEND_TEST_RECIPIENT : parsed.data.email;
-  const from = process.env.EMAIL_FROM || "EquityIQ <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM;
 
-  if (!apiKey || !recipient) {
+  if (!recipient && mode === "production") {
+    return NextResponse.json({ error: "recipient_required" }, { status: 400 });
+  }
+  if (!apiKey || !recipient || !from) {
     return NextResponse.json({ error: "email_not_configured" }, { status: 503 });
   }
 
   try {
     const [pdf, message] = await Promise.all([
-      renderArtifactPdf(parsed.data.title, parsed.data.bodyMarkdown),
+      renderArtifactPdf(parsed.data.title, parsed.data.bodyMarkdown, parsed.data.citations),
       Promise.resolve(buildArtifactEmail(parsed.data.title, parsed.data.bodyMarkdown)),
     ]);
     const resend = new Resend(apiKey);
+    const idempotencyKey = `${session.user.sub ?? session.user.email ?? "user"}:${parsed.data.artifactId}:${recipient}`;
     const result = await resend.emails.send({
       from,
       to: [recipient],
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
           content: pdf,
         },
       ],
-    });
+    }, { idempotencyKey });
 
     if (result.error || !result.data?.id) {
       console.error("Resend delivery failed", result.error);

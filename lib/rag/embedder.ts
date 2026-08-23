@@ -5,6 +5,7 @@ import type { Embedder } from "./types";
 import {
   EMBEDDER_MODEL,
   EMBEDDING_DIM,
+  EMBEDDER_MODE,
   QUERY_PREFIX,
   ALLOW_REMOTE_MODELS,
 } from "./config";
@@ -72,11 +73,70 @@ export class TransformersEmbedder implements Embedder {
   }
 }
 
+/**
+ * Stable, dependency-free hashing embedder used by Netlify builds and runtime.
+ * It intentionally favors predictable lexical and phrase recall over a remote
+ * model download. The identical implementation is used while building and
+ * querying the foundation index.
+ */
+export class DeterministicHashEmbedder implements Embedder {
+  readonly id = "equityiq-deterministic-hash-v1";
+  readonly dim = EMBEDDING_DIM;
+
+  private hash(value: string): number {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  private vectorize(text: string): Float32Array {
+    const vector = new Float32Array(this.dim);
+    const tokens = text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+    const features = [...tokens];
+    for (let index = 0; index + 1 < tokens.length; index += 1) {
+      features.push(`${tokens[index]}_${tokens[index + 1]}`);
+    }
+
+    for (const feature of features) {
+      const hash = this.hash(feature);
+      const slot = hash % this.dim;
+      vector[slot] += (hash & 0x80000000) === 0 ? 1 : -1;
+    }
+
+    let norm = 0;
+    for (const value of vector) norm += value * value;
+    if (norm > 0) {
+      const scale = 1 / Math.sqrt(norm);
+      for (let index = 0; index < vector.length; index += 1) vector[index] *= scale;
+    }
+    return vector;
+  }
+
+  async embedQuery(text: string): Promise<Float32Array> {
+    return this.vectorize(text);
+  }
+
+  async embedPassage(text: string): Promise<Float32Array> {
+    return this.vectorize(text);
+  }
+
+  async embedPassages(texts: string[]): Promise<Float32Array[]> {
+    return texts.map((text) => this.vectorize(text));
+  }
+}
+
 let _embedder: Embedder | null = null;
 
 /** Process-wide embedder singleton (defers the model load to first use). */
 export function getEmbedder(): Embedder {
-  if (!_embedder) _embedder = new TransformersEmbedder();
+  if (!_embedder) {
+    _embedder = EMBEDDER_MODE === "transformers"
+      ? new TransformersEmbedder()
+      : new DeterministicHashEmbedder();
+  }
   return _embedder;
 }
 

@@ -28,7 +28,7 @@ export async function generateMetadata({
   const { pillar, slug } = await params;
   const article = await loadArticle(pillar, slug);
   return {
-    title: article ? `${article.frontmatter.title} - Q4N$P` : "Not found - Q4N$P",
+    title: article ? `${article.frontmatter.title} | EquityIQ` : "Not found | EquityIQ",
     description: article?.frontmatter.summaryPlain,
     robots: "noindex",
   };

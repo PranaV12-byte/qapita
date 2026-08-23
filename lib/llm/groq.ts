@@ -11,6 +11,7 @@ import {
   distinctUserSources,
 } from "@/lib/llm/mock";
 import { FALLBACK_THRESHOLD } from "@/lib/rag/config";
+import { hasGroundedEvidence } from "@/lib/rag/relevance";
 import { z } from "zod";
 
 // nodeId/sourceId both optional (mirrors Citation) — a user-tier citation
@@ -49,7 +50,10 @@ export class GroqProvider implements LLMProvider {
     // off-topic retrieval set and hope it polices itself into refusing —
     // retrieval quality, not model behavior, decides whether a question is
     // answerable. Saves an API call too.
-    if (chunks.length === 0 || bestCosine(chunks) < FALLBACK_THRESHOLD) {
+    if (
+      chunks.length === 0 ||
+      (bestCosine(chunks) < FALLBACK_THRESHOLD && !hasGroundedEvidence(query, chunks))
+    ) {
       return gracefulUnknown(query);
     }
 
@@ -68,6 +72,8 @@ export class GroqProvider implements LLMProvider {
     );
 
     const callGroq = async (): Promise<ArtifactResult> => {
+      const timeout = new AbortController();
+      const timer = setTimeout(() => timeout.abort(), 20_000);
       const response = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
         {
@@ -77,7 +83,7 @@ export class GroqProvider implements LLMProvider {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model: process.env.GROQ_MODEL ?? "openai/gpt-oss-120b",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: buildUserMessage(query, chunks, options.format) },
@@ -86,8 +92,9 @@ export class GroqProvider implements LLMProvider {
             max_tokens: 2000,
             response_format: { type: "json_object" },
           }),
+          signal: timeout.signal,
         }
-      );
+      ).finally(() => clearTimeout(timer));
 
       if (!response.ok) {
         throw new Error(`Groq API error: ${response.status}`);

@@ -8,7 +8,9 @@ import { isValidBrainId } from "./id";
 // writes, per-brain serialization, and a generic loaded-state cache. Deliberately
 // has NO retrieval logic — later phases (weave, retrieval, lint) build on this.
 
-const DEFAULT_BRAINS_DIR = path.join(process.cwd(), "data", "brains");
+const DEFAULT_BRAINS_DIR = process.env.NETLIFY
+  ? path.join(process.env.TMPDIR ?? "/tmp", "equityiq-brains")
+  : path.join(process.cwd(), "data", "brains");
 
 export { isValidBrainId };
 

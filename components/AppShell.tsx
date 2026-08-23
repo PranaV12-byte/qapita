@@ -1,7 +1,5 @@
 "use client";
 
-/* eslint-disable @next/next/no-html-link-for-pages -- Auth0 endpoints must use full browser navigation. */
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
@@ -52,6 +50,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { user, configured, loading } = useAuth();
   const [expanded, setExpanded] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [returnTo, setReturnTo] = useState(pathname);
   const [signInOpen, setSignInOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -70,6 +69,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
+  useEffect(() => {
+    setReturnTo(`${window.location.pathname}${window.location.search}`);
+  }, [pathname]);
   useEffect(() => window.localStorage.setItem("equityiq.sidebar.expanded", String(expanded)), [expanded]);
   useEffect(() => { setMoreOpen(false); setAccountOpen(false); }, [pathname]);
   useEffect(() => {
@@ -112,11 +114,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
     <div className="v9-app" style={{ "--rail-width": `${railWidth}px` } as CSSProperties}>
       <header className="v9-topbar">
-        <BrandCluster className="v9-brand-cluster" qapitaClassName="v9-qapita" nasppClassName="v9-naspp" separatorClassName="v9-brand-divider" />
+        <BrandCluster variant="light" className="v9-brand-cluster" qapitaClassName="v9-qapita" nasppClassName="v9-naspp" separatorClassName="v9-brand-divider" />
         <button type="button" className="v9-search-trigger" onClick={() => setSearchOpen(true)} aria-label={searchLabel}><Icon name="search" /><span>{searchLabel}</span><kbd>Ctrl K</kbd></button>
       </header>
       <main className="v9-main">{children}</main>
-      <footer className="v9-footer"><span>Endorsed by NASPP</span><BrandCluster variant="light" className="v9-footer-brand" qapitaClassName="h-[18px] w-auto" nasppClassName="h-[18px] w-auto" separatorClassName="mx-3 h-[18px] w-px bg-gray-300" /></footer>
+      <footer className="v9-footer"><span>Endorsed by NASPP</span><BrandCluster variant="light" className="v9-footer-brand" qapitaClassName="v9-footer-qapita" nasppClassName="v9-footer-naspp" separatorClassName="v9-footer-divider" /></footer>
     </div>
 
     <nav className="v9-bottom-nav" aria-label="Mobile navigation">
@@ -126,7 +128,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
     {moreOpen && <div className="v9-more-layer"><button type="button" className="v9-more-backdrop" aria-label="Close menu" onClick={() => setMoreOpen(false)} /><div className="v9-more-sheet"><div className="v9-sheet-handle" />{links.filter((link) => ["Wiki", "Archive", "Learn"].includes(link.label)).map((link) => link.disabled ? <button key={link.label} disabled className="v9-more-item is-disabled"><Icon name={link.icon} />{link.label}<span>Coming soon</span></button> : <Link key={link.href} href={link.href} className="v9-more-item"><Icon name={link.icon} />{link.label}</Link>)}<button type="button" onClick={() => user ? window.location.assign("/auth/logout") : openSignIn()} className="v9-more-item"><span className="v9-account-avatar">{user ? initials : "→"}</span>{user ? "Sign out" : "Sign in"}</button></div></div>}
     <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-    <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} configured={configured} returnTo={pathname} restoreFocusRef={signInRef} />
+    <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} configured={configured} returnTo={returnTo} restoreFocusRef={signInRef} />
   </>;
 }
 

@@ -13,8 +13,8 @@ type WikiArticle = {
   searchText: string;
 };
 
-export default function WikiIndex({ articles }: { articles: WikiArticle[] }) {
-  const [query, setQuery] = useState("");
+export default function WikiIndex({ articles, initialQuery = "" }: { articles: WikiArticle[]; initialQuery?: string }) {
+  const [query, setQuery] = useState(initialQuery);
   const filtered = articles.filter((article) => {
     const needle = query.trim().toLowerCase();
     return !needle || `${article.title} ${article.summary} ${article.pillarTitle} ${article.searchText}`.toLowerCase().includes(needle);

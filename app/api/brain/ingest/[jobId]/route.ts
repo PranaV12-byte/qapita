@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getJob, serializeJob } from "@/lib/brain/jobs";
+import { hydrateJob } from "@/lib/brain/job-persistence";
 
 export const runtime = "nodejs";
 
@@ -9,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ jobId: string }> }
 ) {
   const { jobId } = await params;
-  const job = getJob(jobId);
+  const job = await hydrateJob(jobId) ?? getJob(jobId);
   if (!job) {
     return NextResponse.json({ error: "job_not_found" }, { status: 404 });
   }

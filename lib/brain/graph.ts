@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { PILLARS } from "../content/tree";
+import { V9_TAXONOMY, toV9TopicId } from "../content/v9-taxonomy";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "../rag/config";
 import { brainStore, type BrainStore, type BrainAnswer } from "./store";
 import { loadGraph } from "./weave";
@@ -100,22 +100,22 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
   const angleOf = new Map<string, number>();
 
   // ── Foundation: taxonomy pillars on a ring, topics fanned around each ──
-  PILLARS.forEach((pillar, pi) => {
-    const pillarAngle = -90 + (360 / PILLARS.length) * pi;
-    angleOf.set(`pillar:${pillar.slug}`, pillarAngle);
+  V9_TAXONOMY.forEach((pillar, pi) => {
+    const pillarAngle = -90 + (360 / V9_TAXONOMY.length) * pi;
+    angleOf.set(`pillar:${pillar.id}`, pillarAngle);
     const pp = polar(R_PILLAR, pillarAngle);
     nodes.push({
-      id: `pillar:${pillar.slug}`,
+      id: `pillar:${pillar.id}`,
       kind: "pillar",
-      label: pillar.title,
+      label: pillar.name,
       x: pp.x,
       y: pp.y,
       r: 26,
-      pillarSlug: pillar.slug,
+      pillarSlug: pillar.id,
     });
 
-    const k = pillar.nodes.length;
-    pillar.nodes.forEach((node, ni) => {
+    const k = pillar.subtopics.length;
+    pillar.subtopics.forEach((node, ni) => {
       const spread = k > 1 ? (ni / (k - 1) - 0.5) * TOPIC_FAN_DEG : 0;
       const a = pillarAngle + spread;
       angleOf.set(node.id, a);
@@ -123,14 +123,14 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
       nodes.push({
         id: node.id,
         kind: "topic",
-        label: node.title,
+        label: node.name,
         x: tp.x,
         y: tp.y,
         r: 14,
-        pillarSlug: pillar.slug,
+        pillarSlug: pillar.id,
         feedingSourceIds: [],
       });
-      edges.push({ from: `pillar:${pillar.slug}`, to: node.id, kind: "tree" });
+      edges.push({ from: `pillar:${pillar.id}`, to: node.id, kind: "tree" });
     });
   });
 
@@ -151,11 +151,13 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
   const nodeIds = new Set(nodes.map((n) => n.id));
   const seenRelated = new Set<string>();
   for (const { a, b } of opts.relatedTreeEdges ?? []) {
-    if (!nodeIds.has(a) || !nodeIds.has(b) || a === b) continue;
-    const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+    const mappedA = toV9TopicId(a) ?? a;
+    const mappedB = toV9TopicId(b) ?? b;
+    if (!nodeIds.has(mappedA) || !nodeIds.has(mappedB) || mappedA === mappedB) continue;
+    const key = mappedA < mappedB ? `${mappedA}|${mappedB}` : `${mappedB}|${mappedA}`;
     if (seenRelated.has(key)) continue;
     seenRelated.add(key);
-    edges.push({ from: a, to: b, kind: "related" });
+    edges.push({ from: mappedA, to: mappedB, kind: "related" });
   }
 
   // ── Brain overlay ──
@@ -191,7 +193,7 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
 
     // attach summaries + backlink counts to any foundation node the brain touched
     for (const [nodeId, summary] of Object.entries(graph.nodeSummaries)) {
-      const n = nodeById.get(nodeId);
+      const n = nodeById.get(toV9TopicId(nodeId) ?? nodeId);
       if (n && n.kind !== "user-node") {
         n.summary = summary;
         n.citedByAnswers = answerCiteCount((c) => c.nodeId === nodeId);
@@ -201,9 +203,10 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
     // sources → satellites feeding their nodes (weave edges)
     const perSourceNodes = new Map<string, string[]>();
     for (const edge of graph.edges) {
+      const mappedNodeId = toV9TopicId(edge.nodeId) ?? edge.nodeId;
       if (!perSourceNodes.has(edge.sourceId)) perSourceNodes.set(edge.sourceId, []);
-      perSourceNodes.get(edge.sourceId)!.push(edge.nodeId);
-      const target = nodeById.get(edge.nodeId);
+      perSourceNodes.get(edge.sourceId)!.push(mappedNodeId);
+      const target = nodeById.get(mappedNodeId);
       if (target && target.feedingSourceIds) target.feedingSourceIds.push(edge.sourceId);
     }
 
@@ -233,8 +236,10 @@ export function composeGraphModel(brainId: string | null, opts: ComposeOpts = {}
 
     // crossLinks → related edges between nodes the user's content connected
     for (const link of graph.crossLinks) {
-      if (nodeById.has(link.a) && nodeById.has(link.b)) {
-        edges.push({ from: link.a, to: link.b, kind: "related" });
+      const mappedA = toV9TopicId(link.a) ?? link.a;
+      const mappedB = toV9TopicId(link.b) ?? link.b;
+      if (nodeById.has(mappedA) && nodeById.has(mappedB)) {
+        edges.push({ from: mappedA, to: mappedB, kind: "related" });
       }
     }
   }

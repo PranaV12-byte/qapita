@@ -7,11 +7,24 @@ import { getBrainId } from "@/lib/brain/id";
 import { brainStore } from "@/lib/brain/store";
 import { retrieveForBrain } from "@/lib/brain/retrieval";
 import type { ArtifactFormat } from "@/lib/llm/types";
+import { z } from "zod";
+import { primaryLegacyTopicId, toV9TopicId } from "@/lib/content/v9-taxonomy";
 
 export const runtime = "nodejs";
 
+const artifactRequestSchema = z.object({
+  query: z.string().trim().min(1).max(4_000).optional(),
+  scenarioId: z.string().max(100).optional(),
+  nodeId: z.string().max(200).optional(),
+  format: z.enum(["reference", "pdf", "email", "comparison"]).optional(),
+});
+
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({})) as {
+  const parsedBody = artifactRequestSchema.safeParse(await req.json().catch(() => null));
+  if (!parsedBody.success) {
+    return NextResponse.json({ error: "invalid_artifact_request" }, { status: 400 });
+  }
+  const body = parsedBody.data as {
     query?: string;
     scenarioId?: string;
     nodeId?: string;
@@ -27,6 +40,8 @@ export async function POST(req: NextRequest) {
   let query = rawQuery ?? "";
   let scenario: { id: string; label: string } | null = null;
   let boostNodeId = nodeId;
+  const v9TopicId = toV9TopicId(nodeId);
+  if (v9TopicId) boostNodeId = primaryLegacyTopicId(v9TopicId) ?? nodeId;
 
   if (scenarioId) {
     const found = SCENARIOS.find((s) => s.id === scenarioId);
@@ -42,9 +57,22 @@ export async function POST(req: NextRequest) {
   // Brain-aware: retrieve against the caller's wiki (foundation ⊕ their delta).
   // No brain / an empty brain → foundation-only, byte-identical to before.
   const brainId = getBrainId(req.headers);
-  const retrieval = await retrieveForBrain(query, brainId, { nodeId: boostNodeId });
-  const provider = getLLMProvider();
-  const result = await provider.generate(query, retrieval.chunks, { format });
+  let retrieval;
+  try {
+    retrieval = await retrieveForBrain(query, brainId, { nodeId: boostNodeId });
+  } catch (error) {
+    console.error("Artifact retrieval failed", error);
+    return NextResponse.json({ error: "retrieval_unavailable" }, { status: 503 });
+  }
+
+  let result;
+  try {
+    const provider = getLLMProvider();
+    result = await provider.generate(query, retrieval.chunks, { format });
+  } catch (error) {
+    console.error("Artifact generation failed", error);
+    return NextResponse.json({ error: "generation_unavailable" }, { status: 503 });
+  }
 
   const mode = process.env.LLM_PROVIDER ?? "mock";
   const matchedNodeIds = [

@@ -2,6 +2,7 @@ import type { ArtifactResult, GenerateOptions, LLMProvider } from "@/lib/llm/typ
 import type { RetrievalChunk, Citation, Embedder } from "@/lib/rag/types";
 import { getNode } from "@/lib/content/tree";
 import { GENERAL_NODE_ID, GENERAL_NODE_TITLE, FALLBACK_THRESHOLD } from "@/lib/rag/config";
+import { groundedEvidenceScore, hasGroundedEvidence } from "@/lib/rag/relevance";
 import { getEmbedder } from "@/lib/rag/embedder";
 import { cosineSimilarity } from "@/lib/rag/cosine";
 
@@ -329,12 +330,18 @@ export class MockLLM implements LLMProvider {
     // retrieval itself uses for fallbackUsed) — otherwise this falls through
     // to the graceful "I don't know" below instead of forcing a tangential
     // answer out of weak matches. ──
-    if (curated.length > 0 && bestCosine(curated) >= FALLBACK_THRESHOLD) {
+    if (
+      curated.length > 0 &&
+      (bestCosine(curated) >= FALLBACK_THRESHOLD || hasGroundedEvidence(query, curated))
+    ) {
       // Rank by cosine (semantic relevance), NOT the RRF finalScore: hybrid
       // fusion over-rewards lexically-dense passages (many keyword repeats),
       // which buries the definitional/most-on-topic section a "what is X"
       // query actually wants.
-      const byCosine = [...curated].sort((a, b) => (b.cosine ?? 0) - (a.cosine ?? 0));
+      const byCosine = [...curated].sort((a, b) => {
+        const evidenceDelta = groundedEvidenceScore(query, b) - groundedEvidenceScore(query, a);
+        return evidenceDelta || (b.cosine ?? 0) - (a.cosine ?? 0);
+      });
       const ranked = dedupeSections(byCosine);
 
       const embedder = opts.embedder ?? getEmbedder();
@@ -354,7 +361,10 @@ export class MockLLM implements LLMProvider {
     // never be reproduced. Surface the matched TOPICS (our taxonomy labels only)
     // and point to the full generator. Never echoes scrape text. Gated on the
     // same confidence bar so a weak scrape match doesn't get surfaced either. ──
-    if (scrape.length > 0 && bestCosine(scrape) >= FALLBACK_THRESHOLD) {
+    if (
+      scrape.length > 0 &&
+      (bestCosine(scrape) >= FALLBACK_THRESHOLD || hasGroundedEvidence(query, scrape))
+    ) {
       const topics = distinctNodes(scrape);
       const topicLines =
         topics.length > 0

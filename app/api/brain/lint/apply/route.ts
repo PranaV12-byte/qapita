@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrainId } from "@/lib/brain/id";
 import { applyFinding } from "@/lib/brain/lint";
+import { hydrateBrain, persistBrain } from "@/lib/brain/persistence";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
   if (!brainId) {
     return NextResponse.json({ error: "missing_brain_id" }, { status: 400 });
   }
+  await hydrateBrain(brainId);
   const body = (await req.json().catch(() => ({}))) as { findingId?: string; action?: string };
   const action = body.action === "apply" ? "apply" : body.action === "dismiss" ? "dismiss" : null;
   if (!body.findingId || !action) {
@@ -22,6 +24,7 @@ export async function POST(req: NextRequest) {
     );
   }
   const result = await applyFinding(brainId, body.findingId, action);
+  await persistBrain(brainId);
   if (!result.ok) {
     return NextResponse.json({ error: "finding_not_found" }, { status: 404 });
   }

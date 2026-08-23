@@ -5,11 +5,11 @@ import { loadAllArticles } from "@/lib/content/loader";
 import { PILLARS } from "@/lib/content/tree";
 
 export const metadata: Metadata = {
-  title: "Wiki - Q4N$P",
+  title: "Wiki | EquityIQ",
   description: "Published EquityIQ guidance organized by knowledge group.",
 };
 
-export default async function WikiPage() {
+export default async function WikiPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const articles = await loadAllArticles();
   const view = articles.map((article) => {
     const pillar = PILLARS.find((item) => item.id === article.frontmatter.pillar);
@@ -24,5 +24,6 @@ export default async function WikiPage() {
     };
   }).filter((article) => article.pillarSlug);
 
-  return <PortalShell measure><header className="v9-wiki-heading"><h1>Wiki</h1><p>Read the guidance behind the work.</p></header><WikiIndex articles={view} /></PortalShell>;
+  const { q } = await searchParams;
+  return <PortalShell measure><header className="v9-wiki-heading"><h1>Wiki</h1></header><WikiIndex articles={view} initialQuery={q ?? ""} /></PortalShell>;
 }

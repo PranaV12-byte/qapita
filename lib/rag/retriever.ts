@@ -13,6 +13,7 @@ import { selectResults, type Candidate } from "./select";
 import { computeFallback, type ScenarioVector } from "./fallback";
 import { getEmbedder } from "./embedder";
 import { getReranker } from "./rerank";
+import { hasGroundedEvidence, relevanceTokens } from "./relevance";
 import { getNode, ALL_NODES } from "@/lib/content/tree";
 import type {
   ChunkMeta,
@@ -35,6 +36,7 @@ import {
   RERANK_POOL_SIZE,
   DEDUP_COSINE_THRESHOLD,
   EMBEDDING_DIM,
+  EMBEDDER_MODE,
   GRAPH_EXPANSION,
   NEIGHBOR_LIMIT,
   NEIGHBOR_MIN_COSINE,
@@ -96,10 +98,25 @@ export function loadStores(dir: string): Stores {
   );
   const entries = JSON.parse(fs.readFileSync(chunkPath, "utf-8")) as IndexEntry[];
 
+  const manifestPath = path.join(dir, "index-manifest.json");
+  if (fs.existsSync(manifestPath)) {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as {
+      embedderId?: string;
+      dimensions?: number;
+      entryCount?: number;
+    };
+    if (manifest.dimensions !== EMBEDDING_DIM || manifest.entryCount !== entries.length || manifest.embedderId !== getEmbedder().id) {
+      throw new Error("Retrieval index manifest does not match the runtime configuration.");
+    }
+  }
+
   const dim =
     entries.length > 0
       ? Math.round(vectors.length / entries.length)
       : EMBEDDING_DIM;
+  if (dim !== EMBEDDING_DIM || vectors.length !== entries.length * dim) {
+    throw new Error("Retrieval vectors do not match the configured embedding dimension.");
+  }
   const store = new FlatVectorStore(vectors, dim);
 
   const parentsPath = path.join(dir, "parents.json");
@@ -250,7 +267,8 @@ async function assemble(
   }
 
   const denseHits = multiDense(views, queryVec, poolSize, filter);
-  const lexHits = multiLexical(views, query, poolSize, filter);
+  const lexicalQuery = relevanceTokens(query).join(" ") || query;
+  const lexHits = multiLexical(views, lexicalQuery, poolSize, filter);
 
   const fused = rrfFuse([
     denseHits.map((h) => h.index),
@@ -307,10 +325,14 @@ async function assemble(
   const bestHit = multiDense(views, queryVec, 1, notScenario);
   const bestContentCosine = bestHit.length > 0 ? bestHit[0].cosine : 0;
   const scenarioVecs = views.flatMap((v) => v.scenarioVecs);
+  const evidenceBacked = hasGroundedEvidence(query, chunks);
+  const confidenceCosine = EMBEDDER_MODE === "hash" && evidenceBacked
+    ? Math.max(bestContentCosine, FALLBACK_THRESHOLD)
+    : bestContentCosine;
   const { fallbackUsed, fallbackScenario } = computeFallback(
     queryVec,
     scenarioVecs,
-    bestContentCosine,
+    confidenceCosine,
     chunks.length,
     FALLBACK_THRESHOLD
   );

@@ -20,7 +20,7 @@ export async function generateMetadata({
   const { term } = await params;
   const resolved = getGlossaryTerm(term);
   return {
-    title: resolved ? `${resolved.term} - Glossary - Q4N$P` : "Not found - Q4N$P",
+    title: resolved ? `${resolved.term} | EquityIQ` : "Not found | EquityIQ",
     description: resolved?.definition,
     robots: "noindex",
   };

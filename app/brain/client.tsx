@@ -9,6 +9,7 @@ import BrainStats from "@/components/brain/BrainStats";
 import NotePane from "@/components/brain/NotePane";
 import type { GraphModel } from "@/lib/brain/graph";
 import type { JobView } from "@/lib/brain/jobs";
+import { V9_ACTIVE_SUBTOPICS, toV9TopicId } from "@/lib/content/v9-taxonomy";
 
 type Props = {
   brainId: string;
@@ -54,13 +55,14 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
 
   const focusIds = useMemo(() => {
     const f = searchParams.get("focus");
-    return f ? f.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    return f ? f.split(",").map((s) => s.trim()).filter(Boolean).map((id) => toV9TopicId(id) ?? id) : [];
   }, [searchParams]);
 
   const nodeIdSet = useMemo(() => new Set(model.nodes.map((n) => n.id)), [model.nodes]);
 
   const coverage = useMemo<CoverageSummary>(() => {
-    const topics = model.nodes.filter((node) => node.kind === "topic");
+    const activeIds = new Set(V9_ACTIVE_SUBTOPICS.map((topic) => topic.id));
+    const topics = model.nodes.filter((node) => node.kind === "topic" && activeIds.has(node.id));
     const coveredTopics = topics.filter((node) => (node.feedingSourceIds?.length ?? 0) > 0);
     const coveredTopicIds = coveredTopics.map((node) => node.id);
     const coveredTopicSet = new Set(coveredTopicIds);
@@ -102,8 +104,9 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
     if (initialRead.current) return;
     initialRead.current = true;
     const note = searchParams.get("note");
-    if (note && nodeIdSet.has(note)) {
-      setSelectedId(note);
+    const resolvedNote = toV9TopicId(note ?? undefined) ?? note;
+    if (resolvedNote && nodeIdSet.has(resolvedNote)) {
+      setSelectedId(resolvedNote);
       return;
     }
     const focus = focusIds[0];
