@@ -18,7 +18,7 @@ export default function LintPanel({
   if (open.length === 0) {
     return (
       <p className="text-sm text-[var(--certified)]">
-        Health check passed — no issues found in your wiki.
+        Health check passed - no issues found in your wiki.
       </p>
     );
   }

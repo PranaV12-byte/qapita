@@ -82,6 +82,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const railWidth = expanded ? 180 : 60;
   const openSignIn = () => { setMoreOpen(false); setSignInOpen(true); };
+  const closeSignIn = () => { setSignInOpen(false); window.dispatchEvent(new Event("equityiq:sign-in-cancelled")); };
   const searchLabel = pathname === "/" || pathname.startsWith("/generate")
     ? "Search topics or ask a question"
     : pathname === "/browse" || pathname.startsWith("/p/") || pathname.startsWith("/glossary")
@@ -128,7 +129,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
     {moreOpen && <div className="v9-more-layer"><button type="button" className="v9-more-backdrop" aria-label="Close menu" onClick={() => setMoreOpen(false)} /><div className="v9-more-sheet"><div className="v9-sheet-handle" />{links.filter((link) => ["Wiki", "Archive", "Learn"].includes(link.label)).map((link) => link.disabled ? <button key={link.label} disabled className="v9-more-item is-disabled"><Icon name={link.icon} />{link.label}<span>Coming soon</span></button> : <Link key={link.href} href={link.href} className="v9-more-item"><Icon name={link.icon} />{link.label}</Link>)}<button type="button" onClick={() => user ? window.location.assign("/auth/logout") : openSignIn()} className="v9-more-item"><span className="v9-account-avatar">{user ? initials : "→"}</span>{user ? "Sign out" : "Sign in"}</button></div></div>}
     <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-    <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} configured={configured} returnTo={returnTo} restoreFocusRef={signInRef} />
+    <SignInModal open={signInOpen} onClose={closeSignIn} configured={configured} returnTo={returnTo} restoreFocusRef={signInRef} />
   </>;
 }
 

@@ -6,7 +6,6 @@ import Breadcrumb from "@/components/article/Breadcrumb";
 import FaqAccordion from "@/components/article/FaqAccordion";
 import PlainLanguageCallout from "@/components/article/PlainLanguageCallout";
 import RelatedNodes from "@/components/article/RelatedNodes";
-import Sources from "@/components/article/Sources";
 import { mdxComponents } from "@/components/mdx/mdxComponents";
 import PortalShell from "@/components/portal/PortalShell";
 import { loadArticle } from "@/lib/content/loader";
@@ -90,9 +89,6 @@ export default async function ArticlePage({
             >
               Generate a draft
             </Link>
-          </div>
-          <div className="v9-article-panel">
-            <Sources sources={frontmatter.sources} />
           </div>
           <div className="v9-article-panel">
             <RelatedNodes ids={frontmatter.related} />

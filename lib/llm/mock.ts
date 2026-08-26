@@ -1,10 +1,11 @@
 import type { ArtifactResult, GenerateOptions, LLMProvider } from "@/lib/llm/types";
 import type { RetrievalChunk, Citation, Embedder } from "@/lib/rag/types";
-import { getNode } from "@/lib/content/tree";
-import { GENERAL_NODE_ID, GENERAL_NODE_TITLE, FALLBACK_THRESHOLD } from "@/lib/rag/config";
-import { groundedEvidenceScore, hasGroundedEvidence } from "@/lib/rag/relevance";
-import { getEmbedder } from "@/lib/rag/embedder";
-import { cosineSimilarity } from "@/lib/rag/cosine";
+import { getNode } from "../content/tree";
+import { GENERAL_NODE_ID, GENERAL_NODE_TITLE, FALLBACK_THRESHOLD } from "../rag/config";
+import { groundedEvidenceScore, hasGroundedEvidence } from "../rag/relevance";
+import { getEmbedder } from "../rag/embedder";
+import { cosineSimilarity } from "../rag/cosine";
+import { titleFromQuery } from "./title";
 
 /** Exported so lib/llm/groq.ts can enforce quickShare's "concise plaintext"
  *  contract as a backstop, the same way it enforces tone via cleanProse. */
@@ -24,12 +25,11 @@ function capitalize(text: string): string {
 }
 
 /** Em/en-dash and inline-dash punctuation cleanup, no whitespace collapsing
- *  and no forced terminal period — safe to run on a single markdown LINE
+ *  and no forced terminal period. Safe to run on a single markdown LINE
  *  (header, bullet, or prose) without disturbing line structure. */
 function cleanPunctuation(text: string): string {
   return text
-    .replace(/\s*[—–]\s*/g, ", ")
-    .replace(/([a-zA-Z0-9)])\s-\s(?=[a-zA-Z(])/g, "$1; ")
+    .replace(/\s*[\u2014\u2013]\s*/g, " - ")
     .replace(/,\s*,/g, ",")
     .replace(/,\s*\./g, ".")
     .replace(/\s+,/g, ",")
@@ -37,10 +37,10 @@ function cleanPunctuation(text: string): string {
 }
 
 /** Professional-prose cleanup for OUR OWN generated text (not a copyright
- *  concern — this normalizes punctuation, it doesn't paraphrase facts). Only
+ *  concern  -  this normalizes punctuation, it doesn't paraphrase facts). Only
  *  safe for a SINGLE paragraph/sentence fragment: it collapses all internal
  *  whitespace (including newlines), so it must never be run on multi-line
- *  markdown — use cleanProseMarkdown for that. */
+ *  markdown  -  use cleanProseMarkdown for that. */
 export function cleanProse(text: string): string {
   return cleanPunctuation(text.replace(/\s+/g, " "))
     .trim()
@@ -61,7 +61,7 @@ export function cleanProseMarkdown(text: string): string {
       const prefix = m?.[1] ?? "";
       const rest = cleanPunctuation(m?.[2] ?? line);
       const isHeading = /^#{1,6}\s/.test(prefix);
-      const finished = isHeading || rest === "" ? rest : rest.replace(/([^.!?"')\]])$/, "$1.");
+      const finished = isHeading || rest === "" ? rest : rest.replace(/([^.!?"')\]:;])$/, "$1.");
       return prefix + finished;
     })
     .join("\n");
@@ -81,7 +81,7 @@ function firstSentences(text: string, n: number): string {
 
 /** Split normalized text into candidate sentences, dropping fragments: too
  *  short, or missing a capital/quote/bold start (usually an overlap-seeded
- *  mid-sentence tail) — the same shape of noise dedupeSections targets, but
+ *  mid-sentence tail)  -  the same shape of noise dedupeSections targets, but
  *  at sentence granularity. */
 function splitSentences(text: string): string[] {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -109,7 +109,7 @@ function dedupeSections(chunks: RetrievalChunk[]): RetrievalChunk[] {
 /** The core fix for on-topic answers: section-level cosine tells us which
  *  SECTION best matches the query, but a section can be the best match
  *  overall while only PART of it (or none of it) answers the actual
- *  question — that's the "useless first paragraph" bug. Scoring individual
+ *  question  -  that's the "useless first paragraph" bug. Scoring individual
  *  SENTENCES against the query and keeping only the closely-relevant ones
  *  fixes this at the source, for every query, not just definitional ones.
  *  Falls back to the old section-level extraction when there's nothing to
@@ -150,7 +150,7 @@ async function composeSentenceAnswer(
 
   // A bi-encoder's top cosine match for a short "what is X" query is often a
   // detail sentence that happens to be lexically dense (e.g. "ISOs can only
-  // be granted by corporations..."), not the actual definition — MiniLM
+  // be granted by corporations..."), not the actual definition  -  MiniLM
   // scores short, keyword-heavy sentences highly regardless of whether they
   // define the term. For definitional queries, force the definition sentence
   // to lead: pick the highest-scoring candidate that reads like a definition
@@ -159,8 +159,8 @@ async function composeSentenceAnswer(
   const isDefinitionalQuery = /^(what|who)\s+(is|are|was|were)\b|^define\b|^explain what\b/i.test(
     query.trim()
   );
-  // Requires the indefinite article ("is/are a/an") right after the copula —
-  // the hallmark of "X is a/an Y" definitions — not just any "is the ..."
+  // Requires the indefinite article ("is/are a/an") right after the copula.
+  // The hallmark of "X is a/an Y" definitions, not just any "is the ..."
   // factual statement, which is common in non-definitional sentences too.
   const looksLikeDefinition = (s: string) => /^.{0,55}?\b(is|are)\s+(a|an|any)\b/i.test(s);
   const anchor = isDefinitionalQuery
@@ -168,12 +168,9 @@ async function composeSentenceAnswer(
     : undefined;
 
   const RELEVANCE_GAP = 0.12;
-  // Guarantee at least MIN_SENTENCES (subject to availability/MAX_CHARS)
-  // before the relevance gate applies, so a verbose, well-developed answer
-  // is the default rather than stopping after the first couple of matches —
-  // the gate still protects against genuine tangents once past this floor.
-  const MIN_SENTENCES = 5;
-  const MAX_SENTENCES = 10;
+  // Do not pad a narrow answer with weakly related sentences. One strongly
+  // grounded sentence is enough; add detail only while it remains relevant.
+  const MAX_SENTENCES = 6;
   const MAX_CHARS = 1500;
   const topScore = scored[0].score;
   const kept: typeof scored = [];
@@ -185,7 +182,7 @@ async function composeSentenceAnswer(
   for (const s of scored) {
     if (s === anchor) continue;
     if (kept.length >= MAX_SENTENCES || chars >= MAX_CHARS) break;
-    if (kept.length >= MIN_SENTENCES && s.score < topScore - RELEVANCE_GAP) continue;
+    if (s.score < topScore - RELEVANCE_GAP) continue;
     kept.push(s);
     chars += s.text.length;
   }
@@ -214,7 +211,7 @@ async function composeSentenceAnswer(
   return { bodyMarkdown: cleaned.join("\n\n"), quickShare: plain.join(" ") };
 }
 
-/** Display label for a chunk's node — our own taxonomy label, never source text. */
+/** Display label for a chunk's node  -  our own taxonomy label, never source text. */
 function nodeLabel(nodeId?: string): string | null {
   if (!nodeId) return null;
   if (nodeId === GENERAL_NODE_ID) return GENERAL_NODE_TITLE;
@@ -252,20 +249,26 @@ export function distinctUserSources(chunks: RetrievalChunk[]): Citation[] {
   return out;
 }
 
-/** A short, honest "not confidently covered" response — replaces dumping a
+/** A short, honest "not confidently covered" response  -  replaces dumping a
  *  weak, likely off-topic answer when nothing clears FALLBACK_THRESHOLD.
  *  Exported so lib/llm/groq.ts can short-circuit to the SAME message instead
  *  of spending an API call asking an LLM to police its own confidence. */
+export const GRACEFUL_UNKNOWN_BODY =
+  "I don't have enough grounded information in the knowledge base to answer that confidently. " +
+  "Try rephrasing the question, or add a source that covers it and ask again.";
+
 export function gracefulUnknown(query: string): ArtifactResult {
-  const title = `Reference: ${query.slice(0, 80)}`;
-  const body =
-    "I don't have enough grounded information in the knowledge base to answer that confidently. " +
-    "Try rephrasing the question, or add a source that covers it and ask again.";
+  const title = titleFromQuery(query);
+  const body = GRACEFUL_UNKNOWN_BODY;
   return { title, bodyMarkdown: body, citations: [], quickShare: `${title}\n\n${body}` };
 }
 
+export function isGracefulUnknownArtifact(artifact: ArtifactResult): boolean {
+  return artifact.citations.length === 0 && artifact.bodyMarkdown.trim() === GRACEFUL_UNKNOWN_BODY;
+}
+
 /** Exported so lib/llm/groq.ts can apply the identical confidence gate before
- *  ever calling the LLM — retrieval quality, not model behavior, decides
+ *  ever calling the LLM  -  retrieval quality, not model behavior, decides
  *  whether a question is answerable. */
 export const bestCosine = (cs: RetrievalChunk[]): number =>
   cs.reduce((max, c) => Math.max(max, c.cosine ?? 0), 0);
@@ -281,23 +284,19 @@ export class MockLLM implements LLMProvider {
       await new Promise<void>((r) => setTimeout(r, delay));
     }
 
-    const title = opts.format === "email"
-      ? `Email draft: ${query.slice(0, 72)}`
-      : opts.format === "comparison"
-        ? `Comparison: ${query.slice(0, 72)}`
-        : `Reference: ${query.slice(0, 80)}`;
+    const title = titleFromQuery(query);
     const curated = chunks.filter((c) => c.tier === "curated");
     const scrape = chunks.filter((c) => c.tier === "scrape");
     const user = chunks.filter((c) => c.tier === "user");
 
-    // ── User path: the wiki has the user's own uploads. Under the Phase-4
-    // quoting policy their content IS quotable back to them, WITH attribution.
-    // Only reached when a brain delta contributed chunks — the empty-brain
+    // ── User path: the wiki has the user's own uploads. Generated prose stays
+    // neutral; the source title remains available in structured citations.
+    // Only reached when a brain delta contributed chunks  -  the empty-brain
     // paths below stay byte-identical to the pre-Second-Brain baseline. ──
     if (user.length > 0) {
       const userBullets = user
         .slice(0, 5)
-        .map((c) => `- From **${c.title ?? "your source"}**: ${firstSentences(c.text, 1)}`)
+        .map((c) => `- From your uploaded material: ${firstSentences(c.text, 1)}`)
         .join("\n");
 
       const topicCitations = distinctNodes([...curated, ...scrape]);
@@ -319,7 +318,7 @@ export class MockLLM implements LLMProvider {
 
       const plainUser = user
         .slice(0, 5)
-        .map((c) => `- From ${c.title ?? "your source"}: ${firstSentences(stripMarkdown(c.text), 1)}`);
+        .map(() => "- From your uploaded material.");
       const quickShare = [title, "", ...plainUser].join("\n").trim();
 
       return { title, bodyMarkdown, citations, quickShare };
@@ -327,7 +326,7 @@ export class MockLLM implements LLMProvider {
 
     // ── Curated path: safe to summarize our own reviewed content, but only
     // when the best match actually clears the confidence bar (the same bar
-    // retrieval itself uses for fallbackUsed) — otherwise this falls through
+    // retrieval itself uses for fallbackUsed)  -  otherwise this falls through
     // to the graceful "I don't know" below instead of forcing a tangential
     // answer out of weak matches. ──
     if (
@@ -375,7 +374,7 @@ export class MockLLM implements LLMProvider {
         `Reference material relevant to: ${query}`,
         "",
         "## What this covers",
-        "This question is covered by source reference material in the knowledge base. That material is unreviewed and isn't reproduced here — enable the full generator (set `LLM_PROVIDER=groq`) to get a written answer in original wording, grounded in these sources.",
+        "This question is covered by source reference material in the knowledge base. That material is unreviewed and isn't reproduced here. Enable the full generator (set `LLM_PROVIDER=groq`) to get a written answer in original wording, grounded in these sources.",
         "",
         "## Related topics in the library",
         topicLines,

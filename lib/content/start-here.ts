@@ -1,5 +1,5 @@
 /**
- * Start Here — six orientation cards for people new to equity compensation.
+ * Start Here - six orientation cards for people new to equity compensation.
  * Each links to the most relevant article node. Rendered in forced Plain lens.
  */
 export type StartHereCard = {
@@ -21,14 +21,14 @@ export const START_HERE_CARDS: StartHereCard[] = [
     slug: "vesting-basics",
     title: "How vesting works",
     blurb:
-      "You usually earn your equity over time. Vesting is the schedule that decides when awards become truly yours — often over four years with a one-year cliff.",
+      "You usually earn your equity over time. Vesting is the schedule that decides when awards become truly yours - often over four years with a one-year cliff.",
     nodeId: "2.2",
   },
   {
     slug: "options-vs-rsus",
     title: "Options vs. RSUs",
     blurb:
-      "Options let you buy shares at a set price; RSUs give you shares outright as they vest. They work — and are taxed — very differently.",
+      "Options let you buy shares at a set price; RSUs give you shares outright as they vest. They work, and are taxed, very differently.",
     nodeId: "1.1",
   },
   {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getCopyLabel } from "@/lib/generate-utils";
 import { getNode } from "@/lib/content/tree";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { deliverArtifactEmail, downloadArtifactPdf } from "@/lib/artifact/delivery-client";
 
 type Citation = {
   kind?: "topic" | "source" | "user-node";
@@ -15,6 +16,7 @@ type Citation = {
 type Props = {
   artifactId: string;
   title: string;
+  question: string;
   bodyMarkdown: string;
   quickShare: string;
   citations: Citation[];
@@ -143,6 +145,7 @@ function SectionCard({
 export default function ArtifactResult({
   artifactId,
   title,
+  question,
   bodyMarkdown,
   quickShare,
   citations,
@@ -192,21 +195,7 @@ export default function ArtifactResult({
   const handleOpenPdf = async () => {
     setPdfLoading(true);
     try {
-      const res = await fetch("/api/artifact/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, bodyMarkdown, citations }),
-      });
-      if (!res.ok) throw new Error("pdf_failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "equityiq-draft.pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      await downloadArtifactPdf({ artifactId, title, bodyMarkdown, citations });
     } finally {
       setPdfLoading(false);
     }
@@ -217,23 +206,7 @@ export default function ArtifactResult({
     setEmailStatus("sending");
     setEmailError("");
     try {
-      const response = await fetch("/api/artifact/deliver", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          artifactId,
-          channel: "email",
-          email: email || undefined,
-          title,
-          bodyMarkdown,
-          citations,
-        }),
-      });
-      const result = await response.json().catch(() => ({})) as {
-        recipientMasked?: string;
-        error?: string;
-      };
-      if (!response.ok) throw new Error(result.error || "email_delivery_failed");
+      const result = await deliverArtifactEmail({ artifactId, title, bodyMarkdown, citations }, email);
       setEmailSubmittedTo(result.recipientMasked || email);
       setEmailStatus("success");
     } catch (error) {
@@ -267,7 +240,7 @@ export default function ArtifactResult({
         <div className="v9-artifact-header">
           <p>Your answer is ready</p>
           <h2 className="mt-3 font-head text-4xl text-[var(--text-head)]">
-            {title}
+            {question}
           </h2>
         </div>
         <div className="v9-artifact-body">

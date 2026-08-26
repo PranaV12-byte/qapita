@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import GenerateClient from "./client";
+import PreparingAnswer from "@/components/generate/PreparingAnswer";
 
 export default async function GeneratePage({
   searchParams,
@@ -9,11 +10,7 @@ export default async function GeneratePage({
   const params = await searchParams;
   return (
     <Suspense
-      fallback={
-        <div className="max-w-2xl mx-auto px-4 py-6">
-          <div className="h-32 rounded-lg bg-[var(--surface-1)] animate-pulse" />
-        </div>
-      }
+      fallback={<div className="v9-ask-wrap"><PreparingAnswer /></div>}
     >
       <GenerateClient
         initialQuery={params.q ?? ""}

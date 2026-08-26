@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const ArticleSchema = z.object({
-  id: z.string(),
+  id: z.string().regex(/^\d+\.\d+$/, "Article id must use the legacy dotted numeric format."),
   pillar: z.number().int().min(1).max(9),
-  slug: z.string(),
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Article slug must be lowercase kebab-case."),
   title: z.string(),
   status: z.enum(["generated", "signed_off"]),
   audience: z.array(z.enum(["admin", "participant"])),

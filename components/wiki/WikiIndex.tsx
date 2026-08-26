@@ -6,8 +6,7 @@ import { useState } from "react";
 type WikiArticle = {
   id: string;
   title: string;
-  slug: string;
-  pillarSlug: string;
+  href: string;
   pillarTitle: string;
   summary: string;
   searchText: string;
@@ -25,7 +24,7 @@ export default function WikiIndex({ articles, initialQuery = "" }: { articles: W
       <label><span aria-hidden="true">⌕</span><span className="sr-only">Search Wiki articles</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the Wiki" /></label>
     </div>
     <div className="v9-wiki-grid">
-      {filtered.map((article) => <Link key={article.id} href={`/a/${article.pillarSlug}/${article.slug}`}><p>{article.pillarTitle}</p><h2>{article.title}</h2><span>{article.summary}</span><strong>Read article →</strong></Link>)}
+      {filtered.map((article) => <Link key={article.id} href={article.href}><p>{article.pillarTitle}</p><h2>{article.title}</h2><span>{article.summary}</span><strong>Read article →</strong></Link>)}
       {filtered.length === 0 && <div className="v9-empty">No published Wiki articles match that search.</div>}
     </div>
   </div>;

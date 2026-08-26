@@ -7,11 +7,11 @@ status: "generated"
 audience: ["admin", "participant"]
 summaryPlain: "RSUs create ordinary income at vesting equal to the FMV of shares delivered, subject to income tax withholding and FICA. ESPPs create a more complex tax picture: qualifying dispositions split gain between ordinary income and capital gain, while disqualifying dispositions convert the purchase discount to ordinary income. Administrators must understand both to process withholding correctly and generate accurate W-2 and 1099 reporting."
 sources:
-  - label: "IRC § 83(a) — Property transferred in connection with performance of services"
-  - label: "IRC § 423 — Employee stock purchase plans"
-  - label: "IRS Publication 525 — Taxable and Nontaxable Income"
-  - label: "IRS Form W-2 Instructions — Box 12 code V"
-  - label: "IRS Form 3922 — Transfer of Stock Acquired Through an Employee Stock Purchase Plan"
+  - label: "IRC § 83(a)  -  Property transferred in connection with performance of services"
+  - label: "IRC § 423  -  Employee stock purchase plans"
+  - label: "IRS Publication 525  -  Taxable and Nontaxable Income"
+  - label: "IRS Form W-2 Instructions  -  Box 12 code V"
+  - label: "IRS Form 3922  -  Transfer of Stock Acquired Through an Employee Stock Purchase Plan"
 reviewedBy: null
 faqs:
   - q: "How is the tax withheld when RSUs vest?"
@@ -19,14 +19,14 @@ faqs:
   - q: "When does ESPP income show up on my W-2?"
     a: "For qualifying ESPP dispositions, ordinary income appears on the W-2 in the year of sale, not the year of purchase. The company learns of the sale from the broker through participant notifications or Form 1099-B data matching. For disqualifying dispositions, the ordinary income (the spread at purchase) is also reported in the year of sale. Administrators should build a process for participants to notify the company of ESPP sales so W-2 adjustments can be made accurately."
   - q: "Do RSU withholding rates match the employee's actual tax rate?"
-    a: "Not necessarily. RSU income is typically withheld at the federal supplemental rate—22% for income up to $1 million in the year, 37% above $1 million. An employee whose marginal rate is 32% will have insufficient withholding and may owe a balance at filing. Employers can offer supplemental withholding elections to help employees match withholding to their actual rate, and the IRS permits withholding at actual rates if both employer and employee agree."
+    a: "Not necessarily. RSU income is typically withheld at the federal supplemental rate - 22% for income up to $1 million in the year, 37% above $1 million. An employee whose marginal rate is 32% will have insufficient withholding and may owe a balance at filing. Employers can offer supplemental withholding elections to help employees match withholding to their actual rate, and the IRS permits withholding at actual rates if both employer and employee agree."
 updatedAt: "2026-07-12"
 related: ["1.3", "1.4", "3.4"]
 ---
 
 ## RSU taxation: timing and mechanics
 
-Restricted stock units generate ordinary income when shares are delivered to the participant—in most cases, the vesting date. At the moment of delivery, the full fair market value of shares delivered is compensation income under IRC § 83(a), included in gross income in the year of delivery.
+Restricted stock units generate ordinary income when shares are delivered to the participant - in most cases, the vesting date. At the moment of delivery, the full fair market value of shares delivered is compensation income under IRC § 83(a), included in gross income in the year of delivery.
 
 ### The vesting taxable event
 
@@ -63,7 +63,7 @@ The participant receives a net share quantity. From the participant's perspectiv
 After shares are delivered at vesting, the participant's basis is the FMV on the delivery date. Any appreciation or depreciation from that point is capital gain or loss:
 - If held more than 12 months from delivery, long-term capital gain rates apply (0%, 15%, or 20% depending on taxable income).
 - If sold within 12 months, short-term gain at ordinary income rates.
-- If shares decline in value after vesting, the participant has a capital loss—but cannot recover the income taxes already paid on the vesting-date FMV.
+- If shares decline in value after vesting, the participant has a capital loss - but cannot recover the income taxes already paid on the vesting-date FMV.
 
 ## ESPP taxation: qualifying versus disqualifying dispositions
 
@@ -100,7 +100,7 @@ When shares are sold before satisfying either holding period (typically an immed
 
 ### W-2 and withholding for ESPP
 
-Unlike RSU vesting, ESPP purchases themselves do not trigger withholding—participants purchase shares using after-tax payroll deductions. The withholding obligation arises only when a disqualifying disposition is reported:
+Unlike RSU vesting, ESPP purchases themselves do not trigger withholding - participants purchase shares using after-tax payroll deductions. The withholding obligation arises only when a disqualifying disposition is reported:
 - If a disqualifying disposition occurs, the ordinary income element must be reported on the participant's W-2. Some administrators handle this through a supplemental payroll run in the year the disqualifying disposition is reported.
 - Qualifying disposition ordinary income is also reported on W-2 in the year of sale but typically without withholding.
 

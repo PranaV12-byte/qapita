@@ -80,7 +80,7 @@ function compactSections(
   }));
   if (citations.length > 0) {
     result.push({
-      heading: "Sources",
+      heading: "Related topics",
       paragraphs: citations.slice(0, compact ? 4 : 8).map((citation) => citation.title),
     });
   }

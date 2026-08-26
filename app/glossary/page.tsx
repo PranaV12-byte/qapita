@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import KnowledgeCenter from "@/components/knowledge/KnowledgeCenter";
 import PortalShell from "@/components/portal/PortalShell";
 import { loadGlossary } from "@/lib/content/glossary";
+import { loadKnowledgeTree } from "@/lib/content/knowledge-tree";
 
 export const metadata: Metadata = {
   title: "Glossary | EquityIQ",
   description: "Plain-language definitions of equity compensation terms.",
 };
 
-export default function GlossaryPage() {
+export default async function GlossaryPage() {
   const terms = loadGlossary();
+  const knowledgeTree = await loadKnowledgeTree();
   return (
     <PortalShell>
       <header className="mb-8">
@@ -20,7 +22,7 @@ export default function GlossaryPage() {
           Plain-language equity compensation terms for practical reference.
         </p>
       </header>
-      <KnowledgeCenter terms={terms} initialTab="glossary" />
+      <KnowledgeCenter terms={terms} knowledgeTree={knowledgeTree} initialTab="glossary" />
     </PortalShell>
   );
 }

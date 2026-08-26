@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth0, isAuth0Configured } from "@/lib/auth0";
-import { maskEmail } from "@/lib/email/config";
+import { getEmailDeliveryConfig, maskEmail } from "@/lib/email/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,14 +14,14 @@ export async function GET() {
         picture: session.user.picture,
       }
     : null;
-  const emailMode = process.env.EMAIL_DELIVERY_MODE === "production" ? "production" : "test";
-  const testRecipient = process.env.RESEND_TEST_RECIPIENT;
+  const email = getEmailDeliveryConfig();
 
   const response = NextResponse.json({
     configured: isAuth0Configured,
     user,
-    emailMode,
-    testRecipientMasked: testRecipient ? maskEmail(testRecipient) : undefined,
+    emailMode: email.mode,
+    emailConfigured: email.configured,
+    testRecipientMasked: email.testRecipient ? maskEmail(email.testRecipient) : undefined,
   });
 
   return response;

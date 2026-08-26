@@ -13,6 +13,7 @@ type AuthState = {
   loading: boolean;
   user: AuthUser | null;
   emailMode: "test" | "production";
+  emailConfigured: boolean;
   testRecipientMasked?: string;
 };
 
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthState>({
   loading: true,
   user: null,
   emailMode: "test",
+  emailConfigured: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading: true,
     user: null,
     emailMode: "test",
+    emailConfigured: false,
   });
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PortalShell from "@/components/portal/PortalShell";
 import KnowledgeCenter from "@/components/knowledge/KnowledgeCenter";
 import { loadGlossary } from "@/lib/content/glossary";
+import { loadKnowledgeTree } from "@/lib/content/knowledge-tree";
 
 export const metadata: Metadata = {
   title: "Knowledge Tree | EquityIQ",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 
 export default async function BrowsePage({ searchParams }: { searchParams: Promise<{ group?: string }> }) {
   const terms = loadGlossary();
+  const knowledgeTree = await loadKnowledgeTree();
   const { group } = await searchParams;
   return (
     <PortalShell>
@@ -21,7 +23,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
           Browse equity compensation topics and open the guidance that supports your work.
         </p>
       </header>
-      <KnowledgeCenter terms={terms} initialGroupId={group} />
+      <KnowledgeCenter terms={terms} knowledgeTree={knowledgeTree} initialGroupId={group} />
     </PortalShell>
   );
 }

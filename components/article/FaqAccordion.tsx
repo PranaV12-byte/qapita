@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Article } from "@/lib/content/schema";
 
 export default function FaqAccordion({ faqs }: { faqs: Article["faqs"] }) {
-  const [open, setOpen] = useState<number | null>(0);
+  const [open, setOpen] = useState<number | null>(null);
   if (!faqs.length) return null;
 
   return (

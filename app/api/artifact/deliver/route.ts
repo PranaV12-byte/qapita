@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { z } from "zod";
 import { auth0, isAuth0Configured } from "@/lib/auth0";
 import { buildArtifactEmail } from "@/lib/email/artifact-email";
-import { maskEmail } from "@/lib/email/config";
+import { getEmailDeliveryConfig, maskEmail } from "@/lib/email/config";
 import { logArtifact } from "@/lib/log";
 import { renderArtifactPdf } from "@/lib/pdf/render";
 
@@ -39,14 +39,14 @@ export async function POST(req: NextRequest) {
   }
 
   const apiKey = process.env.RESEND_API_KEY;
-  const mode = process.env.EMAIL_DELIVERY_MODE === "production" ? "production" : "test";
-  const recipient = mode === "test" ? process.env.RESEND_TEST_RECIPIENT : parsed.data.email;
+  const emailConfig = getEmailDeliveryConfig();
+  const recipient = emailConfig.mode === "test" ? emailConfig.testRecipient : parsed.data.email;
   const from = process.env.EMAIL_FROM;
 
-  if (!recipient && mode === "production") {
+  if (!recipient && emailConfig.mode === "production") {
     return NextResponse.json({ error: "recipient_required" }, { status: 400 });
   }
-  if (!apiKey || !recipient || !from) {
+  if (!emailConfig.configured || !apiKey || !recipient || !from) {
     return NextResponse.json({ error: "email_not_configured" }, { status: 503 });
   }
 

@@ -11,7 +11,7 @@ Adapting Karpathy's "LLM Wiki" (gist `442a6bf…`): each visitor has **ONE graph
 
 - **Identity:** anonymous per-browser cookie ID (no accounts). One seam for future auth.
 - **Ingest:** upload MD/TXT/PDF/DOCX/CSV/TSV/XLSX/HTML/JSON → extracted **locally** → vetted (health check: readable, on-topic, duplicate; + LLM judgement when a provider is on) → **woven into existing topic node(s)** — a doc's sections are placed independently, so one file can feed several nodes — or a **new brain-local node** only when genuinely novel.
-- **Query:** every question retrieves against the whole wiki (foundation ⊕ user delta in one ranking), with **graph-aware neighbour expansion**. Answers **may quote both NASPP grounding and the user's own sources, with attribution** (policy change).
+- **Query:** every question retrieves against the whole wiki (foundation ⊕ user delta in one ranking), with **graph-aware neighbour expansion**. Generated answers use original wording and do not quote or cite external sources by name. Structured citations still resolve to internal topics, user sources, and Brain backlinks.
 - **Lint:** periodic + on-demand wiki health check (duplicates, orphans, drift, staleness, contradictions, broken links, weak summaries). LLM-reviewed when available, heuristic otherwise. Destructive fixes always confirm-first.
 - **Graph UI:** interactive dependency-free SVG map with **backlink provenance** — answer citations deep-link into the graph and pulse the exact nodes the answer drew from.
 - **LLM maintenance** (placement, node summaries, cross-links, lint) is gated behind `LLM_PROVIDER` with **full heuristic parity offline** — the mock path never degrades to broken.
@@ -30,7 +30,7 @@ Adapting Karpathy's "LLM Wiki" (gist `442a6bf…`): each visitor has **ONE graph
 8. Original filenames never appear in filesystem paths (storage keyed by generated `sourceId`); binary/NUL payloads rejected; UTF-8 with latin-1 fallback.
 9. Every page: disclaimer + `noindex`. Inputs 16px; tap targets ≥ 44px. Windows-safe scripts (`tsx`, `node:path`, `fast-glob`, no bash-isms).
 10. Never silently drop a user file or a cap — every rejection/warn carries a human-readable reason surfaced in the UI.
-11. **CLAUDE.md rules #5/#10 change** (quoting policy) as part of Phase 7 — answers may quote NASPP + user sources with attribution. (Open item: confirm NASPP quoting sits within the NASPP authorization.)
+11. **CLAUDE.md rules #5/#10 define the generated-prose policy** — do not quote or cite external sources by name, while retaining structured source metadata and internal Brain links.
 
 ---
 
@@ -120,7 +120,7 @@ data/brains/<brainId>/
 - **Fixture matrix (Phase 2):** one good file per format + pathological set: scanned-image PDF, password PDF, binary blob renamed `.md`, empty file, oversize file, whitespace-only extract, non-English text, near-duplicate pair, `.rtf`/`.doc` rejects.
 - **Integration tests:** temp-dir brains + fake embedder — ingest→weave→retrieve→delete lifecycle; upload-only question answered with user citation; post-delete disappearance; neighbour expansion contributes a `related`-node passage; caps trigger with reasons.
 - **Parity tests (Phase 5):** every LLM-gated operation with `LLM_PROVIDER=mock` returns valid structured results via heuristics; malformed/failed LLM output falls back (simulate with a stub provider that returns garbage).
-- **E2E manual matrix (Phases 6–7):** scripted walk in the preview browser (upload each format, watch staged progress, weave report links, graph focus pulse, quote-with-attribution answer, lint findings, erase).
+- **E2E manual matrix (Phases 6–7):** scripted walk in the preview browser (upload each format, watch staged progress, weave report links, graph focus pulse, neutral generated answer with structured source links, lint findings, erase).
 - **Gate = `npx tsc --noEmit` clean + `npm test` fully green + the phase's manual checks.** The suite currently passes 241 tests; that number only goes up.
 
 ---
@@ -233,8 +233,8 @@ data/brains/<brainId>/
 3. `lib/brain/retrieval.ts`: load-or-LRU the brain delta via the store; empty brain → return the foundation-only path (identical to today).
 4. **`app/api/artifact/route.ts` (small diff):** read the cookie; brain with sources → `retrieveMulti`, else existing `retrieve`. Append the answer to the brain's `answers.jsonl`. Response shape unchanged; citations now carry `kind`.
 5. **Citation resolution (server-side):** map each cited chunk → `{kind, nodeId|sourceId, title}` using tree titles, brain graph titles (`u-` nodes), and source display names. Providers receive/emit these; nothing user-generated is dropped because `getNode` failed (fixes the confirmed gap).
-6. **`lib/llm/prompt.ts` rewrite:** quoting now allowed for NASPP + user tiers **with attribution required**; chunks wrapped in explicit data delimiters with the "data, not instructions" rule; `neighbor` chunks listed after primary ones and labeled. Keep the JSON output contract.
-7. **`lib/llm/mock.ts` update:** scrape-only path may now include one short attributed excerpt instead of refusing; user-tier chunks are summarized/quoted with attribution; citations flow through the new resolver (no more dropped unknown nodeIds).
+6. **`lib/llm/prompt.ts` rewrite:** generated prose must not quote or cite external sources by name; chunks are wrapped in explicit data delimiters with the "data, not instructions" rule; `neighbor` chunks are listed after primary ones and labeled. Keep the JSON output contract and return citation IDs only through structured metadata.
+7. **`lib/llm/mock.ts` update:** scrape-only and user-tier paths use neutral wording in generated prose; citations flow through the resolver and retain their structured source identity.
 8. **`components/ArtifactResult.tsx` (small diff):** chips render by `kind` — topic → article link; source/user-node → `/brain?focus=…`; group *Your sources* vs *Topics*. (The `/brain` page itself arrives in Phase 6; the deep link can 404 gracefully until then — acceptable inside the same feature branch, or feature-flag the chip href to `#` until Phase 6 if committing to master per-phase.)
 9. Which existing tests may change: any that assert the exact old `SYSTEM_PROMPT` string or the mock's "isn't reproduced here" scrape copy — update them to the new policy **in the same commit as the policy change**. Alignment/characterization/rag tests must remain untouched and green (characterization pins shape + empty-brain behavior, which is preserved).
 
@@ -242,7 +242,7 @@ data/brains/<brainId>/
 
 **Tests:** empty brain → `retrieveMulti` output deep-equals `retrieveWith` output (regression) · seeded brain + fake embedder → a query only answerable by an upload surfaces the user chunk and cites it with `kind: "source"` · post-delete the same query no longer surfaces it · neighbour expansion adds a `related`-node passage when slots remain and respects the gate/limit · prompt contains delimiter + injection line · mock emits user citations with correct labels · characterization tests green.
 
-**Gate:** typecheck · **full suite green including all pre-existing `tests/rag/*` untouched** · manual: dev server — empty-brain question behaves exactly as before; upload an equity note; ask its question; answer quotes it with attribution and the chip appears under *Your sources* · checkpoint commit.
+**Gate:** typecheck · **full suite green including all pre-existing `tests/rag/*` untouched** · manual: dev server — empty-brain question behaves exactly as before; upload an equity note; ask its question; answer uses neutral prose and the structured source chip appears under *Your sources* · checkpoint commit.
 
 **Rollback:** helper extraction is behavior-preserving (proven by tests); the route change is a small guarded branch — revert the phase commit restores today's path.
 
@@ -303,7 +303,7 @@ data/brains/<brainId>/
 **Read list:** `CLAUDE.md`, `.env.example` (if present), `SPEC-BRAIN.md` (this file).
 
 **Steps:**
-1. **CLAUDE.md:** rewrite rules #5/#10 to the new quoting policy (quote NASPP + user sources with attribution; scrape-tier no longer non-verbatim — note the NASPP-authorization assumption); add a "Second Brain" section (user tier, `data/brains/`, formats, caps, LLM-maintenance provider-gating, new config constants, `brains:prune`); update the phase banner to reference SPEC-BRAIN.
+1. **CLAUDE.md:** rewrite rules #5/#10 so generated prose does not quote or cite external sources by name while structured source metadata and internal links remain available; add a "Second Brain" section (user tier, `data/brains/`, formats, caps, LLM-maintenance provider-gating, new config constants, `brains:prune`); update the phase banner to reference SPEC-BRAIN.
 2. Update `.env.example` with the new §3.7 vars (commented defaults).
 3. Flip this spec's status header to "implemented"; record any deviations made during build (each with its why).
 4. Sweep: every new page/panel carries the disclaimer + noindex; every input 16px; every target ≥44px; no `dangerouslySetInnerHTML` (`rg` check); no new network calls at runtime (`rg` for fetch/https in `lib/brain` — only LLM provider paths allowed); `data/brains/` ignored (`git status` clean after a test upload).
@@ -313,7 +313,7 @@ data/brains/<brainId>/
 **Gate = final acceptance:**
 - Offline mock boot; empty-brain chat byte-equivalent to baseline (characterization green).
 - Upload MD + PDF + DOCX + XLSX → progress → weave reports; multi-topic doc feeds ≥2 nodes; novel doc creates a `u-` node; recipe warns with reason; scanned PDF fails with the OCR message; 11-file batch rejected with the cap message.
-- Upload-only question → quoted, attributed answer; chip pulses the graph node. NASPP-grounded answer may quote with attribution. Nonsense → honest fallback (unchanged).
+- Upload-only question → neutral generated answer with a structured source chip that pulses the graph node. Nonsense → honest fallback (unchanged).
 - Delete + erase behave; lint catches planted dupe/orphan/contradiction; apply/dismiss works; prune dry-runs.
 - Two simultaneous uploads → no corruption (alignment test + manual).
 - `npx tsc --noEmit` clean; `npm test` fully green (baseline 241 + all new); no gitignore leaks.
@@ -326,7 +326,7 @@ Accounts/login (identity seam ready) · cross-user sharing · editing the founda
 
 ## 8. Open items
 
-1. **NASPP verbatim quoting** — implemented per owner direction; confirm it sits within the NASPP authorization/license before any external demo. (CLAUDE.md #5/#10 updated to match.)
+1. **Generated citation privacy** — implemented so generated prose does not name or quote external sources while reviewed Wiki references and internal citation links remain available.
 2. XLSX parser `exceljs` — verified offline in the Phase-0 spike; no fallback needed.
 
 ## 9. Deviations from the plan (with why)

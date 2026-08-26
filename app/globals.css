@@ -529,3 +529,123 @@ html, body { background: var(--v9-page); color: var(--v9-text); font-family: var
   .v9-leaf-list { padding-left: 24px; }
   .v9-footer-brand img.v9-footer-qapita, .v9-footer-brand img.v9-footer-naspp { height: 24px; max-height: 24px; }
 }
+
+/* Knowledge Tree renders one responsive DOM. Only the selected detail branch
+   is mounted, so viewport changes never create hidden duplicate trees. */
+.v9-knowledge-tree { display: grid; gap: 28px; }
+.v9-knowledge-tree > .v9-pillar-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.v9-knowledge-tree .v9-pillar-detail { margin-top: 0; }
+.v9-subtopic-guidance { padding: 8px 12px 12px 28px; border-top: 1px solid #ede9fe; background: #fcfbff; }
+.v9-subtopic-guidance > p { margin: 0 0 4px; color: #7c3aed; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.v9-subtopic-guidance .v9-leaf-row { padding-left: 10px; }
+.v9-preparation-message { margin: 8px 0 0; color: #a16207; font-size: 12px; line-height: 1.6; }
+.v9-leaf-row.is-disabled { align-items: flex-start; flex-direction: column; gap: 2px; cursor: default; }
+.v9-leaf-row.is-disabled small { color: #a16207; font-size: 10px; }
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .v9-knowledge-tree > .v9-pillar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .v9-knowledge-tree > .v9-pillar-grid { grid-template-columns: 1fr; gap: 10px; }
+  .v9-subtopic-guidance { padding-left: 24px; }
+}
+
+/* Ask flow: format intent and delivery status are visible without crowding the
+   result. These rules intentionally sit last because earlier V9 styles were
+   designed for the old compact format buttons and dark-hero reset link. */
+.v9-format-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
+.v9-format-cards button { display: grid; gap: 4px; min-height: 82px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; color: #4b5563; background: #fff; text-align: left; cursor: pointer; }
+.v9-format-cards button:hover, .v9-format-cards button.is-active { border-color: var(--v9-purple); background: #faf8ff; }
+.v9-format-cards strong { color: var(--v9-text); font-size: 14px; }.v9-format-cards button.is-active strong { color: var(--v9-purple); }
+.v9-format-cards span { color: #6b7280; font-size: 12px; line-height: 1.45; }
+.v9-email-choice { margin-top: 12px; }.v9-email-choice input { width: 100%; min-height: 46px; padding: 0 14px; border: 1px solid #d8d5e5; border-radius: 9px; font: 14px var(--font-inter); }.v9-email-choice p { margin: 0; padding: 12px 14px; border-radius: 9px; color: #5e5a72; background: #f7f5fb; font-size: 13px; line-height: 1.5; }
+.v9-result-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin: 0 0 18px; padding: 18px 20px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }.v9-result-toolbar > div { min-width: 0; }.v9-result-toolbar span { color: var(--v9-purple); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }.v9-result-toolbar p { margin: 7px 0 0; color: #374151; font-size: 15px; line-height: 1.55; white-space: normal; overflow-wrap: anywhere; }.v9-result-toolbar small { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; color: #047857; font-size: 12px; }.v9-result-toolbar small.is-error { color: #b45309; }.v9-result-toolbar small button { min-height: 32px; border: 0; color: inherit; background: transparent; font: 700 12px var(--font-inter); text-decoration: underline; cursor: pointer; }
+.v9-ask-another { flex: 0 0 auto; min-height: 44px; padding: 0 16px; border: 1px solid var(--v9-purple); border-radius: 9px; color: var(--v9-purple); background: #fff; font: 700 13px var(--font-inter); cursor: pointer; }.v9-ask-another:hover { background: #faf8ff; }
+.v9-artifact-header h2 { min-width: 0; white-space: normal; overflow-wrap: anywhere; }.v9-professional-detail { margin: 24px 0; }.v9-professional-detail > :first-child { margin-top: 0; }
+@media (max-width: 768px) { .v9-format-cards { grid-template-columns: 1fr; }.v9-format-cards button { min-height: 70px; }.v9-get-answer { min-height: 48px; }.v9-result-toolbar { display: grid; gap: 14px; padding: 16px; }.v9-ask-another { width: 100%; }.v9-result-toolbar p { font-size: 14px; }.v9-artifact-layout { grid-template-columns: 1fr; }.v9-artifact-aside { grid-template-columns: 1fr; }.v9-artifact-aside section { min-width: 0; }.v9-artifact-header h2 { font-size: 24px; }.v9-artifact-aside .flex.flex-wrap { gap: 8px; }.v9-artifact-aside .flex.flex-wrap > button { flex: 1 1 88px; padding-right: 10px; padding-left: 10px; }.v9-email-choice input { min-height: 48px; } }
+@media (max-width: 360px) { .v9-ask-wrap { padding-right: 12px; padding-left: 12px; }.v9-ask-prompt-card { padding: 14px; }.v9-artifact-header, .v9-artifact-body { padding: 16px; }.v9-artifact-aside .flex.flex-wrap > button { flex-basis: 100%; } }
+
+/* Compact format row. Reference is the implicit default and intentionally has
+   no visible button; these are optional delivery/comparison choices. */
+.v9-format-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+.v9-format-cards button { display: inline-flex; flex: 1 1 auto; align-items: center; justify-content: center; min-height: 44px; padding: 0 15px; border-radius: 8px; text-align: center; }
+.v9-format-cards button span { color: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; }
+@media (max-width: 768px) { .v9-format-cards { gap: 8px; }.v9-format-cards button { flex: 1 1 0; min-width: 72px; padding: 0 10px; } }
+@media (max-width: 360px) { .v9-format-cards button { min-width: 0; padding: 0 8px; } }
+
+/* Knowledge Tree uses one responsive grid. The selected detail occupies the
+   row immediately after the selected card's row at each breakpoint. */
+.v9-pillar-grid { grid-auto-flow: row; }
+.v9-pillar-detail-slot { grid-column: 1 / -1; grid-row: var(--detail-row-desktop); min-width: 0; }
+.v9-pillar-icon { box-sizing: border-box; }
+.v9-pillar-icon svg { width: 26px; height: 26px; display: block; flex: 0 0 26px; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .v9-pillar-detail-slot { grid-row: var(--detail-row-tablet); }
+}
+
+@media (max-width: 768px) {
+  .v9-pillar-detail-slot { grid-row: var(--detail-row-mobile); }
+}
+
+/* Glossary search is a primary page control, not a compact tab accessory. */
+.v9-glossary-search {
+  width: min(100%, 720px);
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 26px;
+  padding: 0 8px 0 16px;
+  border: 1px solid #cfc8df;
+  border-radius: 12px;
+  color: #7c3aed;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(76, 52, 120, .08);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.v9-glossary-search:focus-within { border-color: var(--v9-purple); box-shadow: 0 0 0 4px rgba(124, 58, 237, .1), 0 10px 24px rgba(76, 52, 120, .1); }
+.v9-glossary-search svg { width: 22px; height: 22px; flex: 0 0 22px; }
+.v9-glossary-search input { min-width: 0; min-height: 54px; flex: 1; border: 0; color: #272338; background: transparent; font: 15px var(--font-inter); outline: 0; }
+.v9-glossary-search input::placeholder { color: #8b849b; opacity: 1; }
+.v9-glossary-search button { min-width: 58px; min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; color: var(--v9-purple); background: transparent; font: 700 12px var(--font-inter); cursor: pointer; }
+.v9-glossary-search button:hover { background: #f5f1ff; }
+
+/* Answer preparation mirrors the result layout without exposing retrieval
+   terminology or repeating the user's full question. */
+.v9-loading-card { margin-top: 0; padding: 24px; box-shadow: 0 12px 30px rgba(15, 14, 26, .06); }
+.v9-loading-heading { display: flex; align-items: center; gap: 13px; }
+.v9-loading-heading > span { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; gap: 3px; flex: 0 0 42px; border-radius: 12px; color: var(--v9-purple); background: #f3efff; }
+.v9-loading-heading > span i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: v9-loading-dot 1s ease-in-out infinite alternate; }
+.v9-loading-heading > span i:nth-child(2) { animation-delay: .15s; }.v9-loading-heading > span i:nth-child(3) { animation-delay: .3s; }
+.v9-loading-heading p { margin: 0; color: #252135; font: 600 16px var(--font-head); }
+.v9-loading-heading small { display: block; margin-top: 4px; color: #716a80; font-size: 13px; }
+.v9-loading-preview { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; margin-top: 24px; }
+.v9-loading-document, .v9-loading-aside { padding: 20px; border: 1px solid #ece9f2; border-radius: 10px; background: #fcfbfe; }
+.v9-loading-document > i, .v9-loading-aside > i, .v9-loading-lines i { display: block; border-radius: 99px; background: linear-gradient(90deg, #eeeaf5 20%, #f7f5fb 45%, #eeeaf5 70%); background-size: 240% 100%; animation: v9-skeleton 1.35s ease-in-out infinite; }
+.v9-loading-document > .is-label { width: 92px; height: 9px; }.v9-loading-document > .is-title { width: 86%; height: 18px; margin-top: 16px; }.v9-loading-document > .is-title.is-short { width: 58%; margin-top: 8px; }
+.v9-loading-lines { margin-top: 30px; }.v9-loading-lines i { height: 11px; }
+.v9-loading-aside { display: grid; align-content: start; gap: 12px; }.v9-loading-aside i { height: 42px; border-radius: 8px; }
+@keyframes v9-loading-dot { from { transform: translateY(2px); opacity: .45; } to { transform: translateY(-2px); opacity: 1; } }
+@keyframes v9-skeleton { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+/* Honest empty-answer state: preserve the question and give a clear recovery
+   path without presenting a fallback document or delivery actions. */
+.v9-no-answer { max-width: 680px; margin: 34px auto 0; padding: 38px; border: 1px solid #e2ddee; border-radius: 14px; background: #fff; box-shadow: 0 14px 34px rgba(15, 14, 26, .06); text-align: center; }
+.v9-no-answer-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 14px; border-radius: 14px; color: var(--v9-purple); background: #f1ecff; font: 700 22px var(--font-head); }
+.v9-no-answer-eyebrow { margin: 0; color: var(--v9-purple) !important; font-size: 11px !important; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.v9-no-answer h2 { margin: 9px 0 0; color: #252135; font: 600 26px/1.25 var(--font-head); }
+.v9-no-answer > p:not(.v9-no-answer-eyebrow) { max-width: 540px; margin: 12px auto 0; color: #686174; font-size: 14px; line-height: 1.7; }
+.v9-no-answer > div { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.v9-no-answer button, .v9-no-answer a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border-radius: 9px; font: 700 13px var(--font-inter); text-decoration: none; }
+.v9-no-answer a { border: 1px solid var(--v9-purple); color: var(--v9-purple); background: #fff; }
+.v9-no-answer a:hover { background: #faf8ff; }
+
+@media (max-width: 768px) {
+  .v9-glossary-search { min-height: 54px; margin-bottom: 20px; padding-left: 14px; }
+  .v9-glossary-search input { min-height: 52px; font-size: 16px; }
+  .v9-loading-card { padding: 18px; }
+  .v9-loading-preview { grid-template-columns: 1fr; }.v9-loading-aside { display: none; }
+  .v9-no-answer { margin-top: 22px; padding: 28px 20px; }.v9-no-answer h2 { font-size: 23px; }.v9-no-answer > div { display: grid; }.v9-no-answer button, .v9-no-answer a { width: 100%; }
+}

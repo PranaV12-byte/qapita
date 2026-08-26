@@ -1,6 +1,7 @@
-import type { ArtifactResult, GenerateOptions, LLMProvider } from "@/lib/llm/types";
-import type { RetrievalChunk, Citation } from "@/lib/rag/types";
-import { SYSTEM_PROMPT, buildUserMessage, rankAndCapChunks } from "@/lib/llm/prompt";
+import type { ArtifactResult, GenerateOptions, LLMProvider } from "./types";
+import type { RetrievalChunk, Citation } from "../rag/types";
+import { randomUUID } from "node:crypto";
+import { SYSTEM_PROMPT, buildUserMessage, rankAndCapChunks } from "./prompt";
 import {
   cleanProseMarkdown,
   cleanProse,
@@ -9,15 +10,16 @@ import {
   bestCosine,
   distinctNodes,
   distinctUserSources,
-} from "@/lib/llm/mock";
-import { FALLBACK_THRESHOLD } from "@/lib/rag/config";
-import { hasGroundedEvidence } from "@/lib/rag/relevance";
+} from "./mock";
+import { FALLBACK_THRESHOLD } from "../rag/config";
+import { hasGroundedEvidence } from "../rag/relevance";
 import { z } from "zod";
+import { normalizeArtifactTitle } from "./title";
 
-// nodeId/sourceId both optional (mirrors Citation) — a user-tier citation
+// nodeId/sourceId both optional (mirrors Citation)  -  a user-tier citation
 // carries sourceId, not nodeId. .nullish() (not just .optional()) because
 // models in JSON mode routinely emit an explicit `null` for an omitted field
-// rather than leaving it out — .optional() alone rejects that and throws.
+// rather than leaving it out  -  .optional() alone rejects that and throws.
 const CitationSchema = z
   .object({
     nodeId: z.string().nullish(),
@@ -33,6 +35,34 @@ const ArtifactResultSchema = z.object({
   quickShare: z.string(),
 });
 
+const ArtifactJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title", "bodyMarkdown", "citations", "quickShare"],
+  properties: {
+    title: { type: "string" },
+    bodyMarkdown: { type: "string" },
+    citations: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["nodeId", "sourceId", "title"],
+        properties: {
+          nodeId: { type: ["string", "null"] },
+          sourceId: { type: ["string", "null"] },
+          title: { type: "string" },
+        },
+        anyOf: [
+          { required: ["nodeId"], properties: { nodeId: { type: "string" } } },
+          { required: ["sourceId"], properties: { sourceId: { type: "string" } } },
+        ],
+      },
+    },
+    quickShare: { type: "string" },
+  },
+} as const;
+
 export class GroqProvider implements LLMProvider {
   async generate(
     query: string,
@@ -42,12 +72,12 @@ export class GroqProvider implements LLMProvider {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       console.log("provider_fallback: GROQ_API_KEY missing, falling back to mock");
-      const { MockLLM } = await import("@/lib/llm/mock");
+      const { MockLLM } = await import("./mock");
       return new MockLLM().generate(query, chunks, options);
     }
 
     // Same confidence gate the mock uses: don't hand a real LLM a weak/
-    // off-topic retrieval set and hope it polices itself into refusing —
+    // off-topic retrieval set and hope it polices itself into refusing.
     // retrieval quality, not model behavior, decides whether a question is
     // answerable. Saves an API call too.
     if (
@@ -57,7 +87,7 @@ export class GroqProvider implements LLMProvider {
       return gracefulUnknown(query);
     }
 
-    // The exact chunk set actually sent to the model — citations are
+    // The exact chunk set actually sent to the model  -  citations are
     // validated against this, so the model can never get credit for citing
     // something it was never shown. Titles/labels for the final citations
     // come from OUR OWN metadata (distinctNodes/distinctUserSources), never
@@ -73,7 +103,8 @@ export class GroqProvider implements LLMProvider {
 
     const callGroq = async (): Promise<ArtifactResult> => {
       const timeout = new AbortController();
-      const timer = setTimeout(() => timeout.abort(), 20_000);
+      const timer = setTimeout(() => timeout.abort(), 15_000);
+      const model = process.env.GROQ_MODEL ?? "openai/gpt-oss-20b";
       const response = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
         {
@@ -83,14 +114,21 @@ export class GroqProvider implements LLMProvider {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: process.env.GROQ_MODEL ?? "openai/gpt-oss-120b",
+            model,
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: buildUserMessage(query, chunks, options.format) },
+              { role: "user", content: buildUserMessage(query, sentChunks, options.format) },
             ],
             temperature: 0,
             max_tokens: 2000,
-            response_format: { type: "json_object" },
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "artifact_result",
+                strict: true,
+                schema: ArtifactJsonSchema,
+              },
+            },
           }),
           signal: timeout.signal,
         }
@@ -129,36 +167,44 @@ export class GroqProvider implements LLMProvider {
       }
 
       // A prompt instruction ("no em dashes", "complete sentences") is a
-      // request, not a guarantee — apply the same deterministic cleanup the
+      // request, not a guarantee. Apply the same deterministic cleanup the
       // mock uses as a backstop regardless of whether the model complied.
       return {
-        title: result.title,
+        title: normalizeArtifactTitle(result.title, query),
         bodyMarkdown: cleanProseMarkdown(result.bodyMarkdown),
         citations,
-        // quickShare's contract is plaintext — strip any markdown the model
+        // quickShare's contract is plaintext. Strip any markdown the model
         // left in despite the prompt, then apply the same tone cleanup.
         quickShare: cleanProse(stripMarkdown(result.quickShare)),
       };
     };
 
-    let attempts = 0;
-    while (attempts < 2) {
+    const startedAt = Date.now();
+    try {
+      return await callGroq();
+    } catch (error) {
+      const reason = error instanceof Error && error.name === "AbortError"
+        ? "timeout"
+        : error instanceof Error && error.message.startsWith("Groq API error:")
+          ? error.message.replace("Groq API error: ", "http_")
+          : error instanceof SyntaxError
+            ? "invalid_json"
+            : "provider_or_schema_error";
+      console.log(JSON.stringify({
+        event: "provider_fallback",
+        provider: "groq",
+        requestId: randomUUID(),
+        model: process.env.GROQ_MODEL ?? "openai/gpt-oss-20b",
+        reason,
+        durationMs: Date.now() - startedAt,
+      }));
       try {
-        return await callGroq();
-      } catch {
-        attempts++;
-        if (attempts >= 2) {
-          console.log(
-            "provider_fallback: Groq failed after retry, falling back to mock"
-          );
-          const { MockLLM } = await import("@/lib/llm/mock");
-          return new MockLLM().generate(query, chunks, options);
-        }
+        const { MockLLM } = await import("./mock");
+        return await new MockLLM().generate(query, chunks, options);
+      } catch (fallbackError) {
+        console.error("Mock provider fallback failed", fallbackError);
+        return gracefulUnknown(query);
       }
     }
-
-    // Unreachable but satisfies TypeScript
-    const { MockLLM } = await import("@/lib/llm/mock");
-    return new MockLLM().generate(query, chunks, options);
   }
 }

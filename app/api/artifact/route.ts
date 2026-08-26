@@ -7,6 +7,9 @@ import { getBrainId } from "@/lib/brain/id";
 import { brainStore } from "@/lib/brain/store";
 import { retrieveForBrain } from "@/lib/brain/retrieval";
 import type { ArtifactFormat } from "@/lib/llm/types";
+import { normalizeGeneratedArtifact } from "@/lib/llm/output-normalizer";
+import { selectAnswerGrounding } from "@/lib/llm/grounding";
+import { gracefulUnknown, isGracefulUnknownArtifact } from "@/lib/llm/mock";
 import { z } from "zod";
 import { primaryLegacyTopicId, toV9TopicId } from "@/lib/content/v9-taxonomy";
 
@@ -65,19 +68,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "retrieval_unavailable" }, { status: 503 });
   }
 
+  const grounding = selectAnswerGrounding(query, retrieval.chunks);
   let result;
   try {
     const provider = getLLMProvider();
-    result = await provider.generate(query, retrieval.chunks, { format });
+    result = normalizeGeneratedArtifact(
+      grounding.answerable
+        ? await provider.generate(query, grounding.chunks, { format })
+        : gracefulUnknown(query)
+    );
   } catch (error) {
     console.error("Artifact generation failed", error);
     return NextResponse.json({ error: "generation_unavailable" }, { status: 503 });
   }
 
+  const answerAvailable = grounding.answerable && !isGracefulUnknownArtifact(result);
+
   const mode = process.env.LLM_PROVIDER ?? "mock";
   const matchedNodeIds = [
     ...new Set(
-      retrieval.chunks.map((c) => c.nodeId).filter((id): id is string => !!id)
+      grounding.chunks.map((c) => c.nodeId).filter((id): id is string => !!id)
     ),
   ];
 
@@ -86,7 +96,7 @@ export async function POST(req: NextRequest) {
     query,
     scenarioId,
     matchedNodeIds,
-    fallbackUsed: retrieval.fallbackUsed,
+    fallbackUsed: retrieval.fallbackUsed || !grounding.answerable,
   });
 
   const artifactId = randomUUID();
@@ -94,7 +104,7 @@ export async function POST(req: NextRequest) {
   // Per-brain answer log — powers node backlinks + a recent-questions list.
   // Only when the caller actually has a wiki (avoids creating a brain dir on
   // a bare chat visit).
-  if (brainId && brainStore.brainExists(brainId)) {
+  if (answerAvailable && brainId && brainStore.brainExists(brainId)) {
     brainStore.appendAnswer(brainId, {
       artifactId,
       query,
@@ -111,7 +121,8 @@ export async function POST(req: NextRequest) {
     quickShare: result.quickShare,
     citations: result.citations,
     status: "generated",
-    fallbackUsed: retrieval.fallbackUsed,
+    answerAvailable,
+    fallbackUsed: retrieval.fallbackUsed || !grounding.answerable,
     fallbackScenario: retrieval.fallbackScenario,
     scenario,
     logged,
