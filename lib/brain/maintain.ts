@@ -11,12 +11,11 @@ function leadSentences(text: string, n: number): string {
   return sentences.slice(0, n).join(" ").trim() || normalized.slice(0, 200);
 }
 
-// ── LLM maintenance layer (SPEC-BRAIN.md Phase 5, Sec3.5) ───────────────────────
-// The "LLM owns the bookkeeping" layer: placement, node summaries, and the lint
-// review. ALL of it is gated behind LLM_PROVIDER and has a deterministic
-// heuristic fallback, so the offline/mock path is never broken — any missing
-// provider, network failure, or malformed/Zod-invalid output silently falls
-// back to the heuristic result. Ingest and lint NEVER block on the LLM.
+/**
+ * Optional provider assistance for placement, summaries, and lint review. Every
+ * operation has a deterministic fallback, so uploads and maintenance continue
+ * when a provider is absent, slow, or returns invalid structured data.
+ */
 
 /** Returns parsed JSON from the configured provider, or null when there's no
  *  usable provider / the call fails. Never throws. Injectable for tests. */

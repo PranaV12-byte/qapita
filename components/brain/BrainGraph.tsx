@@ -14,13 +14,9 @@ import {
 } from "d3-force";
 import type { GraphModel, RenderNode } from "@/lib/brain/graph";
 
-// Obsidian-grade graph (SPEC-VAULT.md V2). Canvas renderer driven by a d3-force
-// simulation seeded from composeGraphModel's deterministic positions. Smooth
-// zoom-to-cursor (native wheel listener, {passive:false} — no page-scroll jank),
-// pinch, node drag (fx/fy + reheat), pan, DPR-crisp zoom-fading labels,
-// neighbourhood highlight, ?focus= pulse, fit/± controls, a Ctrl-K
-// quick-switcher, and filter chips. The list-view a11y fallback lives in the
-// parent. Nothing here reads/writes the network.
+// Canvas view of the deterministic Brain graph. The simulation adds natural
+// movement and interaction without changing the underlying graph; data loading,
+// persistence, and the accessible list alternative belong to parent components.
 
 type SimNode = SimulationNodeDatum & RenderNode;
 type SimLink = SimulationLinkDatum<SimNode> & { kind: string };

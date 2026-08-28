@@ -17,6 +17,11 @@ import { primaryLegacyTopicId, toV9TopicId } from "@/lib/content/v9-taxonomy";
 
 export const runtime = "nodejs";
 
+/**
+ * Primary answer boundary. It validates the request, selects grounded evidence,
+ * chooses a provider or fallback, and returns one normalized artifact shape for
+ * the screen, PDF, email, citations, and Brain backlinks to share.
+ */
 const artifactRequestSchema = z.object({
   query: z.string().trim().min(1).max(4_000).optional(),
   scenarioId: z.string().max(100).optional(),

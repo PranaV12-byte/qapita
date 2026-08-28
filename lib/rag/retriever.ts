@@ -44,6 +44,11 @@ import {
 
 const DATA_DIR = path.join(process.cwd(), "data");
 
+/**
+ * Foundation retrieval pipeline. It loads the generated index, combines lexical
+ * and semantic candidates, applies trusted-source weighting, and returns the
+ * compact evidence set that grounding evaluates before generation.
+ */
 export type Stores = {
   entries: IndexEntry[];
   store: VectorStore;
@@ -420,9 +425,9 @@ export async function retrieveWith(
   return result;
 }
 
-/** Retrieval across several stores as ONE wiki (SPEC-BRAIN.md Sec3.4):
- *  foundation ⊕ brain delta in a unified ranking, plus graph neighbour
- *  expansion. storesList[0] is the foundation; later entries are deltas. */
+/** Retrieval across several stores as one knowledge base: the reviewed
+ *  foundation plus optional private deltas in a unified ranking and graph
+ *  neighbour expansion. `storesList[0]` is always the foundation. */
 export async function retrieveMulti(
   query: string,
   storesList: Stores[],

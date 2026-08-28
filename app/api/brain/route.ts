@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       sources: {},
       counts: { sources: 0, passages: 0 },
       graph: { userNodes: {}, edges: [], nodeSummaries: {} },
-      // Lint fields stubbed here — Phase 5 wires the real cadence/engine.
+      // Keep the empty response compatible with the manifest returned after a first upload.
       lint: { lastLintAt: null, appendsSinceLint: 0 },
     });
   }

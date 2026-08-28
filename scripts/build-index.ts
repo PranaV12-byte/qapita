@@ -9,6 +9,11 @@ import { buildLexicalIndex } from "../lib/rag/lexical";
 import { SCENARIOS } from "../lib/scenarios";
 import type { IndexEntry, ParentSection } from "../lib/rag/types";
 
+/**
+ * Build-time retrieval index generator. It turns approved MDX content into the
+ * vector, lexical, and parent-section files consumed at runtime; edit content
+ * or taxonomy sources, then rerun this script instead of editing its output.
+ */
 const root = process.cwd();
 const contentRoot = path.join(root, "content", "pillars");
 const dataDir = path.join(root, "data");

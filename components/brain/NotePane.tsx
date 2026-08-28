@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import NoteMarkdown from "./NoteMarkdown";
 
-// The vault reader (SPEC-VAULT V3, absorbs NodePanel). Fetches the selected
-// note from /api/brain/note/[id] and renders it: kind chip + title + meta,
-// scrollable markdown body (with [[wiki-links]] and backlinks that navigate
-// in-app), and footer actions (Ask about this; Delete source). Desktop: a
-// slide-in side pane beside the live graph. Mobile: a bottom sheet.
+// Fetches and displays the selected Brain note with its metadata, links,
+// backlinks, and relevant actions. It is a side pane on desktop and a bottom
+// sheet on mobile so the graph remains available as context.
 
 type NoteKind = "topic" | "source" | "user-node" | "general" | "pillar";
 type BacklinkKind = NoteKind | "answer";

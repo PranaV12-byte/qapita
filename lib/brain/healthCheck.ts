@@ -18,11 +18,11 @@ import {
   GENERAL_NODE_TITLE,
 } from "../rag/config";
 
-// ── The health check (SPEC-BRAIN.md Phase 2) ────────────────────────────────────
-// Pure given its inputs (no brain writes — the ONE piece of process-wide state
-// is the node-target embedding cache, which is a corpus-level artifact, not a
-// per-brain one; see loadOrComputeNodeTargets). Checks run in order: readable
-// -> caps -> on-topic -> duplicate -> non-English signal.
+/**
+ * Evaluates an upload before it is written to a Brain. It is pure for a given
+ * input and checks readability, size, topic fit, duplicates, and language in
+ * that order. The shared node-target cache is corpus data, not private content.
+ */
 
 export type HealthStatus = "pass" | "warn" | "fail";
 
@@ -62,8 +62,7 @@ export type HealthCheckResult = {
   isDuplicateOf?: string;
   preview: string;
   chunkEstimate: number;
-  /** This source's own probe — Phase 3 persists it so the NEXT upload's
-   *  near-duplicate check can compare against this one without re-embedding. */
+  /** Persisted so the next upload can be checked for near-duplicates without re-embedding this source. */
   contentHash: string;
   probeVector: Float32Array;
 };

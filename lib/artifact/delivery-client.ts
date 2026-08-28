@@ -1,5 +1,10 @@
 import type { ComparisonData } from "@/lib/llm/types";
 
+/**
+ * Shared browser adapter for automatic delivery and the result Actions card.
+ * Keeping request construction here prevents the two entry points from slowly
+ * diverging as PDF and email payloads evolve.
+ */
 export type DeliveryCitation = {
   kind?: "topic" | "source" | "user-node";
   nodeId?: string;

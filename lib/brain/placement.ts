@@ -9,13 +9,12 @@ import type { SectionResult } from "../rag/chunker";
 import type { Embedder } from "../rag/types";
 import { CLASSIFY_MIN_CONFIDENCE, CLASSIFY_NODE_CONFIDENCE, GENERAL_NODE_ID } from "../rag/config";
 
-// ── Placement — heuristic v1 (SPEC-BRAIN.md Phase 3) ────────────────────────────
-// Decides where an uploaded document's sections land in the wiki: each
-// existing-topic node, "general", or — only when the WHOLE document is
-// coherent-but-novel — a single new brain-local node. Pure and stateless
-// (same {title, markdown} in -> same plan out); this is the exact shape
-// Phase 5's LLM-backed placement will emit, so weave.ts never needs to know
-// which one produced a plan.
+/**
+ * Decides where an uploaded document belongs: an existing topic, the general
+ * bucket, or one coherent new private topic. The heuristic is deterministic;
+ * an optional provider may propose the same plan shape, leaving weaving unaware
+ * of how the decision was made.
+ */
 
 export type NewNodeProposal = { id: string; title: string };
 
@@ -82,9 +81,8 @@ export async function planPlacement(
   const sections = pre ? pre.sections : chunkMarkdown(markdown, { title }).sections;
   if (sections.length === 0) return { sectionNodeIds: [], newNodes: [] };
 
-  // LLM-first placement (SPEC-BRAIN.md Phase 5): inert offline / no provider —
-  // proposePlacement returns null → the heuristic below runs unchanged, so the
-  // existing placement tests (which set no provider) stay green.
+  // A provider may improve placement when available. Returning null deliberately
+  // keeps the deterministic heuristic below as the local and failure-safe path.
   const sectionSummaries = sections.map((s) =>
     [s.headingPath, s.text].filter(Boolean).join(" — ")
   );

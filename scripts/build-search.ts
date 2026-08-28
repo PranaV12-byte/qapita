@@ -3,6 +3,11 @@ import path from "node:path";
 import matter from "gray-matter";
 import { PILLARS } from "../lib/content/tree";
 
+/**
+ * Build-time browser search generator. It emits one compact public index from
+ * reviewed articles and glossary terms, so the search overlay stays fast and
+ * does not need to parse MDX in the browser.
+ */
 const root = process.cwd();
 const contentRoot = path.join(root, "content", "pillars");
 const outFile = path.join(root, "public", "search-index.json");

@@ -2,10 +2,8 @@
 
 import React from "react";
 
-// Element-based markdown renderer for the note pane (SPEC-VAULT V3). Grows
-// ArtifactResult's SimpleMarkdown with h1–h3, lists, blockquotes, inline code,
-// simple pipe tables, and `[[wiki-link]]` → in-app navigation. NEVER injects raw
-// HTML (no dangerouslySetInnerHTML) — every node is a real React element.
+// Controlled Markdown renderer for Brain notes. It supports the note features
+// the product needs, including internal wiki links, without injecting raw HTML.
 
 type Props = {
   markdown: string;

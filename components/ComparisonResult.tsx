@@ -13,6 +13,8 @@ function renderCellText(text: string): React.ReactNode {
 }
 
 export default function ComparisonResult({ comparison }: Props) {
+  // The surrounding page never scrolls sideways. Only this table wrapper may
+  // scroll on narrow screens, preserving readable topic columns and the feature column.
   return (
     <section className="v9-comparison-card" aria-label="Comparison answer">
       <header className="v9-comparison-card-header">

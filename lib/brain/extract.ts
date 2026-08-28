@@ -5,11 +5,11 @@ import { BRAIN_MAX_FILE_MB } from "../rag/config";
 
 type SpreadsheetSheet = { sheet: string; data: unknown[][] };
 
-// ── Local extraction (SPEC-BRAIN.md Phase 2) ────────────────────────────────────
-// Pure: takes a filename + raw bytes, returns {title, markdown, meta} or a typed
-// {code, message} failure. No brain writes, no network — everything here runs
-// fully offline via the four Phase-0-verified parsers, lazy-imported so an
-// unsupported format never pays their load cost.
+/**
+ * Converts an uploaded file into plain Markdown without writing to a Brain or
+ * calling a network service. Typed failures let the upload flow explain what
+ * went wrong, while lazy parsers avoid loading file-format libraries needlessly.
+ */
 
 export type ExtractFailureCode =
   | "unsupported_format"
@@ -114,7 +114,7 @@ function decodeText(buffer: Buffer): string {
 // import() surfaces their exports directly or behind `.default` isn't
 // guaranteed across bundlers, so each checks for the member it actually needs
 // and falls back to `.default` — the same defensive pattern proven in the
-// Phase 0 spike (which used plain require() and confirmed both shapes work).
+// Earlier compatibility checks used plain require() and confirmed both shapes work.
 
 async function loadMammoth(): Promise<{
   extractRawText(input: { buffer: Buffer }): Promise<{ value: string; messages: unknown[] }>;

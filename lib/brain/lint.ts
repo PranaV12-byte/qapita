@@ -33,11 +33,11 @@ function wikiLinkRe(): RegExp {
   return /\[\[([^\]]+)\]\]/g;
 }
 
-// ── Lint: periodic wiki health check (SPEC-BRAIN.md Phase 5, Karpathy's 3rd op) ──
-// Heuristic detectors always run; an LLM review is layered on when a provider
-// is configured. Nothing destructive happens here — findings only describe and
-// suggest; structural fixes are auto-applicable via applyFinding, content
-// removals route through the existing DELETE endpoints after user confirm.
+/**
+ * Reviews Brain health without changing a user's material. Deterministic checks
+ * always run, with optional provider review layered on top; findings can suggest
+ * safe structural fixes, while source removal still requires an explicit action.
+ */
 
 export type LintSeverity = "info" | "warn";
 

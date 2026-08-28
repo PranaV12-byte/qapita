@@ -277,10 +277,9 @@ export function distinctNodes(chunks: RetrievalChunk[]): { nodeId: string; title
   return out;
 }
 
-/** Distinct citations for user-uploaded chunks, keyed by sourceId. Explicit
- *  handling (not nodeLabel, which returns null for "u-" node ids) is the fix
- *  for the confirmed pre-Phase-4 bug where user citations were dropped.
- *  Exported for the same reason as distinctNodes above. */
+/** Distinct citations for user-uploaded chunks, keyed by sourceId. User topics
+ *  do not have canonical taxonomy labels, so source handling stays separate
+ *  from `nodeLabel` and remains available to all fallback callers. */
 export function distinctUserSources(chunks: RetrievalChunk[]): Citation[] {
   const seen = new Set<string>();
   const out: Citation[] = [];

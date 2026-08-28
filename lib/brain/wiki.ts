@@ -7,14 +7,11 @@ import { brainStore, type BrainStore, type BrainAnswer, type BrainManifest } fro
 import { loadGraph, type BrainGraph } from "./weave";
 import type { ChunkMeta } from "../rag/types";
 
-// ── The wiki page model (SPEC-VAULT.md V1) ──────────────────────────────────────
-// Turns any note id — a curated topic, a user-uploaded source, a brain-local
-// u-node, the general bucket, or a pillar index — into a readable page:
-// { kind, title, meta, markdown, backlinks[] }. Topics combine the curated
-// article, the user's own attributed passages ("## From your sources"), and the
-// LLM/template synthesis (wiki/<nodeId>.md). Read-only: this module never writes
-// under data/brains/** (weave.ts owns synthesis authoring). Works with a null
-// brainId too — foundation topics/pillars are readable before any upload.
+/**
+ * Read-only model for every note shown in Brain: reviewed topics, uploaded
+ * sources, private topics, the general bucket, and pillars. It combines the
+ * relevant pieces for display but never writes data; source ingestion owns that.
+ */
 
 export type NoteKind = "topic" | "source" | "user-node" | "general" | "pillar";
 export type BacklinkKind = NoteKind | "answer";

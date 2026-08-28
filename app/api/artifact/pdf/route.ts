@@ -5,6 +5,10 @@ import { z } from "zod";
 
 export const runtime = "nodejs";
 
+/**
+ * Browser-export boundary. The browser sends a result it already received, so
+ * every field is validated again before the server renders a document.
+ */
 const pdfRequestSchema = z.object({
   title: z.string().trim().min(1).max(180),
   question: z.string().trim().min(1).max(4_000).optional(),

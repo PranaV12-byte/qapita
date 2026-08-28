@@ -59,8 +59,8 @@ export type RetrievalChunk = ChunkMeta & {
   cosine: number;
   /** Parent-section text for generation context (may equal `text` if no parent). */
   parentText?: string;
-  /** True when pulled in by graph neighbour expansion rather than direct
-   *  relevance — the prompt lists these after the primary hits (Phase 4). */
+  /** True when graph-neighbour expansion selected this chunk rather than direct
+   *  relevance. The prompt places it after directly relevant evidence. */
   neighbor?: boolean;
 };
 
@@ -73,14 +73,13 @@ export type RetrievalResult = {
 /**
  * Distinguishes what a citation points at, so the UI can link/label correctly:
  * a curated topic-tree node, a user-uploaded source, or a brain-local "u-"
- * node created for genuinely novel content. Not yet wired into the API
- * response or ArtifactResult (Phase 4) or the UI (Phase 6) — defined here now
- * as the shared home for the data model, per this file's own convention.
+ * node created for genuinely novel content. This shared shape lets retrieval,
+ * API routes, and the interface agree on what a citation can represent.
  */
 export type CitationKind = "topic" | "source" | "user-node";
 
-/** A citation surfaced to the user. `kind`/`sourceId` are optional so existing
- *  {nodeId, title} citation shapes remain valid until Phase 4 wires this in. */
+/** A citation surfaced to the user. `kind` and `sourceId` stay optional so
+ *  older topic-only citation records remain compatible. */
 export type Citation = {
   kind?: CitationKind;
   nodeId?: string;

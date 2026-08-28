@@ -12,10 +12,11 @@ import { brainStore, type BrainStore } from "./store";
 import { loadGraph } from "./weave";
 import type { RetrievalChunk, RetrievalResult, Citation } from "../rag/types";
 
-// ── Brain-aware retrieval (SPEC-BRAIN.md Phase 4) ───────────────────────────────
-// Composes the shared foundation with a per-brain delta index into ONE wiki
-// and queries it. An empty brain (no delta on disk) transparently falls back
-// to the foundation-only path — byte-identical to today's behaviour.
+/**
+ * Combines the shared reviewed library with a single user's private Brain
+ * index. A missing or empty Brain stays on the foundation-only path, so uploads
+ * are additive and never change the default answer experience for other users.
+ */
 
 /** Loads a brain's delta Stores, caching the parsed result on the store's LRU
  *  (invalidated by store.saveManifest / weave / erase). Returns null when the
@@ -55,11 +56,9 @@ export async function retrieveForBrain(
   return retrieveMulti(query, [foundation, delta], opts);
 }
 
-// ── Citation resolution ─────────────────────────────────────────────────────────
-// Turns retrieved chunks into user-facing citations with a resolved label and
-// a `kind` the UI links on. Done SERVER-SIDE so no LLM provider can drop a
-// citation just because getNode() returned undefined for a user-node id — the
-// confirmed pre-Phase-4 gap.
+// Convert retrieved chunks into UI-ready citation metadata on the server. This
+// keeps navigation independent of provider output and preserves private source
+// labels without exposing those labels in generated prose.
 
 /** Resolve a single chunk's citation identity, or null if it carries none. */
 function citationFor(chunk: RetrievalChunk, brainId: string | null): Citation | null {

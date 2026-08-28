@@ -62,6 +62,8 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
   const questionRef = useRef<HTMLTextAreaElement>(null);
   const autoSubmitted = useRef(false);
   const pendingConsumed = useRef(false);
+  // A new request cancels the previous one. The sequence number also protects
+  // the screen if an older network response reaches the browser after a newer one.
   const requestSequence = useRef(0);
   const activeRequest = useRef<AbortController | null>(null);
   const nodeTitle = nodeId ? getNode(nodeId)?.title : undefined;
@@ -69,6 +71,8 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
   useEffect(() => { sessionStorage.removeItem(STORAGE_KEY); }, []);
   useEffect(() => { if (turn) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }, [turn]);
 
+  // Automatic delivery and the post-result Actions card use the same client
+  // helpers so retries can reuse this answer instead of generating another one.
   const runDelivery = useCallback(async (result: ApiResponse, selectedFormat: Format, selectedRecipient?: string, question?: string) => {
     if (selectedFormat === "pdf") {
       setDelivery({ kind: "pdf", state: "working" });

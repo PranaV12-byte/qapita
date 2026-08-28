@@ -14,13 +14,12 @@ import type { PlacementPlan } from "./placement";
 
 export type { PlacementPlan, NewNodeProposal } from "./placement";
 
-// ── The weave engine (SPEC-BRAIN.md Phase 3) ────────────────────────────────────
-// Executes a PlacementPlan: chunks + embeds a document, appends it atomically
-// (under the brain mutex) to the brain's delta index, mirroring
-// scripts/ingest/build.ts's addDoc ordering — entries[] and their embed
-// inputs grow in lockstep so vectors.bin row i always == chunks.json[i] ==
-// lexical doc id i. Also removeSource() (filter + full rewrite) and the
-// graph/manifest/catalog/journal bookkeeping around both.
+/**
+ * Applies an approved placement plan to a private Brain. Chunk metadata,
+ * vectors, and lexical entries are written in the same order because each row
+ * position is their shared identity. This module also keeps the manifest,
+ * source catalog, and graph in step when a source is added or removed.
+ */
 
 export type GraphUserNode = { id: string; title: string; createdAt: string };
 export type GraphEdge = { sourceId: string; nodeId: string; passageCount: number };
@@ -419,8 +418,8 @@ export async function removeSource(
       regenerateCatalog(store, brainId, manifest);
     }
 
-    // Edges are removed; an orphaned u-node (now with zero edges) is left in
-    // place for Phase 5's lint to detect and report — not silently deleted.
+    // Edges are removed, but an orphaned private topic stays visible for lint
+    // to report rather than being silently deleted with user context attached.
     const graph = loadGraph(brainId, { store });
     graph.edges = graph.edges.filter((e) => e.sourceId !== sourceId);
     saveGraph(store, brainId, graph);

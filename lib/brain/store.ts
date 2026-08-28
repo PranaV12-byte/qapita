@@ -3,10 +3,12 @@ import path from "node:path";
 import { BRAIN_LRU, BRAIN_MAX_PASSAGES } from "../rag/config";
 import { isValidBrainId } from "./id";
 
-// ── The ONLY module that touches data/brains/** (SPEC-BRAIN.md Sec3.2, Phase 1) ──
-// Owns brain identity validation, directory layout, manifest read/write, atomic
-// writes, per-brain serialization, and a generic loaded-state cache. Deliberately
-// has NO retrieval logic — later phases (weave, retrieval, lint) build on this.
+/**
+ * The only module that owns on-disk Brain data. It validates identities, defines
+ * the per-user directory layout, makes writes atomic, serializes each Brain's
+ * mutations, and caches loaded state. Retrieval and content decisions live in
+ * their dedicated modules so storage remains a small, dependable boundary.
+ */
 
 const DEFAULT_BRAINS_DIR = process.env.NETLIFY
   ? path.join(process.env.TMPDIR ?? "/tmp", "equityiq-brains")
@@ -69,8 +71,8 @@ export function atomicWriteFileSync(filePath: string, data: string | Buffer): vo
   fs.renameSync(tmp, filePath);
 }
 
-/** Small Map-based LRU (insertion-order = recency; re-inserting on access bumps
- *  it). Generic — Phase 4's retrieval layer decides what it actually caches. */
+/** Small Map-based LRU. Re-inserting an item marks it as recently used, while
+ *  callers decide which safe-to-reload objects are worth caching. */
 export class BoundedCache<T> {
   private readonly map = new Map<string, T>();
   constructor(private readonly max: number) {}

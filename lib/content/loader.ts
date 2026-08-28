@@ -11,6 +11,9 @@ export type LoadedArticle = {
   content: string;
 };
 
+// MDX frontmatter is content-authored, while taxonomy routes are application
+// owned. This check prevents a valid-looking article from claiming another
+// article's route or introducing a duplicate public URL.
 function canonicalNodeForArticle(article: Article) {
   const pillar = PILLARS.find((item) => item.id === article.pillar);
   const node = pillar?.nodes.find((item) => item.id === article.id);

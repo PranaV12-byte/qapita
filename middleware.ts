@@ -3,11 +3,9 @@ import { auth0, isAuth0Configured } from "./lib/auth0";
 import { BRAIN_COOKIE, BRAIN_HEADER, isValidBrainId } from "./lib/brain/id";
 
 /**
- * Guarantees every visitor has an anonymous brain identity — the seam that
- * lets "each user has their own wiki" work with zero accounts (SPEC-BRAIN.md
- * Sec3.1). A first-time visitor gets a fresh id; it's also forwarded via a
- * request header so THIS request's route handler can read it immediately,
- * without waiting for the Set-Cookie round-trip.
+ * Gives every visitor a private anonymous Brain identity, even before sign-in.
+ * A new value is forwarded on the same request as well as set in a cookie, so
+ * route handlers can safely use it without waiting for a second page load.
  */
 export { BRAIN_COOKIE, BRAIN_HEADER };
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;

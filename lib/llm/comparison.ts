@@ -7,6 +7,9 @@ import { getNode } from "../content/tree";
 import { isComparisonQuery } from "./grounding";
 import { shortenTitle } from "./title";
 
+// This contract is shared by the provider, on-screen comparison card, PDF, and
+// email. Keeping its limits here stops one surface from accepting a table that
+// another surface cannot render safely.
 const comparisonRowSchema = z.object({
   feature: z.string().trim().min(1).max(100),
   values: z.array(z.string().trim().min(1).max(420)).min(2).max(4),

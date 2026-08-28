@@ -88,10 +88,9 @@ export const CONTEXTUAL_ENRICHMENT = bool(
 export const CHUNK_MAX_CHARS = num(process.env.CHUNK_MAX_CHARS, 500);
 export const CHUNK_OVERLAP = num(process.env.CHUNK_OVERLAP, 80);
 
-// ── Second Brain (SPEC-BRAIN.md) ─────────────────────────────────────────────────
-// Per-user wiki: uploaded-content weighting, graph-aware neighbour expansion,
-// ingest caps, and lint cadence. Additive — nothing here is read by the
-// existing retrieval path until later phases wire it in.
+// Private Brain settings: uploaded-content weighting, graph-aware neighbour
+// expansion, ingestion caps, and lint cadence. They are additive; the
+// foundation-only application path does not read them without a Brain.
 /** Tier weight for user-uploaded content in retrieval scoring. */
 export const USER_WEIGHT = num(process.env.USER_WEIGHT, 1.0);
 /** Master switch for post-selection neighbour expansion in retrieveMulti. */

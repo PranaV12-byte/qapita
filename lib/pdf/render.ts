@@ -60,6 +60,11 @@ export type RenderArtifactPdfInput = {
   comparison?: ComparisonData;
 };
 
+/**
+ * The single PDF rendering entry point for direct downloads and email
+ * attachments. It accepts older positional calls for compatibility, but always
+ * normalizes the result before handing it to the shared React-PDF template.
+ */
 function normalizeInput(input: RenderArtifactPdfInput): RenderArtifactPdfInput {
   const comparison = input.comparison
     ? ComparisonDataSchema.parse(normalizeComparison(input.comparison))

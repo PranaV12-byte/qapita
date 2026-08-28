@@ -34,6 +34,11 @@ function renderInline(text: string): React.ReactNode {
   });
 }
 
+/**
+ * The answer renderer intentionally supports a small Markdown subset rather
+ * than injecting generated HTML. That keeps links, lists, and emphasis useful
+ * without letting provider output control the page structure.
+ */
 function SimpleMarkdown({ text }: { text: string }) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];

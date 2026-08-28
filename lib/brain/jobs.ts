@@ -8,12 +8,11 @@ import { runHealthCheck, type HealthCheckResult } from "./healthCheck";
 import { planPlacement, type PlacementPlan } from "./placement";
 import { weaveSource, getExistingSourceProbes, type WeaveReport } from "./weave";
 
-// ── Shared brain embed cache (V0 / SPEC-VAULT §3) ───────────────────────────────
-// User uploads embed through the same content-hash cache the offline corpus
-// build uses, so re-uploading identical content (or overlapping sections) is a
-// cache hit — zero embedder calls. Process-wide singleton; flushed after each
-// weave. Keyed by the exact embed-input string, so any chunk/heading change is
-// a targeted miss.
+/**
+ * Upload jobs share an embedding cache with the offline corpus build. Reusing
+ * an identical passage avoids unnecessary model work, while the exact embed
+ * input remains the key so a changed heading or chunk is always recomputed.
+ */
 const BRAIN_EMBED_CACHE_FILE = path.join(process.cwd(), "data", ".brain-embed-cache.json");
 let _brainEmbedCache: EmbedCache | null = null;
 function brainEmbedCache(): EmbedCache {
@@ -53,10 +52,9 @@ function sectionVectorsFromChunks(
   });
 }
 
-// ── In-memory ingest job registry (SPEC-BRAIN.md Phase 3) ───────────────────────
-// Deliberately in-memory, not persisted: a server restart loses only
-// in-flight jobs (the client sees a clean "please re-upload"), never
-// already-woven content — that's durable the moment weaveSource() returns.
+// Tracks only in-flight uploads. It is deliberately not persisted: a server
+// restart may require a re-upload, but never changes material already woven
+// into a Brain.
 
 export type JobStage = "extracting" | "vetting" | "weaving" | "done" | "needs-review" | "blocked";
 

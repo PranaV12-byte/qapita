@@ -4,12 +4,11 @@ import { GENERAL_NODE_ID, GENERAL_NODE_TITLE } from "../rag/config";
 import { brainStore, type BrainStore, type BrainAnswer } from "./store";
 import { loadGraph } from "./weave";
 
-// ── Graph render model (SPEC-BRAIN.md Phase 6) ──────────────────────────────────
-// Composes the shared foundation (pillars → topics → general, from tree.ts)
-// with a per-brain overlay (u-nodes, source satellites, weave edges,
-// crossLinks, summaries, backlinks) into ONE positioned graph. The layout is a
-// DETERMINISTIC radial placement — same inputs → identical positions (no
-// Math.random), so it's snapshot-stable and SSR/CSR-consistent.
+/**
+ * Builds the graph shown in Brain by combining the shared taxonomy with one
+ * user's sources, topics, and backlinks. Its deterministic layout gives the
+ * same data the same positions, which keeps server and browser renders aligned.
+ */
 
 export type RenderNodeKind = "pillar" | "topic" | "general" | "user-node" | "source";
 export type RenderEdgeKind = "tree" | "related" | "weave";
@@ -32,8 +31,7 @@ export type RenderNode = {
   /** Topic/user-node only: the source ids feeding it. */
   feedingSourceIds?: string[];
   pillarSlug?: string;
-  /** Number of edges touching this node — the graph renderer sizes nodes by it
-   *  so well-connected hubs read larger (SPEC-VAULT V2). */
+  /** Number of edges touching this node. The renderer uses it to make connected hubs easier to spot. */
   degree?: number;
 };
 

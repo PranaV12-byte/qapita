@@ -27,6 +27,8 @@ const payloadSchema = z.object({
 });
 
 function deliveryAppUrl(req: NextRequest): string {
+  // Proxy headers are useful in a deployment, but they remain untrusted input.
+  // Only a conservative host/protocol pair may shape the link placed in email.
   const forwardedHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
   const forwardedProtocol = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
   const safeHost = forwardedHost && /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(forwardedHost)
@@ -47,6 +49,8 @@ function deliveryAppUrl(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Delivery is authenticated and builds the email plus its PDF attachment from
+  // the same validated artifact, so a recipient never receives mismatched text.
   if (!isAuth0Configured || !auth0) {
     return NextResponse.json({ error: "authentication_not_configured" }, { status: 503 });
   }
