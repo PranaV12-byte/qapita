@@ -3,18 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ArtifactResult from "@/components/ArtifactResult";
+import ComparisonResult from "@/components/ComparisonResult";
 import PreparingAnswer from "@/components/generate/PreparingAnswer";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getNode } from "@/lib/content/tree";
 import { downloadArtifactPdf, deliverArtifactEmail } from "@/lib/artifact/delivery-client";
 import { canDeliverGeneratedAnswer, isSubmitDisabled } from "@/lib/generate-utils";
+import type { ComparisonData } from "@/lib/llm/types";
 
 type Citation = { kind?: "topic" | "source" | "user-node"; nodeId?: string; sourceId?: string; title: string };
 type Format = "reference" | "pdf" | "email" | "comparison";
-type ApiResponse = { artifactId: string; title: string; bodyMarkdown: string; quickShare: string; citations: Citation[]; status: string; answerAvailable?: boolean; fallbackUsed: boolean; fallbackScenario?: { id: string; label: string }; scenario: { id: string; label: string } | null; logged: boolean };
+type ApiResponse = { artifactId: string; title: string; bodyMarkdown: string; quickShare: string; citations: Citation[]; comparison?: ComparisonData; status: string; answerAvailable?: boolean; fallbackUsed: boolean; fallbackScenario?: { id: string; label: string }; scenario: { id: string; label: string } | null; logged: boolean };
 type Turn = { id: number; query: string; format: Format; result: ApiResponse };
 type DeliveryState = { kind: "pdf" | "email"; state: "working" | "success" | "error"; recipient?: string } | null;
-type PendingEmailIntent = { query: string; recipient: string; nodeId?: string; createdAt: number };
+type PendingEmailIntent = { query: string; recipient: string; nodeId?: string; format: "email"; createdAt: number };
 
 const PENDING_EMAIL_KEY = "equityiq:pending-email-intent:v1";
 const STORAGE_KEY = "equityiq:drafts:v2";
@@ -24,10 +26,10 @@ const commonQuestions = [
   { label: "Equity Lifecycle", question: "An employee was terminated last month. What happens to their unvested RSUs and what is the exercise window for their options?" },
   { label: "Year-end Reporting", question: "What do I need to file at year-end for ISO exercises? Walk me through Forms 3921, 3922 and W-2 adjustments." },
 ];
-const formats: Array<{ id: Exclude<Format, "reference">; label: string }> = [
-  { id: "pdf", label: "PDF" },
-  { id: "email", label: "Email" },
-  { id: "comparison", label: "Comparison table" },
+const formats: Array<{ id: Exclude<Format, "reference">; label: string; description: string }> = [
+  { id: "pdf", label: "PDF", description: "Show the answer and download a copy." },
+  { id: "email", label: "Email", description: "Show the answer and send it by email." },
+  { id: "comparison", label: "Comparison table", description: "Show a side-by-side answer." },
 ];
 const submitLabels: Record<Format, string> = { reference: "Get my answer", pdf: "Generate and download", email: "Generate and send", comparison: "Generate comparison" };
 type Props = { initialQuery?: string; initialNodeId?: string };
@@ -67,16 +69,16 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
   useEffect(() => { sessionStorage.removeItem(STORAGE_KEY); }, []);
   useEffect(() => { if (turn) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }, [turn]);
 
-  const runDelivery = useCallback(async (result: ApiResponse, selectedFormat: Format, selectedRecipient?: string) => {
+  const runDelivery = useCallback(async (result: ApiResponse, selectedFormat: Format, selectedRecipient?: string, question?: string) => {
     if (selectedFormat === "pdf") {
       setDelivery({ kind: "pdf", state: "working" });
-      try { await downloadArtifactPdf(result); setDelivery({ kind: "pdf", state: "success" }); }
+      try { await downloadArtifactPdf({ ...result, question }); setDelivery({ kind: "pdf", state: "success" }); }
       catch { setDelivery({ kind: "pdf", state: "error" }); }
       return;
     }
     if (selectedFormat === "email") {
       setDelivery({ kind: "email", state: "working" });
-      try { const output = await deliverArtifactEmail(result, selectedRecipient); setDelivery({ kind: "email", state: "success", recipient: output.recipientMasked || selectedRecipient }); }
+      try { const output = await deliverArtifactEmail({ ...result, question }, selectedRecipient); setDelivery({ kind: "email", state: "success", recipient: output.recipientMasked || selectedRecipient }); }
       catch { setDelivery({ kind: "email", state: "error", recipient: selectedRecipient }); }
     }
   }, []);
@@ -98,7 +100,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
       if (requestId !== requestSequence.current) return;
       setTurn({ id: Date.now(), query: submitQuery, format: submitFormat, result });
       if (canDeliverGeneratedAnswer(result.answerAvailable)) {
-        await runDelivery(result, submitFormat, submitRecipient);
+        await runDelivery(result, submitFormat, submitRecipient, submitQuery);
       }
     } catch (requestError) {
       if (requestId !== requestSequence.current || (requestError instanceof DOMException && requestError.name === "AbortError")) return;
@@ -109,7 +111,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
   const requestSubmit = useCallback(() => {
     if (format === "email" && !user) {
       if (emailMode === "production" && !recipient.trim()) { setError(true); return; }
-      sessionStorage.setItem(PENDING_EMAIL_KEY, JSON.stringify({ query, recipient, nodeId, createdAt: Date.now() } satisfies PendingEmailIntent));
+      sessionStorage.setItem(PENDING_EMAIL_KEY, JSON.stringify({ query, recipient, nodeId, format: "email", createdAt: Date.now() } satisfies PendingEmailIntent));
       window.dispatchEvent(new Event("equityiq:open-sign-in")); return;
     }
     void doSubmit(query);
@@ -134,7 +136,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
     window.scrollTo({ top: 0, behavior: "smooth" });
     window.setTimeout(() => questionRef.current?.focus(), 250);
   };
-  const retryDelivery = () => { if (turn && delivery) void runDelivery(turn.result, delivery.kind, recipient); };
+  const retryDelivery = () => { if (turn && delivery) void runDelivery(turn.result, delivery.kind, delivery.recipient || recipient, turn.query); };
   const deliveryMessage = delivery?.state === "success" ? delivery.kind === "pdf" ? "PDF downloaded" : `Email sent to ${delivery.recipient || "the selected recipient"}` : delivery?.state === "error" ? delivery.kind === "pdf" ? "PDF could not be created" : "Email could not be sent" : delivery?.state === "working" ? delivery.kind === "pdf" ? "Preparing PDF" : "Sending email" : null;
 
   return <div className="v9-ask-page">
@@ -145,7 +147,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
           <textarea ref={questionRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={nodeTitle ? `Ask about ${nodeTitle}` : "e.g. I need a side-by-side of ISOs vs NSOs for a board meeting. What are the tax differences and when would you use one over the other?"} className="v9-ask-textarea" aria-label="Your question" />
           {nodeTitle && <p className="v9-topic-context">Knowledge Tree topic: {nodeTitle}</p>}
           <div className="v9-format-cards" aria-label="Optional output format">
-            {formats.map((item) => <button key={item.id} type="button" aria-pressed={format === item.id} className={format === item.id ? "is-active" : ""} onClick={() => { const nextFormat = format === item.id ? "reference" : item.id; setFormat(nextFormat); setError(false); if (nextFormat !== "email") sessionStorage.removeItem(PENDING_EMAIL_KEY); }}><span>{item.label}</span></button>)}
+            {formats.map((item) => <button key={item.id} type="button" aria-pressed={format === item.id} className={format === item.id ? "is-active" : ""} onClick={() => { const nextFormat = format === item.id ? "reference" : item.id; setFormat(nextFormat); setError(false); if (nextFormat !== "email") sessionStorage.removeItem(PENDING_EMAIL_KEY); }}><strong>{item.label}</strong><span>{item.description}</span></button>)}
           </div>
           {format === "email" && <div className="v9-email-choice">{emailMode === "production" ? <input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@company.com" aria-label="Recipient email" /> : <p>{emailConfigured ? "Demo mode sends to the configured test inbox." : "Email delivery is not configured in this environment."}</p>}</div>}
           <button type="button" onClick={requestSubmit} disabled={isSubmitDisabled(query, loading)} className="v9-primary-button v9-get-answer">{submitLabels[format]}<span aria-hidden="true">→</span></button>
@@ -156,10 +158,10 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
       </>}
       {loading && <PreparingAnswer />}
       {turn && <div ref={resultRef} className="v9-result-stack">
-        <section className="v9-result-toolbar"><div><span>{canDeliverGeneratedAnswer(turn.result.answerAvailable) ? "Your answer" : "We couldn't answer this yet"}</span><p>{turn.query}</p>{deliveryMessage && <small className={delivery?.state === "error" ? "is-error" : ""}>{deliveryMessage}{delivery?.state === "error" && <button type="button" onClick={retryDelivery}>Retry {delivery.kind === "pdf" ? "download" : "sending"}</button>}</small>}</div><button type="button" className="v9-ask-another" onClick={reset}>Ask another question</button></section>
-        {canDeliverGeneratedAnswer(turn.result.answerAvailable) ? <>
+        <section className="v9-result-toolbar"><div><span>{canDeliverGeneratedAnswer(turn.result.answerAvailable) && (turn.format !== "comparison" || turn.result.comparison) ? "Your answer" : "We couldn't answer this yet"}</span><p>{turn.query}</p>{deliveryMessage && <small className={delivery?.state === "error" ? "is-error" : ""}>{deliveryMessage}{delivery?.state === "error" && <button type="button" onClick={retryDelivery}>Retry {delivery.kind === "pdf" ? "download" : "sending"}</button>}</small>}</div><button type="button" className="v9-ask-another" onClick={reset}>Ask another question</button></section>
+        {canDeliverGeneratedAnswer(turn.result.answerAvailable) && (turn.format !== "comparison" || turn.result.comparison) ? <>
           {turn.result.fallbackUsed && (turn.result.fallbackScenario ?? turn.result.scenario)?.label && <p className="v9-fallback">This question is closest to <strong>{(turn.result.fallbackScenario ?? turn.result.scenario)?.label}</strong>.</p>}
-          <ArtifactResult artifactId={turn.result.artifactId} title={turn.result.title} question={turn.query} bodyMarkdown={turn.result.bodyMarkdown} quickShare={turn.result.quickShare} citations={turn.result.citations} />
+          {turn.format === "comparison" && turn.result.comparison ? <ComparisonResult comparison={turn.result.comparison} /> : <ArtifactResult artifactId={turn.result.artifactId} title={turn.result.title} question={turn.query} bodyMarkdown={turn.result.bodyMarkdown} quickShare={turn.result.quickShare} citations={turn.result.citations} comparison={turn.result.comparison} />}
         </> : <section className="v9-no-answer" role="status">
           <span className="v9-no-answer-icon" aria-hidden="true">?</span><p className="v9-no-answer-eyebrow">More context needed</p><h2>We couldn&apos;t find a confident answer</h2>
           <p>We don&apos;t have enough relevant guidance to answer this question accurately yet. Add a little more detail, narrow the question, or explore the available topics.</p>

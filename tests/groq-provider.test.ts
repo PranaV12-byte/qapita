@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { GroqProvider } from "../lib/llm/groq";
 import type { RetrievalChunk } from "../lib/rag/types";
+import { getQueryIntent } from "../lib/llm/query-intent";
 
 const scrapeChunk: RetrievalChunk = {
   tier: "scrape",
@@ -10,6 +11,29 @@ const scrapeChunk: RetrievalChunk = {
   score: 1,
   cosine: 1,
 };
+
+const comparisonChunks: RetrievalChunk[] = [
+  {
+    tier: "curated",
+    nodeId: "1.1",
+    title: "Incentive stock options",
+    text: "ISOs can receive special tax treatment when statutory holding requirements are met.",
+    parentText: "ISOs can receive special tax treatment when statutory holding requirements are met. The exercise spread can create an AMT preference item.",
+    parentId: "1.1:parent",
+    score: 1,
+    cosine: 0.9,
+  },
+  {
+    tier: "curated",
+    nodeId: "1.2",
+    title: "Non-qualified stock options",
+    text: "NSOs are generally taxed on the exercise spread as ordinary income.",
+    parentText: "NSOs are generally taxed on the exercise spread as ordinary income. The employer usually reports the spread through payroll.",
+    parentId: "1.2:parent",
+    score: 1,
+    cosine: 0.89,
+  },
+];
 
 describe("Groq provider reliability contract", () => {
   beforeEach(() => {
@@ -54,5 +78,62 @@ describe("Groq provider reliability contract", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.bodyMarkdown).toContain("knowledge base");
+  });
+
+  it("keeps definition grounding when Groq falls back to Mock", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("timeout"));
+    vi.stubGlobal("fetch", fetchMock);
+    const query = "What is an ISO?";
+    const intent = getQueryIntent(query);
+    const result = await new GroqProvider().generate(query, [
+      {
+        tier: "curated",
+        nodeId: "1.1",
+        title: "Incentive stock options (ISOs)",
+        headingPath: "Overview",
+        parentId: "article:1.1#summary",
+        sectionKind: "summary",
+        text: "Incentive stock options (ISOs) are a type of employee stock option that can qualify for favorable tax treatment.",
+        parentText: "Incentive stock options (ISOs) are a type of employee stock option that can qualify for favorable tax treatment.",
+        score: 1,
+        cosine: 0.9,
+      },
+    ], { queryIntent: intent });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.title).toBe("Incentive stock options (ISOs)");
+    expect(result.bodyMarkdown).toContain("a type of employee stock option");
+  });
+
+  it("uses the comparison schema and returns deterministic table prose", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({
+        title: "Ignored title",
+        bodyMarkdown: "Ignored body",
+        citations: [{ nodeId: "1.1", sourceId: null, title: "ignored" }, { nodeId: "1.2", sourceId: null, title: "ignored" }],
+        quickShare: "Ignored share",
+        comparison: {
+          title: "ISOs vs NSOs:.",
+          subtitle: "A concise comparison.",
+          columns: ["ISOs", "NSOs"],
+          rows: [{ feature: "Tax treatment", values: ["Special treatment may apply.", "Ordinary income generally applies."] }],
+          takeaway: "The award terms and timing matter.",
+        },
+      }) } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new GroqProvider().generate("What is the difference between ISOs and NSOs?", comparisonChunks, { format: "comparison" });
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body as string) as {
+      max_tokens: number;
+      response_format: { json_schema: { schema: { properties: { comparison?: unknown } } } };
+    };
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(payload.max_tokens).toBe(3500);
+    expect(payload.response_format.json_schema.schema.properties.comparison).toBeDefined();
+    expect(result.comparison?.columns).toEqual(["ISOs", "NSOs"]);
+    expect(result.bodyMarkdown).not.toContain("|");
+    expect(result.bodyMarkdown).not.toContain(":.");
   });
 });

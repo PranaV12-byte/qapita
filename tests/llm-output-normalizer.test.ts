@@ -42,4 +42,37 @@ describe("generated artifact normalizer", () => {
     expect(normalized.bodyMarkdown).toBe("## Tax treatment\n\nSee.");
     expect(normalized.quickShare).toBe("Tax treatment: See.");
   });
+
+  it("normalizes nested comparison prose without changing citations", () => {
+    const citations: ArtifactResult["citations"] = [{ nodeId: "1.1", title: "ISOs" }];
+    const artifact: ArtifactResult = {
+      title: "Comparison",
+      bodyMarkdown: "## Comparison",
+      quickShare: "Comparison",
+      citations,
+      comparison: {
+        title: "ISOs vs NSOs:.",
+        subtitle: "Guidance from NASPP — kept concise.",
+        columns: ["ISOs【nodeId=1.1】", "NSOs【sourceId=upload-1】"],
+        rows: [{
+          feature: "Tax treatment:.",
+          values: ["AMT may apply — depending on the spread.", "MyStockOptions is not a generated source."],
+        }],
+        takeaway: "Use the knowledge base – and your plan terms – together.",
+      },
+    };
+
+    const normalized = normalizeGeneratedArtifact(artifact);
+    expect(normalized.citations).toBe(citations);
+    expect(normalized.comparison).toEqual({
+      title: "ISOs vs NSOs:",
+      subtitle: "Guidance from the knowledge base - kept concise.",
+      columns: ["ISOs", "NSOs"],
+      rows: [{
+        feature: "Tax treatment:",
+        values: ["AMT may apply - depending on the spread.", "the knowledge base is not a generated source."],
+      }],
+      takeaway: "Use the knowledge base - and your plan terms - together.",
+    });
+  });
 });

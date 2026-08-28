@@ -10,6 +10,8 @@ import type { ArtifactFormat } from "@/lib/llm/types";
 import { normalizeGeneratedArtifact } from "@/lib/llm/output-normalizer";
 import { selectAnswerGrounding } from "@/lib/llm/grounding";
 import { gracefulUnknown, isGracefulUnknownArtifact } from "@/lib/llm/mock";
+import { buildDefinitionRetrievalQuery, getQueryIntent } from "@/lib/llm/query-intent";
+import { getNode } from "@/lib/content/tree";
 import { z } from "zod";
 import { primaryLegacyTopicId, toV9TopicId } from "@/lib/content/v9-taxonomy";
 
@@ -57,25 +59,41 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const detectedIntent = getQueryIntent(query);
+  const definitionTopic = detectedIntent.kind === "definition"
+    ? (getNode(boostNodeId ?? "") ?? getNode(detectedIntent.nodeId))
+    : undefined;
+  const definitionNodeId = definitionTopic?.id;
+  const queryIntent = detectedIntent.kind === "definition" && definitionTopic
+    ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title }
+    : detectedIntent;
+  const retrievalQuery = detectedIntent.kind === "definition" && definitionTopic
+    ? buildDefinitionRetrievalQuery(query, definitionTopic)
+    : query;
+
   // Brain-aware: retrieve against the caller's wiki (foundation ⊕ their delta).
   // No brain / an empty brain → foundation-only, byte-identical to before.
   const brainId = getBrainId(req.headers);
   let retrieval;
   try {
-    retrieval = await retrieveForBrain(query, brainId, { nodeId: boostNodeId });
+    retrieval = await retrieveForBrain(retrievalQuery, brainId, { nodeId: boostNodeId });
   } catch (error) {
     console.error("Artifact retrieval failed", error);
     return NextResponse.json({ error: "retrieval_unavailable" }, { status: 503 });
   }
 
-  const grounding = selectAnswerGrounding(query, retrieval.chunks);
+  const grounding = selectAnswerGrounding(query, retrieval.chunks, {
+    definitionNodeId,
+    intent: queryIntent,
+  });
   let result;
   try {
     const provider = getLLMProvider();
     result = normalizeGeneratedArtifact(
       grounding.answerable
-        ? await provider.generate(query, grounding.chunks, { format })
-        : gracefulUnknown(query)
+        ? await provider.generate(query, grounding.chunks, { format, queryIntent })
+        : gracefulUnknown(query),
+      query
     );
   } catch (error) {
     console.error("Artifact generation failed", error);
@@ -120,6 +138,7 @@ export async function POST(req: NextRequest) {
     bodyMarkdown: result.bodyMarkdown,
     quickShare: result.quickShare,
     citations: result.citations,
+    ...(result.comparison ? { comparison: result.comparison } : {}),
     status: "generated",
     answerAvailable,
     fallbackUsed: retrieval.fallbackUsed || !grounding.answerable,

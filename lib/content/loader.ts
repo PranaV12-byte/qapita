@@ -11,6 +11,32 @@ export type LoadedArticle = {
   content: string;
 };
 
+function canonicalNodeForArticle(article: Article) {
+  const pillar = PILLARS.find((item) => item.id === article.pillar);
+  const node = pillar?.nodes.find((item) => item.id === article.id);
+  if (!pillar || !node || node.slug !== article.slug || node.pillarSlug !== pillar.slug) {
+    throw new Error(`Article ${article.id} does not match a canonical taxonomy route.`);
+  }
+  return node;
+}
+
+function validateArticleCollection(articles: LoadedArticle[]): LoadedArticle[] {
+  const ids = new Set<string>();
+  const routes = new Set<string>();
+  for (const article of articles) {
+    const node = canonicalNodeForArticle(article.frontmatter);
+    if (ids.has(article.frontmatter.id)) {
+      throw new Error(`Duplicate article id ${article.frontmatter.id}.`);
+    }
+    ids.add(article.frontmatter.id);
+
+    const route = `/a/${node.pillarSlug}/${node.slug}`;
+    if (routes.has(route)) throw new Error(`Duplicate canonical article route ${route}.`);
+    routes.add(route);
+  }
+  return articles;
+}
+
 export async function loadArticle(
   pillarSlug: string,
   slug: string
@@ -21,6 +47,7 @@ export async function loadArticle(
   const raw = fs.readFileSync(filePath, "utf-8");
   const { data, content } = matter(raw);
   const frontmatter = ArticleSchema.parse(data);
+  canonicalNodeForArticle(frontmatter);
   return { frontmatter, content };
 }
 
@@ -47,5 +74,5 @@ export async function loadAllArticles(): Promise<LoadedArticle[]> {
     }
   }
 
-  return results;
+  return validateArticleCollection(results);
 }

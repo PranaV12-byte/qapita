@@ -1,5 +1,6 @@
 import { relevanceTokens } from "../rag/relevance";
 import type { RetrievalChunk } from "../rag/types";
+import type { QueryIntent } from "./query-intent";
 
 const GENERIC_TERMS = new Set([
   "company", "employee", "share", "award", "option", "work", "difference",
@@ -24,6 +25,12 @@ export type GroundingSelection = {
   answerable: boolean;
 };
 
+export type GroundingOptions = {
+  /** Exact canonical node for a simple definition question. */
+  definitionNodeId?: string;
+  intent?: QueryIntent;
+};
+
 function chunkText(chunk: RetrievalChunk): string {
   return [chunk.title, chunk.headingPath, chunk.text, chunk.parentText]
     .filter(Boolean)
@@ -33,16 +40,27 @@ function chunkText(chunk: RetrievalChunk): string {
 }
 
 function phrasesFor(query: string): string[] {
-  const words = query.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const words = relevanceTokens(query).filter((word) => !GENERIC_TERMS.has(word));
   const phrases = new Set<string>();
-  for (let index = 0; index < words.length - 1; index += 1) {
-    const pair = words.slice(index, index + 2);
-    if (pair.some((word) => DOMAIN_ANCHORS.has(word))) phrases.add(pair.join(" "));
+  for (let size = 2; size <= 3; size += 1) {
+    for (let index = 0; index <= words.length - size; index += 1) {
+      const phrase = words.slice(index, index + size);
+      if (phrase.some((word) => DOMAIN_ANCHORS.has(word))) phrases.add(phrase.join(" "));
+    }
   }
   return [...phrases];
 }
 
-function isComparison(query: string): boolean {
+function isDefinitionEvidence(chunk: RetrievalChunk): boolean {
+  if (chunk.sectionKind === "summary") return true;
+  const heading = `${chunk.headingPath ?? ""} ${chunk.title ?? ""}`.toLowerCase();
+  if (/\boverview\b|\bdefinition\b|\bwhat .+\b(?:is|are)\b/.test(heading)) return true;
+  return /\b(?:is|are)\s+(?:a|an)\s+(?:type|form|kind|class|contract|right|interest|plan|award|method)\b/i.test(
+    chunk.text + " " + (chunk.parentText ?? "")
+  );
+}
+
+export function isComparisonQuery(query: string): boolean {
   return /\b(?:vs\.?|versus|compare|comparison|difference between)\b/i.test(query);
 }
 
@@ -51,8 +69,14 @@ function isComparison(query: string): boolean {
  * both providers from a broad retrieval set that happens to share generic equity
  * vocabulary with a narrow question.
  */
-export function selectAnswerGrounding(query: string, chunks: RetrievalChunk[]): GroundingSelection {
+export function selectAnswerGrounding(
+  query: string,
+  chunks: RetrievalChunk[],
+  options: GroundingOptions = {}
+): GroundingSelection {
   const seen = new Set<string>();
+  const definitionNodeId = options.definitionNodeId ??
+    (options.intent?.kind === "definition" ? options.intent.nodeId : undefined);
   const deduped = [...chunks]
     .sort((left, right) => (right.cosine ?? 0) - (left.cosine ?? 0))
     .filter((chunk) => {
@@ -61,12 +85,15 @@ export function selectAnswerGrounding(query: string, chunks: RetrievalChunk[]): 
       seen.add(key);
       return true;
     });
+  const scoped = definitionNodeId
+    ? deduped.filter((chunk) => chunk.nodeId === definitionNodeId)
+    : deduped;
 
   const meaningfulTerms = relevanceTokens(query).filter((term) => !GENERIC_TERMS.has(term));
   const anchors = meaningfulTerms.filter((term) => DOMAIN_ANCHORS.has(term) || /\d/.test(term));
   const phrases = phrasesFor(query);
 
-  const scored = deduped.map<ScoredChunk>((chunk) => {
+  const scored = scoped.map<ScoredChunk>((chunk) => {
     const text = chunkText(chunk);
     const terms = new Set(relevanceTokens([chunk.title, chunk.headingPath, chunk.text, chunk.parentText].filter(Boolean).join(" ")));
     const phraseMatches = phrases.filter((phrase) => text.includes(phrase)).length;
@@ -84,23 +111,46 @@ export function selectAnswerGrounding(query: string, chunks: RetrievalChunk[]): 
 
   if (!scored.length) return { chunks: [], answerable: false };
 
+  if (definitionNodeId) {
+    const definitionEvidence = scored
+      .filter((entry) => isDefinitionEvidence(entry.chunk))
+      .sort((left, right) => {
+        const leftSummary = left.chunk.sectionKind === "summary" ? 1 : 0;
+        const rightSummary = right.chunk.sectionKind === "summary" ? 1 : 0;
+        return rightSummary - leftSummary || right.score - left.score;
+      });
+    if (!definitionEvidence.length) return { chunks: [], answerable: false };
+
+    const selected = [
+      ...definitionEvidence,
+      ...scored.filter((entry) => !definitionEvidence.includes(entry)),
+    ];
+    return {
+      chunks: selected.slice(0, 4).map((entry) => entry.chunk),
+      answerable: true,
+    };
+  }
+
   scored.sort((left, right) => right.score - left.score);
   let selected = scored;
   const exactPhraseLead = scored.find((entry) => entry.phraseMatches > 0);
-  if (exactPhraseLead?.chunk.nodeId && !isComparison(query)) {
+  if (exactPhraseLead?.chunk.nodeId && !isComparisonQuery(query)) {
     selected = scored.filter((entry) => entry.chunk.nodeId === exactPhraseLead.chunk.nodeId);
   }
 
-  if (isComparison(query)) {
+  if (isComparisonQuery(query)) {
     const selectedNodes = new Set<string>();
     selected = selected.filter((entry) => {
       const nodeId = entry.chunk.nodeId ?? `source:${entry.chunk.sourceId ?? "none"}`;
       if (selectedNodes.has(nodeId)) return true;
-      if (selectedNodes.size >= 3) return false;
+      if (selectedNodes.size >= 4) return false;
       selectedNodes.add(nodeId);
       return true;
     });
   }
 
-  return { chunks: selected.slice(0, 4).map((entry) => entry.chunk), answerable: true };
+  return {
+    chunks: selected.slice(0, isComparisonQuery(query) ? 8 : 4).map((entry) => entry.chunk),
+    answerable: true,
+  };
 }

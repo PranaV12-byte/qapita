@@ -27,6 +27,8 @@ export type ChunkMeta = {
   headingPath?: string;
   /** Stable id of the parent section, for context expansion at generation time. */
   parentId?: string;
+  /** Optional marker for synthetic overview evidence added to the index. */
+  sectionKind?: "summary";
   text: string;
   isScenario?: false;
 };

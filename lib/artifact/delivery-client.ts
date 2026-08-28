@@ -1,3 +1,5 @@
+import type { ComparisonData } from "@/lib/llm/types";
+
 export type DeliveryCitation = {
   kind?: "topic" | "source" | "user-node";
   nodeId?: string;
@@ -10,6 +12,8 @@ export type DeliveryArtifact = {
   title: string;
   bodyMarkdown: string;
   citations: DeliveryCitation[];
+  question?: string;
+  comparison?: ComparisonData;
 };
 
 export async function downloadArtifactPdf(artifact: DeliveryArtifact): Promise<void> {
@@ -18,8 +22,10 @@ export async function downloadArtifactPdf(artifact: DeliveryArtifact): Promise<v
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       title: artifact.title,
+      question: artifact.question,
       bodyMarkdown: artifact.bodyMarkdown,
       citations: artifact.citations,
+      comparison: artifact.comparison,
     }),
   });
   if (!response.ok) throw new Error("pdf_failed");
@@ -47,8 +53,10 @@ export async function deliverArtifactEmail(
       channel: "email",
       email: email || undefined,
       title: artifact.title,
+      question: artifact.question,
       bodyMarkdown: artifact.bodyMarkdown,
       citations: artifact.citations,
+      comparison: artifact.comparison,
     }),
   });
   const result = (await response.json().catch(() => ({}))) as {

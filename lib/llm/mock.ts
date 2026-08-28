@@ -6,6 +6,12 @@ import { groundedEvidenceScore, hasGroundedEvidence } from "../rag/relevance";
 import { getEmbedder } from "../rag/embedder";
 import { cosineSimilarity } from "../rag/cosine";
 import { titleFromQuery } from "./title";
+import {
+  buildGroundedComparison,
+  comparisonToMarkdown,
+  comparisonToQuickShare,
+  wantsStructuredComparison,
+} from "./comparison";
 
 /** Exported so lib/llm/groq.ts can enforce quickShare's "concise plaintext"
  *  contract as a backstop, the same way it enforces tone via cleanProse. */
@@ -211,6 +217,43 @@ async function composeSentenceAnswer(
   return { bodyMarkdown: cleaned.join("\n\n"), quickShare: plain.join(" ") };
 }
 
+function composeDefinitionAnswer(
+  chunks: RetrievalChunk[]
+): { bodyMarkdown: string; quickShare: string } | null {
+  const ordered = [...chunks].sort((left, right) => {
+    const leftSummary = left.sectionKind === "summary" ? 1 : 0;
+    const rightSummary = right.sectionKind === "summary" ? 1 : 0;
+    return rightSummary - leftSummary || (right.cosine ?? 0) - (left.cosine ?? 0);
+  });
+  const overview = ordered.find((chunk) => chunk.sectionKind === "summary");
+  const primarySource = overview?.parentText ?? overview?.text ?? ordered[0]?.parentText ?? ordered[0]?.text;
+  if (!primarySource) return null;
+
+  const primary = firstSentences(primarySource, 2);
+  if (!primary.trim()) return null;
+
+  // Overview evidence is intentionally sufficient on its own. Add only a
+  // couple of complete, target-node facts when the index has them; never let
+  // a tax-detail paragraph replace the definition at the top of the answer.
+  const supporting: string[] = [];
+  for (const chunk of ordered) {
+    if (chunk === overview) continue;
+    for (const sentence of splitSentences(chunk.parentText ?? chunk.text)) {
+      if (supporting.length >= 2) break;
+      if (/\b(?:is|are)\s+(?:a|an)\s+(?:type|form|kind|class)\b/i.test(sentence)) continue;
+      supporting.push(sentence);
+    }
+    if (supporting.length >= 2) break;
+  }
+
+  const paragraphs = [primary, ...supporting.map((sentence) => cleanProse(sentence))].filter(Boolean);
+  const bodyMarkdown = paragraphs.join("\n\n");
+  return {
+    bodyMarkdown,
+    quickShare: paragraphs.map((paragraph) => stripMarkdown(paragraph)).join(" "),
+  };
+}
+
 /** Display label for a chunk's node  -  our own taxonomy label, never source text. */
 function nodeLabel(nodeId?: string): string | null {
   if (!nodeId) return null;
@@ -257,14 +300,24 @@ export const GRACEFUL_UNKNOWN_BODY =
   "I don't have enough grounded information in the knowledge base to answer that confidently. " +
   "Try rephrasing the question, or add a source that covers it and ask again.";
 
+export const GRACEFUL_COMPARISON_BODY =
+  "I couldn't build a reliable comparison from the available guidance. " +
+  "Try naming two to four topics with a little more detail, or ask for a focused answer instead.";
+
 export function gracefulUnknown(query: string): ArtifactResult {
   const title = titleFromQuery(query);
   const body = GRACEFUL_UNKNOWN_BODY;
   return { title, bodyMarkdown: body, citations: [], quickShare: `${title}\n\n${body}` };
 }
 
+export function gracefulComparisonRefinement(query: string): ArtifactResult {
+  const title = titleFromQuery(query);
+  return { title, bodyMarkdown: GRACEFUL_COMPARISON_BODY, citations: [], quickShare: `${title}\n\n${GRACEFUL_COMPARISON_BODY}` };
+}
+
 export function isGracefulUnknownArtifact(artifact: ArtifactResult): boolean {
-  return artifact.citations.length === 0 && artifact.bodyMarkdown.trim() === GRACEFUL_UNKNOWN_BODY;
+  return artifact.citations.length === 0 &&
+    (artifact.bodyMarkdown.trim() === GRACEFUL_UNKNOWN_BODY || artifact.bodyMarkdown.trim() === GRACEFUL_COMPARISON_BODY);
 }
 
 /** Exported so lib/llm/groq.ts can apply the identical confidence gate before
@@ -288,6 +341,19 @@ export class MockLLM implements LLMProvider {
     const curated = chunks.filter((c) => c.tier === "curated");
     const scrape = chunks.filter((c) => c.tier === "scrape");
     const user = chunks.filter((c) => c.tier === "user");
+
+    if (wantsStructuredComparison(query, opts.format)) {
+      const comparison = buildGroundedComparison(query, chunks);
+      if (!comparison) return gracefulComparisonRefinement(query);
+      const comparisonTitle = comparison.title || title;
+      return {
+        title: comparisonTitle,
+        bodyMarkdown: comparisonToMarkdown(comparison),
+        citations: [...distinctNodes(chunks.filter((chunk) => chunk.tier !== "user")), ...distinctUserSources(user)],
+        quickShare: comparisonToQuickShare(comparison),
+        comparison,
+      };
+    }
 
     // ── User path: the wiki has the user's own uploads. Generated prose stays
     // neutral; the source title remains available in structured citations.
@@ -342,6 +408,18 @@ export class MockLLM implements LLMProvider {
         return evidenceDelta || (b.cosine ?? 0) - (a.cosine ?? 0);
       });
       const ranked = dedupeSections(byCosine);
+
+      if (opts.queryIntent?.kind === "definition") {
+        const composed = composeDefinitionAnswer(ranked);
+        if (!composed) return gracefulUnknown(query);
+        const citations = distinctNodes(curated);
+        return {
+          title,
+          bodyMarkdown: composed.bodyMarkdown,
+          citations,
+          quickShare: [title, "", composed.quickShare].join("\n").trim(),
+        };
+      }
 
       const embedder = opts.embedder ?? getEmbedder();
       const { bodyMarkdown, quickShare: quickBody } = await composeSentenceAnswer(

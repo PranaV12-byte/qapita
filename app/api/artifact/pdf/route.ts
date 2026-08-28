@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PdfPageLimitError, renderArtifactPdf } from "@/lib/pdf/render";
+import { renderArtifactPdf } from "@/lib/pdf/render";
+import { ComparisonDataSchema } from "@/lib/llm/comparison";
 import { z } from "zod";
 
 export const runtime = "nodejs";
 
 const pdfRequestSchema = z.object({
   title: z.string().trim().min(1).max(180),
+  question: z.string().trim().min(1).max(4_000).optional(),
   bodyMarkdown: z.string().trim().min(1).max(40_000),
   citations: z.array(z.object({
     kind: z.enum(["topic", "source", "user-node"]).optional(),
@@ -13,6 +15,7 @@ const pdfRequestSchema = z.object({
     sourceId: z.string().max(200).optional(),
     title: z.string().min(1).max(300),
   })).max(50).default([]),
+  comparison: ComparisonDataSchema.optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -23,10 +26,16 @@ export async function POST(req: NextRequest) {
 
   let buffer: Buffer;
   try {
-    buffer = await renderArtifactPdf(parsed.data.title, parsed.data.bodyMarkdown, parsed.data.citations);
+    buffer = await renderArtifactPdf({
+      title: parsed.data.title,
+      question: parsed.data.question,
+      bodyMarkdown: parsed.data.bodyMarkdown,
+      citations: parsed.data.citations,
+      comparison: parsed.data.comparison,
+    });
   } catch (error) {
-    const status = error instanceof PdfPageLimitError ? 422 : 500;
-    return NextResponse.json({ error: status === 422 ? "pdf_too_long" : "pdf_generation_failed" }, { status });
+    console.error("PDF generation failed", error);
+    return NextResponse.json({ error: "pdf_generation_failed" }, { status: 500 });
   }
 
   return new NextResponse(new Uint8Array(buffer), {

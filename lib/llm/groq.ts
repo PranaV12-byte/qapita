@@ -1,4 +1,4 @@
-import type { ArtifactResult, GenerateOptions, LLMProvider } from "./types";
+import type { ArtifactResult, ComparisonData, GenerateOptions, LLMProvider } from "./types";
 import type { RetrievalChunk, Citation } from "../rag/types";
 import { randomUUID } from "node:crypto";
 import { SYSTEM_PROMPT, buildUserMessage, rankAndCapChunks } from "./prompt";
@@ -7,10 +7,18 @@ import {
   cleanProse,
   stripMarkdown,
   gracefulUnknown,
+  gracefulComparisonRefinement,
   bestCosine,
   distinctNodes,
   distinctUserSources,
 } from "./mock";
+import {
+  ComparisonDataSchema,
+  comparisonToMarkdown,
+  comparisonToQuickShare,
+  wantsStructuredComparison,
+} from "./comparison";
+import { normalizeGeneratedText } from "./output-normalizer";
 import { FALLBACK_THRESHOLD } from "../rag/config";
 import { hasGroundedEvidence } from "../rag/relevance";
 import { z } from "zod";
@@ -33,6 +41,7 @@ const ArtifactResultSchema = z.object({
   bodyMarkdown: z.string(),
   citations: z.array(CitationSchema),
   quickShare: z.string(),
+  comparison: ComparisonDataSchema.optional(),
 });
 
 const ArtifactJsonSchema = {
@@ -63,12 +72,60 @@ const ArtifactJsonSchema = {
   },
 } as const;
 
+const ComparisonArtifactJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title", "bodyMarkdown", "citations", "quickShare", "comparison"],
+  properties: {
+    ...ArtifactJsonSchema.properties,
+    comparison: {
+      type: "object",
+      additionalProperties: false,
+      required: ["title", "subtitle", "columns", "rows", "takeaway"],
+      properties: {
+        title: { type: "string", minLength: 1, maxLength: 160 },
+        subtitle: { type: "string", minLength: 1, maxLength: 260 },
+        columns: { type: "array", minItems: 2, maxItems: 4, items: { type: "string", minLength: 1, maxLength: 100 } },
+        rows: {
+          type: "array",
+          minItems: 1,
+          maxItems: 12,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["feature", "values"],
+            properties: {
+              feature: { type: "string", minLength: 1, maxLength: 100 },
+              values: { type: "array", minItems: 2, maxItems: 4, items: { type: "string", minLength: 1, maxLength: 420 } },
+            },
+          },
+        },
+        takeaway: { type: "string", minLength: 1, maxLength: 600 },
+      },
+    },
+  },
+} as const;
+
+function normalizeComparison(data: ComparisonData): ComparisonData {
+  return {
+    title: normalizeGeneratedText(data.title),
+    subtitle: normalizeGeneratedText(data.subtitle),
+    columns: data.columns.map((column) => normalizeGeneratedText(column)),
+    rows: data.rows.map((row) => ({
+      feature: normalizeGeneratedText(row.feature),
+      values: row.values.map((value) => normalizeGeneratedText(value)),
+    })),
+    takeaway: normalizeGeneratedText(data.takeaway),
+  };
+}
+
 export class GroqProvider implements LLMProvider {
   async generate(
     query: string,
     chunks: RetrievalChunk[],
     options: GenerateOptions = {}
   ): Promise<ArtifactResult> {
+    const comparisonRequested = wantsStructuredComparison(query, options.format);
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       console.log("provider_fallback: GROQ_API_KEY missing, falling back to mock");
@@ -84,7 +141,7 @@ export class GroqProvider implements LLMProvider {
       chunks.length === 0 ||
       (bestCosine(chunks) < FALLBACK_THRESHOLD && !hasGroundedEvidence(query, chunks))
     ) {
-      return gracefulUnknown(query);
+      return comparisonRequested ? gracefulComparisonRefinement(query) : gracefulUnknown(query);
     }
 
     // The exact chunk set actually sent to the model  -  citations are
@@ -95,7 +152,7 @@ export class GroqProvider implements LLMProvider {
     // provenance attribute (curated/NASPP/etc.) with a real sourceId, which
     // would otherwise leak a bogus label like {sourceId:"NASPP", title:"NASPP"}
     // into the UI.
-    const sentChunks = rankAndCapChunks(chunks);
+    const sentChunks = rankAndCapChunks(chunks, comparisonRequested ? 8 : 4);
     const nodeCitationsById = new Map(distinctNodes(sentChunks).map((c) => [c.nodeId, c]));
     const sourceCitationsById = new Map(
       distinctUserSources(sentChunks).map((c) => [c.sourceId!, c])
@@ -120,13 +177,13 @@ export class GroqProvider implements LLMProvider {
               { role: "user", content: buildUserMessage(query, sentChunks, options.format) },
             ],
             temperature: 0,
-            max_tokens: 2000,
+            max_tokens: comparisonRequested ? 3500 : 2000,
             response_format: {
               type: "json_schema",
               json_schema: {
-                name: "artifact_result",
+                name: comparisonRequested ? "comparison_artifact_result" : "artifact_result",
                 strict: true,
-                schema: ArtifactJsonSchema,
+                schema: comparisonRequested ? ComparisonArtifactJsonSchema : ArtifactJsonSchema,
               },
             },
           }),
@@ -146,6 +203,9 @@ export class GroqProvider implements LLMProvider {
 
       const parsed: unknown = JSON.parse(content);
       const result = ArtifactResultSchema.parse(parsed);
+      if (comparisonRequested && !result.comparison) {
+        throw new Error("comparison_schema_missing");
+      }
 
       // Never trust the model's citations at face value: resolve identity
       // (does this nodeId/sourceId correspond to a chunk actually sent?) AND
@@ -169,6 +229,20 @@ export class GroqProvider implements LLMProvider {
       // A prompt instruction ("no em dashes", "complete sentences") is a
       // request, not a guarantee. Apply the same deterministic cleanup the
       // mock uses as a backstop regardless of whether the model complied.
+      if (comparisonRequested && result.comparison) {
+        const normalized = normalizeComparison(result.comparison);
+        const validated = ComparisonDataSchema.parse(normalized);
+        const comparisonTitle = normalizeArtifactTitle(validated.title, query);
+        const comparison = { ...validated, title: comparisonTitle };
+        return {
+          title: comparisonTitle,
+          bodyMarkdown: comparisonToMarkdown(comparison),
+          citations,
+          quickShare: comparisonToQuickShare(comparison),
+          comparison,
+        };
+      }
+
       return {
         title: normalizeArtifactTitle(result.title, query),
         bodyMarkdown: cleanProseMarkdown(result.bodyMarkdown),
@@ -203,7 +277,7 @@ export class GroqProvider implements LLMProvider {
         return await new MockLLM().generate(query, chunks, options);
       } catch (fallbackError) {
         console.error("Mock provider fallback failed", fallbackError);
-        return gracefulUnknown(query);
+        return comparisonRequested ? gracefulComparisonRefinement(query) : gracefulUnknown(query);
       }
     }
   }

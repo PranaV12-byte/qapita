@@ -31,6 +31,7 @@ async function main(): Promise<void> {
       const source = fs.readFileSync(articlePath, "utf8");
       const parsed = matter(source);
       const title = typeof parsed.data.title === "string" ? parsed.data.title : node.title;
+      const summary = typeof parsed.data.summaryPlain === "string" ? parsed.data.summaryPlain.trim() : "";
       const chunked = chunkMarkdown(parsed.content, {
         docId: `article:${node.id}`,
         title,
@@ -55,6 +56,31 @@ async function main(): Promise<void> {
           headingPath: chunk.headingPath,
           parentId: chunk.parentId,
           text: chunk.text,
+        });
+      }
+
+      // The article summary is the canonical, short definition evidence. It
+      // is indexed separately so a question such as "What is an ISO?" cannot
+      // be answered from a semantically adjacent AMT detail section merely
+      // because that detail shares the acronym.
+      if (summary) {
+        const parentId = `article:${node.id}#summary`;
+        parents[parentId] = {
+          parentId,
+          nodeId: node.id,
+          title,
+          headingPath: "Overview",
+          text: summary,
+        };
+        entries.push({
+          tier: "curated",
+          nodeId: node.id,
+          source: "curated",
+          title,
+          headingPath: "Overview",
+          parentId,
+          sectionKind: "summary",
+          text: `${title}\n${summary}`,
         });
       }
     }

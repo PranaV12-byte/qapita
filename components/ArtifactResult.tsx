@@ -5,6 +5,7 @@ import { getCopyLabel } from "@/lib/generate-utils";
 import { getNode } from "@/lib/content/tree";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { deliverArtifactEmail, downloadArtifactPdf } from "@/lib/artifact/delivery-client";
+import type { ComparisonData } from "@/lib/llm/types";
 
 type Citation = {
   kind?: "topic" | "source" | "user-node";
@@ -20,6 +21,7 @@ type Props = {
   bodyMarkdown: string;
   quickShare: string;
   citations: Citation[];
+  comparison?: ComparisonData;
 };
 
 function renderInline(text: string): React.ReactNode {
@@ -149,6 +151,7 @@ export default function ArtifactResult({
   bodyMarkdown,
   quickShare,
   citations,
+  comparison,
 }: Props) {
   const { user, emailMode, testRecipientMasked } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -195,7 +198,7 @@ export default function ArtifactResult({
   const handleOpenPdf = async () => {
     setPdfLoading(true);
     try {
-      await downloadArtifactPdf({ artifactId, title, bodyMarkdown, citations });
+      await downloadArtifactPdf({ artifactId, title, question, bodyMarkdown, citations, comparison });
     } finally {
       setPdfLoading(false);
     }
@@ -206,7 +209,7 @@ export default function ArtifactResult({
     setEmailStatus("sending");
     setEmailError("");
     try {
-      const result = await deliverArtifactEmail({ artifactId, title, bodyMarkdown, citations }, email);
+      const result = await deliverArtifactEmail({ artifactId, title, question, bodyMarkdown, citations, comparison }, email);
       setEmailSubmittedTo(result.recipientMasked || email);
       setEmailStatus("success");
     } catch (error) {
@@ -240,8 +243,12 @@ export default function ArtifactResult({
         <div className="v9-artifact-header">
           <p>Your answer is ready</p>
           <h2 className="mt-3 font-head text-4xl text-[var(--text-head)]">
-            {question}
+            {title}
           </h2>
+          <div className="v9-artifact-question">
+            <span>Your question</span>
+            <p>{question}</p>
+          </div>
         </div>
         <div className="v9-artifact-body">
           <SimpleMarkdown text={bodyMarkdown} />

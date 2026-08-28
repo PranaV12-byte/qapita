@@ -26,4 +26,17 @@ describe("generated answer prompt policy", () => {
     expect(message).toContain('sourceId="source-1"');
     expect(message).not.toContain("Private employee note.docx");
   });
+
+  it("requests structured comparison data for comparison format", () => {
+    const message = buildUserMessage("What is the difference between ISOs and NSOs?", [chunk], "comparison");
+    expect(message).toContain("Return structured comparison data");
+    expect(message).toContain("two to four topic columns");
+    expect(message).toContain("do not return a markdown pipe table");
+  });
+
+  it("keeps email generation focused on content owned by the branded template", () => {
+    const message = buildUserMessage("How are ISOs taxed?", [chunk], "email");
+    expect(message).toContain("Format only the grounded answer content for insertion into a branded email template");
+    expect(message).toContain("Do not include a subject line, greeting, sign-off, footer, or email framing");
+  });
 });

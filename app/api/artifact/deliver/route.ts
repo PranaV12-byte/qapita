@@ -6,6 +6,7 @@ import { buildArtifactEmail } from "@/lib/email/artifact-email";
 import { getEmailDeliveryConfig, maskEmail } from "@/lib/email/config";
 import { logArtifact } from "@/lib/log";
 import { renderArtifactPdf } from "@/lib/pdf/render";
+import { ComparisonDataSchema } from "@/lib/llm/comparison";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ const payloadSchema = z.object({
   channel: z.literal("email").optional(),
   email: z.string().email().max(320).optional(),
   title: z.string().min(1).max(180),
+  question: z.string().trim().min(1).max(4_000).optional(),
   bodyMarkdown: z.string().min(1).max(40_000),
   citations: z.array(z.object({
     kind: z.enum(["topic", "source", "user-node"]).optional(),
@@ -21,7 +23,28 @@ const payloadSchema = z.object({
     sourceId: z.string().max(200).optional(),
     title: z.string().max(300),
   })).max(50).default([]),
+  comparison: ComparisonDataSchema.optional(),
 });
+
+function deliveryAppUrl(req: NextRequest): string {
+  const forwardedHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const forwardedProtocol = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+  const safeHost = forwardedHost && /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(forwardedHost)
+    ? forwardedHost
+    : null;
+  const protocol = forwardedProtocol === "http" || forwardedProtocol === "https"
+    ? forwardedProtocol
+    : req.nextUrl.protocol.replace(":", "");
+
+  if (safeHost && (protocol === "http" || protocol === "https")) {
+    try {
+      return new URL("/generate", `${protocol}://${safeHost}`).toString();
+    } catch {
+      // Invalid proxy metadata falls back to Next.js's validated request URL.
+    }
+  }
+  return new URL("/generate", req.url).toString();
+}
 
 export async function POST(req: NextRequest) {
   if (!isAuth0Configured || !auth0) {
@@ -51,9 +74,27 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const appUrl = deliveryAppUrl(req);
     const [pdf, message] = await Promise.all([
-      renderArtifactPdf(parsed.data.title, parsed.data.bodyMarkdown, parsed.data.citations),
-      Promise.resolve(buildArtifactEmail(parsed.data.title, parsed.data.bodyMarkdown)),
+      renderArtifactPdf({
+        title: parsed.data.title,
+        question: parsed.data.question,
+        bodyMarkdown: parsed.data.bodyMarkdown,
+        citations: parsed.data.citations,
+        comparison: parsed.data.comparison,
+      }),
+      Promise.resolve(buildArtifactEmail({
+        title: parsed.data.title,
+        question: parsed.data.question,
+        bodyMarkdown: parsed.data.bodyMarkdown,
+        comparison: parsed.data.comparison,
+        appUrl,
+        recipient,
+        authenticatedUser: {
+          email: session.user.email,
+          name: session.user.name,
+        },
+      })),
     ]);
     const resend = new Resend(apiKey);
     const idempotencyKey = `${session.user.sub ?? session.user.email ?? "user"}:${parsed.data.artifactId}:${recipient}`;
@@ -61,7 +102,7 @@ export async function POST(req: NextRequest) {
       from,
       to: [recipient],
       replyTo: process.env.EMAIL_REPLY_TO || undefined,
-      subject: parsed.data.title,
+      subject: message.subject,
       html: message.html,
       text: message.text,
       attachments: [
@@ -69,6 +110,7 @@ export async function POST(req: NextRequest) {
           filename: "equityiq-draft.pdf",
           content: pdf,
         },
+        ...message.inlineAttachments,
       ],
     }, { idempotencyKey });
 

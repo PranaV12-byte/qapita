@@ -1,4 +1,6 @@
-import type { ArtifactResult } from "@/lib/llm/types";
+import type { ArtifactResult, ComparisonData } from "@/lib/llm/types";
+import { ComparisonDataSchema, comparisonToMarkdown, comparisonToQuickShare } from "./comparison";
+import { normalizeArtifactTitle } from "./title";
 
 const INLINE_CITATION = /【[^】]*(?:nodeId|sourceId)[^】]*】/gi;
 const BARE_CITATION = /\b(?:nodeId|sourceId)\s*(?:=|:)\s*(?:"[^"]*"|'[^']*'|[A-Za-z0-9._-]+)/gi;
@@ -9,12 +11,26 @@ function cleanInlineText(text: string): string {
     .replace(INLINE_CITATION, "")
     .replace(BARE_CITATION, "")
     .replace(PROHIBITED_SOURCE_NAMES, "the knowledge base")
+    .replace(/\bthe knowledge base(?:\s+the knowledge base)+\b/gi, "the knowledge base")
     .replace(/[\u2014\u2013]/g, " - ")
     .split("\n")
     .map((line) => line.replace(/[ \t]{2,}/g, " ").replace(/[ \t]+([,.;!?])/g, "$1").trimEnd())
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+export function normalizeComparison(comparison: ComparisonData): ComparisonData {
+  return {
+    title: normalizeGeneratedText(comparison.title),
+    subtitle: normalizeGeneratedText(comparison.subtitle),
+    columns: comparison.columns.map((column) => normalizeGeneratedText(column)),
+    rows: comparison.rows.map((row) => ({
+      feature: normalizeGeneratedText(row.feature),
+      values: row.values.map((value) => normalizeGeneratedText(value)),
+    })),
+    takeaway: normalizeGeneratedText(comparison.takeaway),
+  };
 }
 
 function cleanHeading(line: string): string | null {
@@ -53,12 +69,20 @@ export function normalizeGeneratedText(text: string): string {
     .trim();
 }
 
-export function normalizeGeneratedArtifact(artifact: ArtifactResult): ArtifactResult {
+export function normalizeGeneratedArtifact(artifact: ArtifactResult, query?: string): ArtifactResult {
+  const comparison = artifact.comparison
+    ? ComparisonDataSchema.parse(normalizeComparison(artifact.comparison))
+    : undefined;
   return {
     ...artifact,
-    title: normalizeGeneratedText(artifact.title),
-    bodyMarkdown: normalizeGeneratedText(artifact.bodyMarkdown),
-    quickShare: normalizeGeneratedText(artifact.quickShare),
+    title: query ? normalizeArtifactTitle(artifact.title, query) : normalizeGeneratedText(artifact.title),
+    bodyMarkdown: comparison
+      ? normalizeGeneratedText(comparisonToMarkdown(comparison))
+      : normalizeGeneratedText(artifact.bodyMarkdown),
+    quickShare: comparison
+      ? normalizeGeneratedText(comparisonToQuickShare(comparison))
+      : normalizeGeneratedText(artifact.quickShare),
     citations: artifact.citations,
+    comparison,
   };
 }

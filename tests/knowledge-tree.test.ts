@@ -23,6 +23,8 @@ describe("Knowledge Tree content view", () => {
     const tree = await loadKnowledgeTree();
     const articles = tree.flatMap((group) => group.subtopics.flatMap((topic) => topic.articles));
     const byId = new Map(articles.map((article) => [article.id, article.href]));
+    expect(new Set(articles.map((article) => article.id)).size).toBe(articles.length);
+    expect(new Set(articles.map((article) => article.href)).size).toBe(articles.length);
     expect(byId.get("2.2")).toBe("/a/lifecycle/vesting");
     expect(byId.get("2.3")).toBe("/a/lifecycle/exercise");
     expect(byId.get("4.3")).toBe("/a/accounting/modifications");
