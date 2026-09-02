@@ -2,6 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { GroqProvider } from "../lib/llm/groq";
 import type { RetrievalChunk } from "../lib/rag/types";
 import { getQueryIntent } from "../lib/llm/query-intent";
+import { GRACEFUL_UNKNOWN_BODY } from "../lib/llm/mock";
 
 const scrapeChunk: RetrievalChunk = {
   tier: "scrape",
@@ -77,7 +78,7 @@ describe("Groq provider reliability contract", () => {
     const result = await new GroqProvider().generate("What is an option?", [scrapeChunk]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.bodyMarkdown).toContain("knowledge base");
+    expect(result.bodyMarkdown).toBe(GRACEFUL_UNKNOWN_BODY);
   });
 
   it("keeps definition grounding when Groq falls back to Mock", async () => {

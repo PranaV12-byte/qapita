@@ -24,22 +24,9 @@ import { hasGroundedEvidence } from "../rag/relevance";
 import { z } from "zod";
 import { normalizeArtifactTitle } from "./title";
 
-// nodeId/sourceId both optional (mirrors Citation)  -  a user-tier citation
-// carries sourceId, not nodeId. .nullish() (not just .optional()) because
-// models in JSON mode routinely emit an explicit `null` for an omitted field
-// rather than leaving it out  -  .optional() alone rejects that and throws.
-const CitationSchema = z
-  .object({
-    nodeId: z.string().nullish(),
-    sourceId: z.string().nullish(),
-    title: z.string(),
-  })
-  .refine((c) => !!c.nodeId || !!c.sourceId, "citation needs nodeId or sourceId");
-
 const ArtifactResultSchema = z.object({
   title: z.string(),
   bodyMarkdown: z.string(),
-  citations: z.array(CitationSchema),
   quickShare: z.string(),
   comparison: ComparisonDataSchema.optional(),
 });
@@ -47,27 +34,10 @@ const ArtifactResultSchema = z.object({
 const ArtifactJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "bodyMarkdown", "citations", "quickShare"],
+  required: ["title", "bodyMarkdown", "quickShare"],
   properties: {
     title: { type: "string" },
     bodyMarkdown: { type: "string" },
-    citations: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["nodeId", "sourceId", "title"],
-        properties: {
-          nodeId: { type: ["string", "null"] },
-          sourceId: { type: ["string", "null"] },
-          title: { type: "string" },
-        },
-        anyOf: [
-          { required: ["nodeId"], properties: { nodeId: { type: "string" } } },
-          { required: ["sourceId"], properties: { sourceId: { type: "string" } } },
-        ],
-      },
-    },
     quickShare: { type: "string" },
   },
 } as const;
@@ -75,7 +45,7 @@ const ArtifactJsonSchema = {
 const ComparisonArtifactJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "bodyMarkdown", "citations", "quickShare", "comparison"],
+  required: ["title", "bodyMarkdown", "quickShare", "comparison"],
   properties: {
     ...ArtifactJsonSchema.properties,
     comparison: {
@@ -144,19 +114,10 @@ export class GroqProvider implements LLMProvider {
       return comparisonRequested ? gracefulComparisonRefinement(query) : gracefulUnknown(query);
     }
 
-    // The exact chunk set actually sent to the model  -  citations are
-    // validated against this, so the model can never get credit for citing
-    // something it was never shown. Titles/labels for the final citations
-    // come from OUR OWN metadata (distinctNodes/distinctUserSources), never
-    // from the model: it's prone to confusing the chunk tag's `source=`
-    // provenance attribute (curated/NASPP/etc.) with a real sourceId, which
-    // would otherwise leak a bogus label like {sourceId:"NASPP", title:"NASPP"}
-    // into the UI.
-    const sentChunks = rankAndCapChunks(chunks, comparisonRequested ? 8 : 4);
-    const nodeCitationsById = new Map(distinctNodes(sentChunks).map((c) => [c.nodeId, c]));
-    const sourceCitationsById = new Map(
-      distinctUserSources(sentChunks).map((c) => [c.sourceId!, c])
-    );
+    // The model receives only the exact grounded chunk set it is allowed to
+    // use, with opaque indexes instead of internal IDs. Citation identity is
+    // resolved by the server from trusted grounding metadata.
+    const sentChunks = rankAndCapChunks(chunks, comparisonRequested ? 8 : 6);
 
     const callGroq = async (): Promise<ArtifactResult> => {
       const timeout = new AbortController();
@@ -207,24 +168,7 @@ export class GroqProvider implements LLMProvider {
         throw new Error("comparison_schema_missing");
       }
 
-      // Never trust the model's citations at face value: resolve identity
-      // (does this nodeId/sourceId correspond to a chunk actually sent?) AND
-      // label from our own metadata, discarding the model's title/sourceId
-      // outright. This is what a bogus model citation like
-      // {nodeId:"1.3", sourceId:"NASPP", title:"NASPP"} collapses to: the
-      // real {nodeId:"1.3", title:"RSUs & RSAs"} topic citation, deduped.
-      const seen = new Set<string>();
-      const citations: Citation[] = [];
-      for (const c of result.citations) {
-        const nodeCite = c.nodeId ? nodeCitationsById.get(c.nodeId) : undefined;
-        const sourceCite = c.sourceId ? sourceCitationsById.get(c.sourceId) : undefined;
-        const resolved: Citation | undefined = nodeCite ?? sourceCite;
-        if (!resolved) continue;
-        const key = resolved.sourceId ?? resolved.nodeId ?? resolved.title;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        citations.push(resolved);
-      }
+      const citations: Citation[] = [...distinctNodes(sentChunks), ...distinctUserSources(sentChunks)];
 
       // A prompt instruction ("no em dashes", "complete sentences") is a
       // request, not a guarantee. Apply the same deterministic cleanup the
@@ -275,8 +219,8 @@ export class GroqProvider implements LLMProvider {
       try {
         const { MockLLM } = await import("./mock");
         return await new MockLLM().generate(query, chunks, options);
-      } catch (fallbackError) {
-        console.error("Mock provider fallback failed", fallbackError);
+      } catch {
+        console.error("Mock provider fallback failed");
         return comparisonRequested ? gracefulComparisonRefinement(query) : gracefulUnknown(query);
       }
     }

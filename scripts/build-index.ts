@@ -88,6 +88,35 @@ async function main(): Promise<void> {
           text: `${title}\n${summary}`,
         });
       }
+
+      // FAQ answers are reviewed article content too. Keep the question in
+      // the searchable vector, but pass only the answer as parent context so
+      // the composer does not echo the FAQ framing into the user's response.
+      const faqs = Array.isArray(parsed.data.faqs)
+        ? parsed.data.faqs.filter((faq): faq is { q: string; a: string } =>
+            Boolean(faq && typeof faq.q === "string" && typeof faq.a === "string" && faq.q.trim() && faq.a.trim())
+          )
+        : [];
+      faqs.forEach((faq, faqIndex) => {
+        const parentId = `article:${node.id}#faq-${faqIndex}`;
+        parents[parentId] = {
+          parentId,
+          nodeId: node.id,
+          title,
+          headingPath: "FAQ",
+          text: faq.a.trim(),
+        };
+        entries.push({
+          tier: "curated",
+          nodeId: node.id,
+          source: "curated",
+          title,
+          headingPath: "FAQ",
+          parentId,
+          sectionKind: "faq",
+          text: `${faq.q.trim()}\n${faq.a.trim()}`,
+        });
+      });
     }
   }
 

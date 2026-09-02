@@ -5,12 +5,18 @@ import { logArtifact } from "@/lib/log";
 import { SCENARIOS } from "@/lib/scenarios";
 import { getBrainId } from "@/lib/brain/id";
 import { brainStore } from "@/lib/brain/store";
-import { retrieveForBrain } from "@/lib/brain/retrieval";
-import type { ArtifactFormat } from "@/lib/llm/types";
-import { normalizeGeneratedArtifact } from "@/lib/llm/output-normalizer";
+import { resolveCitations, retrieveForBrain } from "@/lib/brain/retrieval";
+import type { ArtifactFormat, ArtifactResult } from "@/lib/llm/types";
+import { isUsableGeneratedArtifact, normalizeGeneratedArtifact } from "@/lib/llm/output-normalizer";
 import { selectAnswerGrounding } from "@/lib/llm/grounding";
-import { gracefulUnknown, isGracefulUnknownArtifact } from "@/lib/llm/mock";
-import { buildDefinitionRetrievalQuery, getQueryIntent } from "@/lib/llm/query-intent";
+import {
+  MockLLM,
+  gracefulComparisonRefinement,
+  gracefulOffTopic,
+  gracefulUnknown,
+  isGracefulUnknownArtifact,
+} from "@/lib/llm/mock";
+import { buildDefinitionRetrievalQuery, getQueryIntent, isClearlyOffTopicQuery } from "@/lib/llm/query-intent";
 import { getNode } from "@/lib/content/tree";
 import { z } from "zod";
 import { primaryLegacyTopicId, toV9TopicId } from "@/lib/content/v9-taxonomy";
@@ -30,6 +36,7 @@ const artifactRequestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
   const parsedBody = artifactRequestSchema.safeParse(await req.json().catch(() => null));
   if (!parsedBody.success) {
     return NextResponse.json({ error: "invalid_artifact_request" }, { status: 400 });
@@ -70,7 +77,7 @@ export async function POST(req: NextRequest) {
     : undefined;
   const definitionNodeId = definitionTopic?.id;
   const queryIntent = detectedIntent.kind === "definition" && definitionTopic
-    ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title }
+    ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title, facets: detectedIntent.facets, topics: detectedIntent.topics }
     : detectedIntent;
   const retrievalQuery = detectedIntent.kind === "definition" && definitionTopic
     ? buildDefinitionRetrievalQuery(query, definitionTopic)
@@ -81,9 +88,12 @@ export async function POST(req: NextRequest) {
   const brainId = getBrainId(req.headers);
   let retrieval;
   try {
-    retrieval = await retrieveForBrain(retrievalQuery, brainId, { nodeId: boostNodeId });
-  } catch (error) {
-    console.error("Artifact retrieval failed", error);
+    retrieval = await retrieveForBrain(retrievalQuery, brainId, {
+      nodeId: boostNodeId,
+      topK: queryIntent.kind === "comparison" || (queryIntent.facets?.length ?? 0) >= 2 ? 16 : 12,
+    });
+  } catch {
+    console.error("Artifact retrieval failed");
     return NextResponse.json({ error: "retrieval_unavailable" }, { status: 503 });
   }
 
@@ -91,21 +101,49 @@ export async function POST(req: NextRequest) {
     definitionNodeId,
     intent: queryIntent,
   });
-  let result;
+  let result: ArtifactResult & { answerAvailable?: boolean };
   try {
     const provider = getLLMProvider();
-    result = normalizeGeneratedArtifact(
-      grounding.answerable
-        ? await provider.generate(query, grounding.chunks, { format, queryIntent })
-        : gracefulUnknown(query),
-      query
-    );
-  } catch (error) {
-    console.error("Artifact generation failed", error);
+    const trustedCitations = grounding.answerable ? resolveCitations(grounding.chunks, brainId) : [];
+    const trustedIdentifiers = grounding.chunks.flatMap((chunk) => [chunk.nodeId, chunk.sourceId].filter((id): id is string => Boolean(id)));
+    const generateDeterministic = () => new MockLLM().generate(query, grounding.chunks, { format, queryIntent });
+    let generated: ArtifactResult;
+    if (!grounding.answerable) {
+      generated = queryIntent.kind === "comparison"
+        ? gracefulComparisonRefinement(query)
+        : isClearlyOffTopicQuery(query) ? gracefulOffTopic(query) : gracefulUnknown(query);
+    } else {
+      try {
+        generated = await provider.generate(query, grounding.chunks, { format, queryIntent });
+      } catch {
+        console.log(JSON.stringify({ event: "provider_fallback", provider: process.env.LLM_PROVIDER ?? "mock", reason: "provider_exception" }));
+        generated = await generateDeterministic();
+      }
+    }
+    let normalized = normalizeGeneratedArtifact({ ...generated, citations: [] }, query, trustedIdentifiers);
+    if (!isUsableGeneratedArtifact(normalized) && grounding.answerable) {
+      generated = await generateDeterministic();
+      normalized = normalizeGeneratedArtifact({ ...generated, citations: [] }, query, trustedIdentifiers);
+    }
+    if (!isUsableGeneratedArtifact(normalized)) throw new Error("generated_artifact_invalid");
+    const unavailable = isGracefulUnknownArtifact(normalized);
+    result = {
+      ...normalized,
+      citations: grounding.answerable && !unavailable ? trustedCitations : [],
+    };
+    result.answerAvailable = grounding.answerable && !unavailable;
+  } catch {
+    console.error("Artifact generation failed");
     return NextResponse.json({ error: "generation_unavailable" }, { status: 503 });
   }
 
-  const answerAvailable = grounding.answerable && !isGracefulUnknownArtifact(result);
+  const answerAvailable = result.answerAvailable ?? (grounding.answerable && !isGracefulUnknownArtifact(result));
+  const fallbackUsed = retrieval.fallbackUsed && !grounding.answerable;
+  const answerUnavailableReason = answerAvailable
+    ? undefined
+    : queryIntent.kind === "comparison"
+      ? "comparison-refinement"
+      : isClearlyOffTopicQuery(query) ? "off-topic" : "content-gap";
 
   const mode = process.env.LLM_PROVIDER ?? "mock";
   const matchedNodeIds = [
@@ -118,8 +156,16 @@ export async function POST(req: NextRequest) {
     mode,
     query,
     scenarioId,
+    format,
     matchedNodeIds,
-    fallbackUsed: retrieval.fallbackUsed || !grounding.answerable,
+    fallbackUsed,
+    intent: queryIntent.kind,
+    facets: queryIntent.facets,
+    retrievedCount: retrieval.chunks.length,
+    groundedCount: grounding.chunks.length,
+    answerWordCount: result.bodyMarkdown.split(/\s+/).filter(Boolean).length,
+    durationMs: Date.now() - startedAt,
+    outcome: answerAvailable ? "success" : answerUnavailableReason,
   });
 
   const artifactId = randomUUID();
@@ -146,7 +192,8 @@ export async function POST(req: NextRequest) {
     ...(result.comparison ? { comparison: result.comparison } : {}),
     status: "generated",
     answerAvailable,
-    fallbackUsed: retrieval.fallbackUsed || !grounding.answerable,
+    ...(answerUnavailableReason ? { answerUnavailableReason } : {}),
+    fallbackUsed,
     fallbackScenario: retrieval.fallbackScenario,
     scenario,
     logged,

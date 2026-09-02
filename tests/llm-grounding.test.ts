@@ -37,4 +37,22 @@ describe("answer grounding", () => {
     expect(selected.answerable).toBe(true);
     expect(selected.chunks).toHaveLength(1);
   });
+
+  it("does not qualify user evidence from a filename alone", () => {
+    const selected = selectAnswerGrounding("What is an ISO?", [
+      {
+        ...chunk("u-1", "ISO-notes.pdf", "This document covers general compensation administration."),
+        tier: "user",
+        sourceId: "upload-1",
+      },
+    ], { definitionNodeId: "1.1", intent: { kind: "definition", nodeId: "1.1", title: "Incentive stock options (ISOs)" } });
+    expect(selected.answerable).toBe(false);
+  });
+
+  it("does not answer a comparison when one named side is unsupported", () => {
+    const selected = selectAnswerGrounding("Compare ISOs and NSOs.", [
+      chunk("1.1", "Incentive stock options", "ISOs can receive special tax treatment when holding requirements are met."),
+    ]);
+    expect(selected.answerable).toBe(false);
+  });
 });

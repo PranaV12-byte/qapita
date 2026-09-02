@@ -28,7 +28,9 @@ export default function BrainClient({ brainId, model, counts, lint }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [linting, setLinting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
-  const [brainView, setBrainView] = useState<"sources" | "graph">("sources");
+  // Graph is the useful first view on a narrow screen. Desktop renders both
+  // panes, so this state only controls the tablet/mobile tabs there.
+  const [brainView, setBrainView] = useState<"sources" | "graph">("graph");
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const graphSectionRef = useRef<HTMLElement | null>(null);

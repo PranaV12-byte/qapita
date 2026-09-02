@@ -17,14 +17,23 @@ describe("generated answer prompt policy", () => {
     expect(SYSTEM_PROMPT).toContain("Do not quote or cite any external source by name");
     expect(SYSTEM_PROMPT).toContain("Never mention NASPP or MyStockOptions in generated prose");
     expect(SYSTEM_PROMPT).toContain("Do not emit inline citation markers");
-    expect(SYSTEM_PROMPT).toContain("Return citation identifiers only in the structured citations array");
+    expect(SYSTEM_PROMPT).toContain("Do not emit node IDs, source IDs");
   });
 
   it("passes neutral origins and structured IDs without uploaded filenames", () => {
     const message = buildUserMessage("What is this?", [chunk]);
     expect(message).toContain("origin=user-upload");
-    expect(message).toContain('sourceId="source-1"');
+    expect(message).not.toContain("sourceId");
+    expect(message).not.toContain("nodeId");
     expect(message).not.toContain("Private employee note.docx");
+  });
+
+  it("keeps the hybrid grounding order instead of re-sorting by hash cosine", () => {
+    const first = { ...chunk, nodeId: "first", text: "FIRST grounded passage.", cosine: 0.1, score: 0.9 };
+    const second = { ...chunk, nodeId: "second", text: "SECOND grounded passage.", cosine: 0.99, score: 0.8 };
+    const message = buildUserMessage("What is this?", [first, second]);
+    expect(message).not.toContain("nodeId");
+    expect(message.indexOf("FIRST grounded passage")).toBeLessThan(message.indexOf("SECOND grounded passage"));
   });
 
   it("requests structured comparison data for comparison format", () => {

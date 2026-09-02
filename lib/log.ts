@@ -10,6 +10,13 @@ export type LogData = {
   deliveredVia?: string;
   emailTo?: string;
   fallbackUsed?: boolean;
+  intent?: string;
+  facets?: string[];
+  retrievedCount?: number;
+  groundedCount?: number;
+  answerWordCount?: number;
+  durationMs?: number;
+  outcome?: string;
 };
 
 function getLogPath(): string {

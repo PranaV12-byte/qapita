@@ -136,7 +136,7 @@ function Detail({ group, onClose }: { group: KnowledgeGroup; onClose: () => void
           <h2>{group.name}</h2>
           {group.comingSoon && <p className="v9-preparation-message">This section is coming soon.</p>}
         </div>
-        <button type="button" onClick={onClose} aria-label={`Close ${group.name}`}>×</button>
+        <button type="button" className="v9-pillar-detail-close" onClick={onClose} aria-label={`Close ${group.name}`}>×</button>
       </div>
       <div className="v9-topic-list">
         {group.subtopics.map((topic) => <Subtopic key={topic.id} topic={topic} />)}

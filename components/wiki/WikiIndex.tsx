@@ -21,7 +21,7 @@ export default function WikiIndex({ articles, initialQuery = "" }: { articles: W
 
   return <div className="v9-wiki-index">
     <div className="v9-wiki-filters">
-      <label><span aria-hidden="true">⌕</span><span className="sr-only">Search Wiki articles</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the Wiki" /></label>
+      <label className="v9-wiki-search-label"><span aria-hidden="true">⌕</span><input aria-label="Search the Wiki" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the Wiki" /></label>
     </div>
     <div className="v9-wiki-grid">
       {filtered.map((article) => <Link key={article.id} href={article.href}><p>{article.pillarTitle}</p><h2>{article.title}</h2><span>{article.summary}</span><strong>Read article →</strong></Link>)}

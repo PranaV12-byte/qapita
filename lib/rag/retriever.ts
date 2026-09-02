@@ -14,7 +14,7 @@ import { computeFallback, type ScenarioVector } from "./fallback";
 import { getEmbedder } from "./embedder";
 import { getReranker } from "./rerank";
 import { hasGroundedEvidence, relevanceTokens } from "./relevance";
-import { getNode, ALL_NODES } from "@/lib/content/tree";
+import { getNode, ALL_NODES } from "../content/tree";
 import type {
   ChunkMeta,
   Embedder,

@@ -1,12 +1,86 @@
 import { ALL_NODES, type TreeNode } from "../content/tree";
+import { relevanceTokens } from "../rag/relevance";
 
 export type DefinitionIntent = {
   kind: "definition";
   nodeId: string;
   title: string;
+  facets?: QueryFacet[];
+  topics?: string[];
 };
 
-export type QueryIntent = DefinitionIntent | { kind: "comparison" } | { kind: "general" };
+export type QueryFacet =
+  | "process"
+  | "explanation"
+  | "scenario"
+  | "tax"
+  | "lifecycle"
+  | "timing"
+  | "eligibility"
+  | "mechanics"
+  | "withholding"
+  | "reporting"
+  | "settlement";
+
+export type QueryIntent =
+  | DefinitionIntent
+  | { kind: "comparison"; facets?: QueryFacet[]; topics?: string[] }
+  | { kind: "general"; facets?: QueryFacet[]; topics?: string[] };
+
+const EQUITY_SCOPE_TERMS = new Set([
+  "equity", "compensation", "stock", "stocks", "share", "shares", "option", "options",
+  "award", "awards", "vesting", "vested", "exercise", "exercising", "iso", "nso", "rsu",
+  "rsa", "espp", "psu", "sar", "phantom", "tax", "amt", "409a", "83b", "withholding",
+  "payroll", "liquidity", "tender", "buyback", "ipo", "sale", "selling", "termination",
+  "grant", "grants", "employee", "employees", "employer", "private",
+]);
+
+/** Used only to choose a friendly no-answer explanation. It does not qualify
+ * evidence: a query still needs grounded topic matches in `grounding.ts`. */
+export function isClearlyOffTopicQuery(query: string): boolean {
+  const terms = relevanceTokens(query);
+  return terms.length > 0 && !terms.some((term) => EQUITY_SCOPE_TERMS.has(term));
+}
+
+const FACET_PATTERNS: Array<[QueryFacet, RegExp]> = [
+  ["process", /\bhow\b|\bprocess\b|\bsteps?\b|\bwork\b/i],
+  ["explanation", /\bwhy\b|\breason\b|\bpurpose\b/i],
+  ["scenario", /\bwhat happens\b|\bif\b|\bafter\b|\bwhen\b/i],
+  ["tax", /\btax(?:es|ed|ation)?\b|\bamt\b|\b409a\b|\b83\s*\(?b\)?\b|\bbasis\b/i],
+  ["lifecycle", /\bgrant\b|\bvest(?:ing|ed)?\b|\bexercise\b|\btermination\b|\bliquidity\b|\bsale\b/i],
+  ["timing", /\bwhen\b|\bdeadline\b|\bwindow\b|\bholding period\b|\bterm\b/i],
+  ["eligibility", /\bwho\b|\beligible\b|\beligibility\b|\bqualif(?:y|ies|ied)\b/i],
+  ["mechanics", /\bhow\b|\bwork\b|\bstructure\b|\bmechanic(?:s)?\b/i],
+  ["withholding", /\bwithhold(?:ing)?\b|\bpayroll\b|\bsell-to-cover\b/i],
+  ["reporting", /\breport(?:ing)?\b|\bform\s+(?:w-?2|3921|3922)\b/i],
+  ["settlement", /\bsettle(?:ment|d)?\b|\bdelivery\b|\bclose(?:s|d|ing)?\b/i],
+];
+
+export function queryFacets(query: string): QueryFacet[] {
+  return FACET_PATTERNS.filter(([, pattern]) => pattern.test(query)).map(([facet]) => facet);
+}
+
+const TOPIC_ALIASES: Array<[string, RegExp]> = [
+  ["ISO", /\bisos?\b/i],
+  ["NSO", /\b(?:nsos?|nqsos?)\b/i],
+  ["RSU", /\brsus?\b/i],
+  ["RSA", /\brsas?\b/i],
+  ["ESPP", /\bespps?\b/i],
+  ["PSU", /\bpsus?\b/i],
+  ["SAR", /\bsars?\b/i],
+  ["83(b)", /\b83\s*\(?b\)?\b/i],
+  ["409A", /\b409a\b/i],
+  ["AMT", /\bamt\b/i],
+  ["tender offer", /\btender\s+offer\b/i],
+  ["liquidity", /\bliquidity\b|\bbuyback\b|\bsecondary sale/i],
+  ["vesting", /\bvest(?:ing|ed|s)?\b/i],
+  ["exercise", /\bexercis(?:e|ed|ing|es)\b/i],
+  ["termination", /\bterminat(?:e|ed|ion|ions|ing)\b/i],
+];
+
+export function queryTopics(query: string): string[] {
+  return TOPIC_ALIASES.filter(([, pattern]) => pattern.test(query)).map(([topic]) => topic);
+}
 
 function normalizeSubject(value: string): string {
   return value
@@ -75,13 +149,15 @@ export function resolveDefinitionTopic(query: string): TreeNode | null {
 }
 
 export function getQueryIntent(query: string): QueryIntent {
+  const facets = queryFacets(query);
+  const topics = queryTopics(query);
   if (/\b(?:vs\.?|versus|compare|comparison|difference between)\b/i.test(query)) {
-    return { kind: "comparison" };
+    return { kind: "comparison", facets, topics };
   }
   const definition = resolveDefinitionTopic(query);
   return definition
-    ? { kind: "definition", nodeId: definition.id, title: definition.title }
-    : { kind: "general" };
+    ? { kind: "definition", nodeId: definition.id, title: definition.title, facets, topics }
+    : { kind: "general", facets, topics };
 }
 
 export function buildDefinitionRetrievalQuery(query: string, topic: TreeNode): string {

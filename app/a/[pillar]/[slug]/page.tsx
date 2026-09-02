@@ -63,7 +63,7 @@ export default async function ArticlePage({
       </header>
 
       {resolvedPillar && (
-        <Link href={`/p/${resolvedPillar.slug}`} className="mb-6 inline-flex text-sm font-semibold text-[var(--primary-purple)]" style={{ textDecoration: "none" }}>
+        <Link href={`/p/${resolvedPillar.slug}`} className="v9-article-back mb-6 inline-flex text-sm font-semibold text-[var(--primary-purple)]" style={{ textDecoration: "none" }}>
           <span aria-hidden="true" className="mr-2">←</span> Back to {resolvedPillar.title} in Knowledge Tree
         </Link>
       )}

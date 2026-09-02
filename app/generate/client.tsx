@@ -13,7 +13,8 @@ import type { ComparisonData } from "@/lib/llm/types";
 
 type Citation = { kind?: "topic" | "source" | "user-node"; nodeId?: string; sourceId?: string; title: string };
 type Format = "reference" | "pdf" | "email" | "comparison";
-type ApiResponse = { artifactId: string; title: string; bodyMarkdown: string; quickShare: string; citations: Citation[]; comparison?: ComparisonData; status: string; answerAvailable?: boolean; fallbackUsed: boolean; fallbackScenario?: { id: string; label: string }; scenario: { id: string; label: string } | null; logged: boolean };
+type AnswerUnavailableReason = "content-gap" | "off-topic" | "comparison-refinement" | "technical-failure";
+type ApiResponse = { artifactId: string; title: string; bodyMarkdown: string; quickShare: string; citations: Citation[]; comparison?: ComparisonData; status: string; answerAvailable?: boolean; answerUnavailableReason?: AnswerUnavailableReason; fallbackUsed: boolean; fallbackScenario?: { id: string; label: string }; scenario: { id: string; label: string } | null; logged: boolean };
 type Turn = { id: number; query: string; format: Format; result: ApiResponse };
 type DeliveryState = { kind: "pdf" | "email"; state: "working" | "success" | "error"; recipient?: string } | null;
 type PendingEmailIntent = { query: string; recipient: string; nodeId?: string; format: "email"; createdAt: number };
@@ -141,6 +142,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
     window.setTimeout(() => questionRef.current?.focus(), 250);
   };
   const retryDelivery = () => { if (turn && delivery) void runDelivery(turn.result, delivery.kind, delivery.recipient || recipient, turn.query); };
+  const missingRecipient = format === "email" && emailMode === "production" && !recipient.trim();
   const deliveryMessage = delivery?.state === "success" ? delivery.kind === "pdf" ? "PDF downloaded" : `Email sent to ${delivery.recipient || "the selected recipient"}` : delivery?.state === "error" ? delivery.kind === "pdf" ? "PDF could not be created" : "Email could not be sent" : delivery?.state === "working" ? delivery.kind === "pdf" ? "Preparing PDF" : "Sending email" : null;
 
   return <div className="v9-ask-page">
@@ -156,7 +158,10 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
           {format === "email" && <div className="v9-email-choice">{emailMode === "production" ? <input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@company.com" aria-label="Recipient email" /> : <p>{emailConfigured ? "Demo mode sends to the configured test inbox." : "Email delivery is not configured in this environment."}</p>}</div>}
           <button type="button" onClick={requestSubmit} disabled={isSubmitDisabled(query, loading)} className="v9-primary-button v9-get-answer">{submitLabels[format]}<span aria-hidden="true">→</span></button>
           {emptyHint && <p className="v9-form-error">Write a question to get started.</p>}
-          {error && <div className="v9-request-error">{format === "email" && emailMode === "production" && !recipient.trim() ? "Enter a recipient email address before sending." : offline ? "A connection is required to get an answer." : "The request did not complete. Try again."}<button type="button" onClick={() => void doSubmit(lastQuery || query, lastFormat || format, recipient)}>Try again</button></div>}
+          {error && <div className="v9-request-error" role="alert">
+            {missingRecipient ? <span>Enter a recipient email address before sending.</span> : offline ? <span>A connection is required to get an answer.</span> : <span><strong>We could not prepare your answer.</strong> Something went wrong while preparing the answer. Please try again in a moment.</span>}
+            {!missingRecipient && <button type="button" onClick={() => void doSubmit(lastQuery || query, lastFormat || format, recipient)}>Try again</button>}
+          </div>}
         </section>
         <section className="v9-common-questions"><h2>Common questions</h2><div className="v9-common-grid">{commonQuestions.map((item) => <button key={item.label} type="button" onClick={() => { setQuery(item.question); void doSubmit(item.question); }}><span>{item.label}</span><strong>{item.question}</strong><b aria-hidden="true">→</b></button>)}</div></section>
       </>}
@@ -167,8 +172,8 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
           {turn.result.fallbackUsed && (turn.result.fallbackScenario ?? turn.result.scenario)?.label && <p className="v9-fallback">This question is closest to <strong>{(turn.result.fallbackScenario ?? turn.result.scenario)?.label}</strong>.</p>}
           {turn.format === "comparison" && turn.result.comparison ? <ComparisonResult comparison={turn.result.comparison} /> : <ArtifactResult artifactId={turn.result.artifactId} title={turn.result.title} question={turn.query} bodyMarkdown={turn.result.bodyMarkdown} quickShare={turn.result.quickShare} citations={turn.result.citations} comparison={turn.result.comparison} />}
         </> : <section className="v9-no-answer" role="status">
-          <span className="v9-no-answer-icon" aria-hidden="true">?</span><p className="v9-no-answer-eyebrow">More context needed</p><h2>We couldn&apos;t find a confident answer</h2>
-          <p>We don&apos;t have enough relevant guidance to answer this question accurately yet. Add a little more detail, narrow the question, or explore the available topics.</p>
+          <span className="v9-no-answer-icon" aria-hidden="true">?</span><p className="v9-no-answer-eyebrow">More context needed</p><h2>{turn.result.answerUnavailableReason === "off-topic" ? "This question is outside EquityIQ's current scope" : turn.result.answerUnavailableReason === "comparison-refinement" ? "We could not build a reliable comparison" : "We do not have enough verified guidance yet"}</h2>
+          <p>{turn.result.bodyMarkdown}</p>
           <div><button type="button" className="v9-primary-button" onClick={refineQuestion}>Refine this question</button><Link href="/browse">Browse the Knowledge Tree</Link></div>
         </section>}
       </div>}

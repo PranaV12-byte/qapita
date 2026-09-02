@@ -56,7 +56,7 @@ function SimpleMarkdown({ text }: { text: string }) {
       elements.push(
         <h2
           key={index}
-          className="mt-8 text-2xl font-semibold text-[var(--text-head)]"
+          className="v9-answer-heading mt-8 text-2xl font-semibold text-[var(--text-head)]"
         >
           {line.slice(3)}
         </h2>
@@ -69,7 +69,7 @@ function SimpleMarkdown({ text }: { text: string }) {
       elements.push(
         <h1
           key={index}
-          className="mt-8 text-3xl font-semibold text-[var(--text-head)]"
+          className="v9-answer-heading mt-8 text-3xl font-semibold text-[var(--text-head)]"
         >
           {line.slice(2)}
         </h1>
@@ -87,7 +87,7 @@ function SimpleMarkdown({ text }: { text: string }) {
       elements.push(
         <ul
           key={`ul-${index}`}
-          className="ml-5 list-disc space-y-2 text-[var(--text-body)]"
+          className="v9-answer-list ml-5 list-disc space-y-2 text-[var(--text-body)]"
         >
           {items.map((item, itemIndex) => (
             <li key={itemIndex}>{renderInline(item)}</li>
@@ -106,7 +106,7 @@ function SimpleMarkdown({ text }: { text: string }) {
       elements.push(
         <ol
           key={`ol-${index}`}
-          className="ml-5 list-decimal space-y-2 text-[var(--text-body)]"
+          className="v9-answer-list ml-5 list-decimal space-y-2 text-[var(--text-body)]"
         >
           {items.map((item, itemIndex) => (
             <li key={itemIndex}>{renderInline(item)}</li>
@@ -117,34 +117,36 @@ function SimpleMarkdown({ text }: { text: string }) {
     }
 
     elements.push(
-      <p key={index} className="text-base leading-8 text-[var(--text-body)]">
+      <p key={index} className="v9-answer-paragraph text-base leading-8 text-[var(--text-body)]">
         {renderInline(line)}
       </p>
     );
     index += 1;
   }
 
-  return <div className="space-y-4">{elements}</div>;
+  return <div className="v9-answer-markdown space-y-4">{elements}</div>;
 }
 
 function SectionCard({
   title,
   description,
+  className,
   children,
 }: {
   title: string;
   description?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-white p-5">
-      <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+    <section className={`v9-section-card rounded-2xl border border-[var(--border)] bg-white p-5 ${className ?? ""}`}>
+      <h3 className="v9-section-card-title text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
         {title}
       </h3>
       {description ? (
-        <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">{description}</p>
+        <p className="v9-section-card-description mt-2 text-sm leading-6 text-[var(--text-body)]">{description}</p>
       ) : null}
-      <div className="mt-4">{children}</div>
+      <div className="v9-section-card-body mt-4">{children}</div>
     </section>
   );
 }
@@ -174,6 +176,10 @@ export default function ArtifactResult({
     return Boolean(node && node.contentState !== "planned");
   });
   const sourceCitations = citations.filter((citation) => citation.kind === "source" || citation.kind === "user-node");
+  const primaryTopic = topicCitations
+    .map((citation) => citation.nodeId ? getNode(citation.nodeId) : undefined)
+    .find((node): node is NonNullable<typeof node> => Boolean(node));
+  const browseHref = primaryTopic ? `/p/${primaryTopic.pillarSlug}` : "/browse";
 
   useEffect(() => {
     if (!user) return;
@@ -240,18 +246,13 @@ export default function ArtifactResult({
   };
 
   const actionButton =
-    "inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]";
+    "v9-action-button inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]";
 
   return (
     <div className="v9-artifact-layout">
       <section className="v9-artifact-document">
         <div className="v9-artifact-header">
-          <p>Your answer is ready</p>
-          <h2 className="mt-3 font-head text-4xl text-[var(--text-head)]">
-            {title}
-          </h2>
           <div className="v9-artifact-question">
-            <span>Your question</span>
             <p>{question}</p>
           </div>
         </div>
@@ -261,20 +262,21 @@ export default function ArtifactResult({
       </section>
 
       <aside className="v9-artifact-aside">
-        {topicCitations.length > 0 && (
-          <SectionCard
-            title="Related topics"
-            description="Review the guidance behind this communication or start a more focused draft from one of these topics."
-          >
-            <div className="flex flex-wrap gap-2">
+        <SectionCard
+          title="Related topics"
+          description="Review the guidance behind this answer or start a more focused draft from one of these topics."
+          className="v9-related-topics-card"
+        >
+          {topicCitations.length > 0 ? (
+            <div className="v9-related-topic-chips flex flex-wrap gap-2">
               {topicCitations.map((citation, index) => {
                 const node = citation.nodeId ? getNode(citation.nodeId) : undefined;
-                const href = node ? `/a/${node.pillarSlug}/${node.slug}` : "#";
+                if (!node) return null;
                 return (
                   <a
                     key={`${citation.title}-${index}`}
-                    href={href}
-                    className="rounded-xl bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-[var(--accent)]"
+                    href={`/a/${node.pillarSlug}/${node.slug}`}
+                    className="v9-related-topic-chip rounded-xl bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-[var(--accent)]"
                     style={{ textDecoration: "none" }}
                   >
                     {citation.title}
@@ -282,22 +284,25 @@ export default function ArtifactResult({
                 );
               })}
             </div>
-            <a
-              href={topicCitations[0]?.nodeId ? `/a/${getNode(topicCitations[0].nodeId!)?.pillarSlug}/${getNode(topicCitations[0].nodeId!)?.slug}` : "/browse"}
-              className="mt-4 inline-flex text-sm font-semibold text-[var(--accent)]"
-              style={{ textDecoration: "none" }}
-            >
-              Browse related topics
-            </a>
-          </SectionCard>
-        )}
+          ) : (
+            <p className="v9-related-topics-empty">Browse the Knowledge Tree to explore the guidance connected to this answer.</p>
+          )}
+          <a
+            href={browseHref}
+            className="v9-browse-related mt-4 inline-flex text-sm font-semibold text-[var(--accent)]"
+            style={{ textDecoration: "none" }}
+          >
+            {topicCitations.length > 0 ? "Browse related topics" : "Browse the Knowledge Tree"}
+          </a>
+        </SectionCard>
 
         {sourceCitations.length > 0 && (
           <SectionCard
             title="Supporting sources"
             description="These references supported the draft or were brought in from your workspace."
+            className="v9-supporting-sources-card"
           >
-            <div className="flex flex-wrap gap-2">
+            <div className="v9-supporting-source-chips flex flex-wrap gap-2">
               {sourceCitations.map((citation, index) => (
                 <a
                   key={`${citation.title}-${index}`}
@@ -314,8 +319,8 @@ export default function ArtifactResult({
           </SectionCard>
         )}
 
-        <SectionCard title="Actions">
-          <div className="flex flex-wrap gap-3">
+        <SectionCard title="Actions" className="v9-actions-card">
+          <div className="v9-actions-row flex flex-wrap gap-3">
             <button
               onClick={handleCopy}
               aria-live="polite"

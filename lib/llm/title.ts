@@ -40,8 +40,14 @@ export function titleFromQuery(query: string): string {
   const comparison = cleaned.match(/^what\s+is\s+the\s+difference\s+between\s+(.+?)\s+and\s+(.+)$/i);
   if (comparison) return shortenTitle(`${comparison[1].trim()} vs. ${comparison[2].trim()}`);
 
-  const howItWorks = cleaned.match(/^how\s+does\s+(.+?)\s+work(.*)$/i);
-  if (howItWorks) return shortenTitle(`How ${howItWorks[1].trim()} works${howItWorks[2]}`);
+  // Keep the document subject short when the question contains a second
+  // request for detail. The complete question is carried separately in the
+  // result, PDF, and email, so repeating it here makes the answer look broken.
+  const howItWorks = cleaned.match(/^how\s+does\s+(.+?)\s+work\b/i);
+  if (howItWorks) return shortenTitle(`How ${howItWorks[1].trim()} works`);
+
+  const taxQuestion = cleaned.match(/^how\s+(?:is|are)\s+(.+?)\s+taxed\b/i);
+  if (taxQuestion) return shortenTitle(`Tax treatment of ${taxQuestion[1].trim()}`);
 
   const definition = cleaned.match(/^(?:what|who)\s+(?:is|are|was|were)\s+(.+)$/i);
   if (definition) {
@@ -49,7 +55,8 @@ export function titleFromQuery(query: string): string {
     return shortenTitle(topic?.title ?? cleaned);
   }
 
-  return shortenTitle(cleaned || "Your equity compensation question");
+  const firstQuestion = cleaned.split(/[?!]/, 1)[0].trim();
+  return shortenTitle(firstQuestion || "Your equity compensation question");
 }
 
 export function normalizeArtifactTitle(candidate: string | undefined, query: string): string {
