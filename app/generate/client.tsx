@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { getNode } from "@/lib/content/tree";
 import { downloadArtifactPdf, deliverArtifactEmail } from "@/lib/artifact/delivery-client";
 import { canDeliverGeneratedAnswer, isSubmitDisabled } from "@/lib/generate-utils";
+import { PRESET_ANSWERS, type PresetAnswer } from "@/lib/generate/preset-answers";
 import type { ComparisonData } from "@/lib/llm/types";
 
 type Citation = { kind?: "topic" | "source" | "user-node"; nodeId?: string; sourceId?: string; title: string };
@@ -21,12 +22,6 @@ type PendingEmailIntent = { query: string; recipient: string; nodeId?: string; f
 
 const PENDING_EMAIL_KEY = "equityiq:pending-email-intent:v1";
 const STORAGE_KEY = "equityiq:drafts:v2";
-const commonQuestions = [
-  { label: "Award Types", question: "What is the difference between ISOs and NSOs? When would I use one over the other?" },
-  { label: "Tax and Withholding", question: "An employee exercised a large ISO grant this year. Could they owe AMT even if they did not sell the shares?" },
-  { label: "Equity Lifecycle", question: "An employee was terminated last month. What happens to their unvested RSUs and what is the exercise window for their options?" },
-  { label: "Year-end Reporting", question: "What do I need to file at year-end for ISO exercises? Walk me through Forms 3921, 3922 and W-2 adjustments." },
-];
 const formats: Array<{ id: Exclude<Format, "reference">; label: string; description: string }> = [
   { id: "pdf", label: "PDF", description: "Show the answer and download a copy." },
   { id: "email", label: "Email", description: "Show the answer and send it by email." },
@@ -63,11 +58,28 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
   const questionRef = useRef<HTMLTextAreaElement>(null);
   const autoSubmitted = useRef(false);
   const pendingConsumed = useRef(false);
+  const pendingPresetDelay = useRef<{ timer: number; resolve: () => void } | null>(null);
   // A new request cancels the previous one. The sequence number also protects
   // the screen if an older network response reaches the browser after a newer one.
   const requestSequence = useRef(0);
   const activeRequest = useRef<AbortController | null>(null);
   const nodeTitle = nodeId ? getNode(nodeId)?.title : undefined;
+
+  const cancelPresetDelay = useCallback(() => {
+    const pending = pendingPresetDelay.current;
+    if (!pending) return;
+    window.clearTimeout(pending.timer);
+    pendingPresetDelay.current = null;
+    pending.resolve();
+  }, []);
+
+  const waitForPresetDelay = useCallback(() => new Promise<void>((resolve) => {
+    const timer = window.setTimeout(() => {
+      pendingPresetDelay.current = null;
+      resolve();
+    }, 2_500);
+    pendingPresetDelay.current = { timer, resolve };
+  }), []);
 
   useEffect(() => { sessionStorage.removeItem(STORAGE_KEY); }, []);
   useEffect(() => { if (turn) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }, [turn]);
@@ -91,6 +103,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
   const doSubmit = useCallback(async (submitQuery: string, submitFormat: Format = format, submitRecipient = recipient, submitNodeId = nodeId) => {
     if (!submitQuery.trim()) { setEmptyHint(true); return; }
     if (submitFormat === "email" && emailMode === "production" && !submitRecipient.trim()) { setEmptyHint(false); setError(true); setLastQuery(submitQuery); setLastFormat(submitFormat); return; }
+    cancelPresetDelay();
     activeRequest.current?.abort();
     const requestId = ++requestSequence.current;
     const controller = new AbortController();
@@ -111,7 +124,42 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
       if (requestId !== requestSequence.current || (requestError instanceof DOMException && requestError.name === "AbortError")) return;
       setOffline(typeof navigator !== "undefined" && !navigator.onLine); setError(true);
     } finally { if (requestId === requestSequence.current) { activeRequest.current = null; setLoading(false); } }
-  }, [emailMode, format, nodeId, recipient, runDelivery]);
+  }, [cancelPresetDelay, emailMode, format, nodeId, recipient, runDelivery]);
+
+  const doPresetSubmit = useCallback(async (preset: PresetAnswer) => {
+    cancelPresetDelay();
+    activeRequest.current?.abort();
+    const requestId = ++requestSequence.current;
+    activeRequest.current = null;
+    setQuery(preset.question);
+    setFormat("reference");
+    setEmptyHint(false); setTurn(null); setDelivery(null); setLoading(true); setError(false); setOffline(false); setLastQuery(preset.question); setLastFormat("reference");
+
+    await waitForPresetDelay();
+    if (requestId !== requestSequence.current) return;
+
+    const uniquePart = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setTurn({
+      id: Date.now(),
+      query: preset.question,
+      format: "reference",
+      result: {
+        artifactId: `preset-${preset.id}-${uniquePart}`,
+        title: preset.title,
+        bodyMarkdown: preset.bodyMarkdown,
+        quickShare: preset.quickShare,
+        citations: [...preset.citations],
+        status: "ok",
+        answerAvailable: true,
+        fallbackUsed: false,
+        scenario: null,
+        logged: false,
+      },
+    });
+    setLoading(false);
+  }, [cancelPresetDelay, waitForPresetDelay]);
 
   const requestSubmit = useCallback(() => {
     if (format === "email" && !user) {
@@ -122,7 +170,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
     void doSubmit(query);
   }, [doSubmit, emailMode, format, nodeId, query, recipient, user]);
 
-  useEffect(() => () => { activeRequest.current?.abort(); requestSequence.current += 1; }, []);
+  useEffect(() => () => { cancelPresetDelay(); activeRequest.current?.abort(); requestSequence.current += 1; }, [cancelPresetDelay]);
   useEffect(() => {
     const cancelPendingIntent = () => sessionStorage.removeItem(PENDING_EMAIL_KEY);
     window.addEventListener("equityiq:sign-in-cancelled", cancelPendingIntent);
@@ -135,9 +183,9 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
     pendingConsumed.current = true; sessionStorage.removeItem(PENDING_EMAIL_KEY); setQuery(pending.query); setRecipient(pending.recipient); setFormat("email"); void doSubmit(pending.query, "email", pending.recipient, pending.nodeId);
   }, [doSubmit, user]);
 
-  const reset = () => { activeRequest.current?.abort(); requestSequence.current += 1; sessionStorage.removeItem(PENDING_EMAIL_KEY); setTurn(null); setDelivery(null); setLoading(false); setError(false); setOffline(false); setRecipient(""); setFormat("reference"); setQuery(""); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const reset = () => { cancelPresetDelay(); activeRequest.current?.abort(); requestSequence.current += 1; sessionStorage.removeItem(PENDING_EMAIL_KEY); setTurn(null); setDelivery(null); setLoading(false); setError(false); setOffline(false); setRecipient(""); setFormat("reference"); setQuery(""); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const refineQuestion = () => {
-    activeRequest.current?.abort(); requestSequence.current += 1; setTurn(null); setDelivery(null); setLoading(false); setError(false); setOffline(false); setFormat("reference");
+    cancelPresetDelay(); activeRequest.current?.abort(); requestSequence.current += 1; setTurn(null); setDelivery(null); setLoading(false); setError(false); setOffline(false); setFormat("reference");
     window.scrollTo({ top: 0, behavior: "smooth" });
     window.setTimeout(() => questionRef.current?.focus(), 250);
   };
@@ -163,7 +211,7 @@ export default function GenerateClient({ initialQuery = "", initialNodeId }: Pro
             {!missingRecipient && <button type="button" onClick={() => void doSubmit(lastQuery || query, lastFormat || format, recipient)}>Try again</button>}
           </div>}
         </section>
-        <section className="v9-common-questions"><h2>Common questions</h2><div className="v9-common-grid">{commonQuestions.map((item) => <button key={item.label} type="button" onClick={() => { setQuery(item.question); void doSubmit(item.question); }}><span>{item.label}</span><strong>{item.question}</strong><b aria-hidden="true">→</b></button>)}</div></section>
+        <section className="v9-common-questions"><h2>Common questions</h2><div className="v9-common-grid">{PRESET_ANSWERS.map((item) => <button key={item.id} type="button" onClick={() => void doPresetSubmit(item)}><span>{item.label}</span><strong>{item.question}</strong><b aria-hidden="true">→</b></button>)}</div></section>
       </>}
       {loading && <PreparingAnswer />}
       {turn && <div ref={resultRef} className="v9-result-stack">
