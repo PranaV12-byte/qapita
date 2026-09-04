@@ -176,6 +176,11 @@ export default function ArtifactResult({
     return Boolean(node && node.contentState !== "planned");
   });
   const sourceCitations = citations.filter((citation) => citation.kind === "source" || citation.kind === "user-node");
+  // Citation order reflects generation relevance. Six chips preserve useful
+  // next steps without allowing a long answer to turn into a second index page.
+  const visibleTopicCitations = topicCitations
+    .filter((citation, index, items) => items.findIndex((item) => item.nodeId === citation.nodeId) === index)
+    .slice(0, 6);
   const primaryTopic = topicCitations
     .map((citation) => citation.nodeId ? getNode(citation.nodeId) : undefined)
     .find((node): node is NonNullable<typeof node> => Boolean(node));
@@ -245,31 +250,88 @@ export default function ArtifactResult({
     setShowEmail((value) => !value);
   };
 
-  const actionButton =
-    "v9-action-button inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]";
+  const actionButton = "v9-action-button";
 
   return (
     <div className="v9-artifact-layout">
       <section className="v9-artifact-document">
-        <div className="v9-artifact-header">
-          <div className="v9-artifact-question">
-            <p>{question}</p>
+        <header className="v9-artifact-header v9-artifact-actions-header">
+          <div className="v9-artifact-actions-topline">
+            <p className="v9-artifact-actions-label">Actions</p>
+            <div className="v9-actions-row v9-artifact-actions-row">
+              <button
+                onClick={handleCopy}
+                aria-live="polite"
+                className={`${actionButton} ${
+                  copied ? "is-success" : ""
+                }`}
+              >
+                {getCopyLabel(copied)}
+              </button>
+              <button onClick={handleOpenPdf} disabled={pdfLoading} className={actionButton}>
+                {pdfLoading ? "Preparing PDF" : "PDF"}
+              </button>
+              <button onClick={handleEmailOpen} className={actionButton}>
+                Email
+              </button>
+            </div>
           </div>
-        </div>
+
+          {showEmail && (
+            <div className="v9-artifact-email">
+              {emailStatus === "success" ? (
+                <p className="v9-artifact-email-status">
+                  Email sent to {emailSubmittedTo} with the PDF attached.
+                </p>
+              ) : (
+                <form onSubmit={handleEmailSubmit} className="v9-artifact-email-form">
+                  {emailMode === "production" ? (
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      required
+                      className="v9-artifact-email-input"
+                    />
+                  ) : (
+                    <p className="v9-artifact-email-notice">
+                      Demo mode sends to {testRecipientMasked || "the configured Resend inbox"}.
+                    </p>
+                  )}
+                  {emailStatus === "error" && (
+                    <p className="v9-artifact-email-error">{emailError}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={emailStatus === "sending"}
+                    className="v9-artifact-email-submit"
+                  >
+                    {emailStatus === "sending"
+                      ? "Sending email"
+                      : emailMode === "test"
+                        ? "Send demo email"
+                        : "Send email"}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+        </header>
         <div className="v9-artifact-body">
           <SimpleMarkdown text={bodyMarkdown} />
         </div>
       </section>
 
-      <aside className="v9-artifact-aside">
+      <div className="v9-artifact-followups">
         <SectionCard
           title="Related topics"
           description="Review the guidance behind this answer or start a more focused draft from one of these topics."
           className="v9-related-topics-card"
         >
-          {topicCitations.length > 0 ? (
+          {visibleTopicCitations.length > 0 ? (
             <div className="v9-related-topic-chips flex flex-wrap gap-2">
-              {topicCitations.map((citation, index) => {
+              {visibleTopicCitations.map((citation, index) => {
                 const node = citation.nodeId ? getNode(citation.nodeId) : undefined;
                 if (!node) return null;
                 return (
@@ -318,72 +380,11 @@ export default function ArtifactResult({
             </div>
           </SectionCard>
         )}
+      </div>
 
-        <SectionCard title="Actions" className="v9-actions-card">
-          <div className="v9-actions-row flex flex-wrap gap-3">
-            <button
-              onClick={handleCopy}
-              aria-live="polite"
-              className={`${actionButton} ${
-                copied ? "bg-[var(--accent-solid)] text-white" : ""
-              }`}
-            >
-              {getCopyLabel(copied)}
-            </button>
-            <button onClick={handleOpenPdf} disabled={pdfLoading} className={actionButton}>
-              {pdfLoading ? "Preparing PDF" : "PDF"}
-            </button>
-            <button onClick={handleEmailOpen} className={actionButton}>
-              Email
-            </button>
-          </div>
-          {showEmail && (
-            <div className="mt-4">
-              {emailStatus === "success" ? (
-                <p className="text-sm leading-6 text-[var(--text-body)]">
-                  Email sent to {emailSubmittedTo} with the PDF attached.
-                </p>
-              ) : (
-                <form onSubmit={handleEmailSubmit} className="space-y-3">
-                  {emailMode === "production" ? (
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@company.com"
-                      required
-                      className="w-full min-h-[46px] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm text-[var(--text-body)]"
-                    />
-                  ) : (
-                    <p className="rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-body)]">
-                      Demo mode sends to {testRecipientMasked || "the configured Resend inbox"}.
-                    </p>
-                  )}
-                  {emailStatus === "error" && (
-                    <p className="text-sm leading-6 text-[var(--danger)]">{emailError}</p>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={emailStatus === "sending"}
-                    className="inline-flex min-h-[46px] items-center rounded-xl bg-[var(--accent-solid)] px-4 text-sm font-semibold text-white"
-                  >
-                    {emailStatus === "sending"
-                      ? "Sending email"
-                      : emailMode === "test"
-                        ? "Send demo email"
-                        : "Send email"}
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
-        </SectionCard>
-
-        <pre ref={quickShareRef} className="sr-only" aria-hidden="true">
-          {copyText}
-        </pre>
-
-      </aside>
+      <pre ref={quickShareRef} className="sr-only" aria-hidden="true">
+        {copyText}
+      </pre>
     </div>
   );
 }

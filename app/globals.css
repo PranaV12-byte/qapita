@@ -813,6 +813,52 @@ html, body { background: var(--v9-page); color: var(--v9-text); font-family: var
 .v9-answer-paragraph,
 .v9-answer-list { overflow-wrap: anywhere; }
 
+/* Successful answers read as one uninterrupted document. The delivery tools
+   stay in the document header so long answers can use the entire result width. */
+.v9-artifact-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.v9-artifact-document { width: 100%; min-width: 0; }
+.v9-artifact-actions-header { display: grid; gap: 14px; padding: 16px 20px; }
+.v9-artifact-actions-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 0; }
+/* This must outrank the legacy `.v9-artifact-header p` rule while keeping Actions visually aligned with its controls. */
+.v9-artifact-header .v9-artifact-actions-label { margin: 0; color: #674bb2; font-size: 15px; font-weight: 700; letter-spacing: .01em; line-height: 1.35; text-transform: none; }
+.v9-artifact-actions-row { flex: 0 1 360px; width: min(100%, 360px); }
+.v9-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--accent);
+  background: #fff;
+  font: 600 14px var(--font-inter);
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.v9-action-button:hover:not(:disabled) { background: #f5f1ff; }
+.v9-action-button:disabled { cursor: wait; opacity: .68; }
+.v9-action-button.is-success { color: #fff; background: var(--accent-solid); }
+.v9-artifact-email { padding-top: 14px; border-top: 1px solid #e8e2f1; }
+.v9-artifact-email-form { display: grid; gap: 12px; }
+.v9-artifact-email-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-body);
+  background: var(--surface-2);
+  font: 14px var(--font-inter);
+}
+.v9-artifact-email-notice,
+.v9-artifact-email-status { margin: 0; padding: 12px 14px; border-radius: 10px; color: var(--text-body); background: var(--surface-2); font-size: 14px; line-height: 1.6; }
+.v9-artifact-email-error { margin: 0; color: var(--danger); font-size: 14px; line-height: 1.5; }
+.v9-artifact-email-submit { justify-self: start; min-height: 46px; padding: 0 16px; border: 0; border-radius: 10px; color: #fff; background: var(--accent-solid); font: 600 14px var(--font-inter); cursor: pointer; }
+.v9-artifact-email-submit:disabled { cursor: wait; opacity: .7; }
+.v9-artifact-followups { display: grid; gap: 12px; min-width: 0; }
+.v9-result-toolbar p { color: #1f2937; font-weight: 700; }
+
 .v9-wiki-search-label { min-height: 48px; }
 .v9-wiki-search-label input { min-height: 46px; font-size: 14px; }
 
@@ -959,11 +1005,17 @@ html, body { background: var(--v9-page); color: var(--v9-text); font-family: var
   .v9-brain-sources { padding: 24px 16px; }
   .v9-graph-topline { flex-direction: column; align-items: stretch; }
   .v9-graph-actions { width: 100%; justify-content: space-between; }
+  .v9-artifact-actions-header { gap: 12px; padding: 16px; }
+  .v9-artifact-actions-topline { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .v9-artifact-actions-row { width: 100%; justify-self: stretch; }
+  .v9-artifact-email-submit { width: 100%; }
 }
 
 @media (max-width: 360px) {
   .v9-actions-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .v9-action-button { padding-right: 4px; padding-left: 4px; font-size: 12px; white-space: nowrap; }
+  .v9-artifact-actions-header { padding: 14px; }
+  .v9-artifact-actions-row { gap: 6px; }
   .v9-breadcrumb-list { row-gap: 4px; }
   .v9-breadcrumb-link { margin-right: 2px; margin-left: 2px; }
 }

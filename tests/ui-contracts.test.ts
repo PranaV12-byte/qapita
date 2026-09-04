@@ -6,13 +6,31 @@ const root = process.cwd();
 const read = (...parts: string[]) => readFileSync(resolve(root, ...parts), "utf8");
 
 describe("restored UI contracts", () => {
-  it("keeps all successful-answer side cards and accessible related-topic fallback", () => {
+  it("keeps successful-answer actions inside the full-width answer card and follow-up cards below it", () => {
     const source = read("components", "ArtifactResult.tsx");
     expect(source).toContain('title="Related topics"');
-    expect(source).toContain('title="Actions"');
+    expect(source).toContain("v9-artifact-actions-header");
+    expect(source).toContain("v9-artifact-actions-row");
+    expect(source).toContain("v9-artifact-followups");
+    expect(source).toContain("visibleTopicCitations");
+    expect(source).toContain(".slice(0, 6)");
     expect(source).toContain("v9-related-topics-empty");
     expect(source).toContain('Browse the Knowledge Tree');
     expect(source).toContain("v9-action-button");
+    expect(source.indexOf('title="Related topics"')).toBeLessThan(source.indexOf('title="Supporting sources"'));
+  });
+
+  it("labels the complete successful-answer request as Your Question", () => {
+    const source = read("app", "generate", "client.tsx");
+    expect(source).toContain('"Your Question"');
+    expect(source).not.toContain('"Your answer"');
+  });
+
+  it("keeps all three answer actions in one responsive row", () => {
+    const css = read("app", "globals.css");
+    expect(css).toContain(".v9-artifact-actions-row");
+    expect(css).toContain("grid-template-columns: repeat(3, minmax(0, 1fr))");
+    expect(css).toContain(".v9-artifact-header .v9-artifact-actions-label { margin: 0; color: #674bb2; font-size: 15px; font-weight: 700;");
   });
 
   it("keeps Wiki search labelled only as Search the Wiki", () => {
