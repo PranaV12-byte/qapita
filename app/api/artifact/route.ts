@@ -9,6 +9,10 @@ import { resolveCitations, retrieveForBrain } from "@/lib/brain/retrieval";
 import type { ArtifactFormat, ArtifactResult } from "@/lib/llm/types";
 import { isUsableGeneratedArtifact, normalizeGeneratedArtifact } from "@/lib/llm/output-normalizer";
 import { selectAnswerGrounding } from "@/lib/llm/grounding";
+import { createEvidenceProfile } from "@/lib/llm/answer-composer";
+import { composeBatchAnswer, type AnswerPart } from "@/lib/llm/batch-answer";
+import { MULTI_QUESTION_LIMIT_MESSAGE, splitIndependentQuestions } from "@/lib/llm/query-batch";
+import { titleFromQuery } from "@/lib/llm/title";
 import {
   MockLLM,
   gracefulComparisonRefinement,
@@ -71,6 +75,130 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const brainId = getBrainId(req.headers);
+  const questionBatch = splitIndependentQuestions(query);
+
+  // Several separate questions are composed deterministically from independent
+  // grounding sets. A single provider call could let the strongest topic crowd
+  // out the others, especially in serverless deployments.
+  if (questionBatch.tooMany || questionBatch.parts.length > 1) {
+    if (questionBatch.tooMany || format === "comparison") {
+      const generated = questionBatch.tooMany
+        ? { title: titleFromQuery(query), bodyMarkdown: MULTI_QUESTION_LIMIT_MESSAGE, citations: [], quickShare: MULTI_QUESTION_LIMIT_MESSAGE }
+        : gracefulComparisonRefinement(query);
+      const result = normalizeGeneratedArtifact(generated, query);
+      const reason = questionBatch.tooMany ? "content-gap" : "comparison-refinement";
+      const { logged } = await logArtifact({
+        mode: process.env.LLM_PROVIDER ?? "mock",
+        query,
+        scenarioId,
+        format,
+        intent: "multi-question",
+        retrievedCount: 0,
+        groundedCount: 0,
+        answerWordCount: 0,
+        durationMs: Date.now() - startedAt,
+        outcome: reason,
+      });
+      return NextResponse.json({
+        artifactId: randomUUID(),
+        ...result,
+        status: "generated",
+        answerAvailable: false,
+        answerUnavailableReason: reason,
+        fallbackUsed: false,
+        scenario,
+        logged,
+      });
+    }
+
+    let parts: AnswerPart[];
+    try {
+      parts = await Promise.all(questionBatch.parts.map(async (partQuery) => {
+        const intent = getQueryIntent(partQuery);
+        const definitionTopic = intent.kind === "definition" ? getNode(intent.nodeId) : undefined;
+        const queryIntent = intent.kind === "definition" && definitionTopic
+          ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title, facets: intent.facets, topics: intent.topics }
+          : intent;
+        const retrievalQuery = intent.kind === "definition" && definitionTopic
+          ? buildDefinitionRetrievalQuery(partQuery, definitionTopic)
+          : partQuery;
+        const retrieval = await retrieveForBrain(retrievalQuery, brainId, {
+          topK: (queryIntent.facets?.length ?? 0) >= 2 ? 16 : 12,
+        });
+        const grounding = selectAnswerGrounding(partQuery, retrieval.chunks, {
+          definitionNodeId: definitionTopic?.id,
+          intent: queryIntent,
+          maxSections: 6,
+        });
+        const profile = grounding.answerable
+          ? createEvidenceProfile(partQuery, grounding.chunks, queryIntent, 6)
+          : undefined;
+        return {
+          query: partQuery,
+          intent: queryIntent,
+          chunks: grounding.chunks,
+          profile,
+          citations: grounding.answerable ? resolveCitations(grounding.chunks, brainId) : [],
+        };
+      }));
+    } catch {
+      console.error("Artifact batch retrieval failed");
+      return NextResponse.json({ error: "retrieval_unavailable" }, { status: 503 });
+    }
+
+    const batch = composeBatchAnswer(parts);
+    const allGroundedChunks = parts.flatMap((part) => part.chunks);
+    const trustedIdentifiers = allGroundedChunks.flatMap((chunk) => [chunk.nodeId, chunk.sourceId]
+      .filter((id): id is string => Boolean(id)));
+    const generated = batch.answerAvailable
+      ? batch
+      : isClearlyOffTopicQuery(query)
+        ? gracefulOffTopic(query)
+        : gracefulUnknown(query);
+    const normalized = normalizeGeneratedArtifact({ ...generated, citations: [] }, query, trustedIdentifiers);
+    if (!isUsableGeneratedArtifact(normalized)) {
+      console.error("Artifact batch composition failed");
+      return NextResponse.json({ error: "generation_unavailable" }, { status: 503 });
+    }
+    const answerAvailable = batch.answerAvailable;
+    const result = {
+      ...normalized,
+      citations: answerAvailable ? batch.citations : [],
+    };
+    const matchedNodeIds = [...new Set(allGroundedChunks.map((chunk) => chunk.nodeId).filter((id): id is string => Boolean(id)))];
+    const { logged } = await logArtifact({
+      mode: "deterministic-batch",
+      query,
+      scenarioId,
+      format,
+      matchedNodeIds,
+      intent: "multi-question",
+      retrievedCount: parts.reduce((count, part) => count + part.chunks.length, 0),
+      groundedCount: allGroundedChunks.length,
+      answerWordCount: result.bodyMarkdown.split(/\s+/).filter(Boolean).length,
+      durationMs: Date.now() - startedAt,
+      outcome: answerAvailable ? "success" : isClearlyOffTopicQuery(query) ? "off-topic" : "content-gap",
+    });
+    const artifactId = randomUUID();
+    if (answerAvailable && brainId && brainStore.brainExists(brainId)) {
+      brainStore.appendAnswer(brainId, { artifactId, query, title: result.title, citations: result.citations, ts: new Date().toISOString() });
+    }
+    return NextResponse.json({
+      artifactId,
+      title: result.title,
+      bodyMarkdown: result.bodyMarkdown,
+      quickShare: result.quickShare,
+      citations: result.citations,
+      status: "generated",
+      answerAvailable,
+      ...(!answerAvailable ? { answerUnavailableReason: isClearlyOffTopicQuery(query) ? "off-topic" : "content-gap" } : {}),
+      fallbackUsed: false,
+      scenario,
+      logged,
+    });
+  }
+
   const detectedIntent = getQueryIntent(query);
   const definitionTopic = detectedIntent.kind === "definition"
     ? (getNode(boostNodeId ?? "") ?? getNode(detectedIntent.nodeId))
@@ -85,12 +213,11 @@ export async function POST(req: NextRequest) {
 
   // Brain-aware: retrieve against the caller's wiki (foundation ⊕ their delta).
   // No brain / an empty brain → foundation-only, byte-identical to before.
-  const brainId = getBrainId(req.headers);
   let retrieval;
   try {
     retrieval = await retrieveForBrain(retrievalQuery, brainId, {
       nodeId: boostNodeId,
-      topK: queryIntent.kind === "comparison" || (queryIntent.facets?.length ?? 0) >= 2 ? 16 : 12,
+      topK: queryIntent.kind === "comparison" || (queryIntent.facets?.length ?? 0) >= 2 || queryIntent.kind === "definition" ? 20 : 12,
     });
   } catch {
     console.error("Artifact retrieval failed");
@@ -100,13 +227,17 @@ export async function POST(req: NextRequest) {
   const grounding = selectAnswerGrounding(query, retrieval.chunks, {
     definitionNodeId,
     intent: queryIntent,
+    maxSections: 10,
   });
   let result: ArtifactResult & { answerAvailable?: boolean };
   try {
     const provider = getLLMProvider();
     const trustedCitations = grounding.answerable ? resolveCitations(grounding.chunks, brainId) : [];
     const trustedIdentifiers = grounding.chunks.flatMap((chunk) => [chunk.nodeId, chunk.sourceId].filter((id): id is string => Boolean(id)));
-    const generateDeterministic = () => new MockLLM().generate(query, grounding.chunks, { format, queryIntent });
+    const evidenceProfile = grounding.answerable
+      ? createEvidenceProfile(query, grounding.chunks, queryIntent, 10)
+      : undefined;
+    const generateDeterministic = () => new MockLLM().generate(query, grounding.chunks, { format, queryIntent, evidenceProfile });
     let generated: ArtifactResult;
     if (!grounding.answerable) {
       generated = queryIntent.kind === "comparison"
@@ -114,7 +245,7 @@ export async function POST(req: NextRequest) {
         : isClearlyOffTopicQuery(query) ? gracefulOffTopic(query) : gracefulUnknown(query);
     } else {
       try {
-        generated = await provider.generate(query, grounding.chunks, { format, queryIntent });
+        generated = await provider.generate(query, grounding.chunks, { format, queryIntent, evidenceProfile });
       } catch {
         console.log(JSON.stringify({ event: "provider_fallback", provider: process.env.LLM_PROVIDER ?? "mock", reason: "provider_exception" }));
         generated = await generateDeterministic();

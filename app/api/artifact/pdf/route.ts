@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderArtifactPdf } from "@/lib/pdf/render";
+import { PDF_FILENAME } from "@/lib/pdf/constants";
 import { ComparisonDataSchema } from "@/lib/llm/comparison";
 import { z } from "zod";
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="equity-brief.pdf"`,
+      "Content-Disposition": `inline; filename="${PDF_FILENAME}"; filename*=UTF-8''${encodeURIComponent(PDF_FILENAME)}`,
     },
   });
 }

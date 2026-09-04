@@ -33,6 +33,8 @@ export type GroundingOptions = {
   /** Exact canonical node for a simple definition question. */
   definitionNodeId?: string;
   intent?: QueryIntent;
+  /** Internal upper bound for distinct parent sections after qualification. */
+  maxSections?: number;
 };
 
 function chunkText(chunk: RetrievalChunk): string {
@@ -187,7 +189,7 @@ export function selectAnswerGrounding(
       ...scored.filter((entry) => !definitionEvidence.includes(entry)),
     ];
     return {
-      chunks: selected.slice(0, 4).map((entry) => entry.chunk),
+      chunks: selected.slice(0, Math.min(options.maxSections ?? 4, 6)).map((entry) => entry.chunk),
       answerable: true,
     };
   }
@@ -235,7 +237,16 @@ export function selectAnswerGrounding(
   }
 
   return {
-    chunks: selected.slice(0, isComparisonQuery(query) ? 8 : 6).map((entry) => entry.chunk),
+    chunks: selected.slice(0, Math.min(
+      options.maxSections ?? (isComparisonQuery(query)
+        ? 8
+        : (options.intent?.facets?.length ?? 0) >= 2
+          ? 8
+          : (options.intent?.facets?.length ?? 0) === 1
+            ? 7
+            : 6),
+      isComparisonQuery(query) ? 8 : 10
+    )).map((entry) => entry.chunk),
     answerable: true,
   };
 }

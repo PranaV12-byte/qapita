@@ -12,7 +12,7 @@ import {
   gracefulUnknown,
 } from "../lib/llm/mock";
 import { retrieveForBrain } from "../lib/brain/retrieval";
-import { stripMarkdown } from "../lib/llm/answer-composer";
+import { answerLengthPolicy, stripMarkdown } from "../lib/llm/answer-composer";
 
 async function answerFor(query: string, format: "reference" | "comparison" = "reference") {
   const intent = getQueryIntent(query);
@@ -49,17 +49,28 @@ describe("real Wiki answer quality", () => {
     "How does a tender offer work for private company employees?",
     "Can exercising ISOs trigger AMT if the shares are not sold?",
     "What happens to unvested RSUs after termination?",
-  ])("keeps the deterministic answer compact and block-separated for %s", async (query) => {
-    const { result } = await answerFor(query);
+  ])("keeps the deterministic answer adaptive and block-separated for %s", async (query) => {
+    const { intent, result } = await answerFor(query);
     expect(result).not.toBeNull();
     const body = result!.bodyMarkdown;
     const words = stripMarkdown(body).split(/\s+/).filter(Boolean).length;
     const headings = body.match(/^##\s+/gm)?.length ?? 0;
+    const policy = answerLengthPolicy(intent, query);
 
-    expect(words).toBeLessThanOrEqual(400);
-    expect(headings).toBeLessThanOrEqual(3);
+    expect(words).toBeLessThanOrEqual(policy.maxWords);
+    expect(headings).toBeLessThanOrEqual(policy.maxHeadings);
     expect(body).toContain("\n\n");
     expect(body.trim()).not.toMatch(/[,:;]$/);
+  });
+
+  it.each([
+    "How does a tender offer work for private company employees?",
+    "Can exercising ISOs trigger AMT if the shares are not sold?",
+    "What happens to unvested RSUs after termination?",
+  ])("uses the available Wiki depth for %s", async (query) => {
+    const { result } = await answerFor(query);
+    const words = stripMarkdown(result!.bodyMarkdown).split(/\s+/).filter(Boolean).length;
+    expect(words).toBeGreaterThan(300);
   });
 
   it("answers a tender offer query with the requested process and tax coverage", async () => {

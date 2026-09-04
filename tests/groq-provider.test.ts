@@ -63,9 +63,11 @@ describe("Groq provider reliability contract", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const payload = JSON.parse(fetchMock.mock.calls[0][1].body as string) as {
       model: string;
+      max_tokens: number;
       response_format: { type: string; json_schema: { strict: boolean; schema: { additionalProperties: boolean } } };
     };
     expect(payload.model).toBe("openai/gpt-oss-20b");
+    expect(payload.max_tokens).toBe(3600);
     expect(payload.response_format.type).toBe("json_schema");
     expect(payload.response_format.json_schema.strict).toBe(true);
     expect(payload.response_format.json_schema.schema.additionalProperties).toBe(false);

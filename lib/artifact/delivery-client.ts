@@ -1,4 +1,5 @@
 import type { ComparisonData } from "@/lib/llm/types";
+import { PDF_FILENAME } from "../pdf/constants";
 
 /**
  * Shared browser adapter for automatic delivery and the result Actions card.
@@ -39,7 +40,7 @@ export async function downloadArtifactPdf(artifact: DeliveryArtifact): Promise<v
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "equityiq-draft.pdf";
+  link.download = PDF_FILENAME;
   document.body.appendChild(link);
   link.click();
   link.remove();

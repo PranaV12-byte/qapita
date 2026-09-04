@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SYSTEM_PROMPT, buildUserMessage } from "../lib/llm/prompt";
 import type { RetrievalChunk } from "../lib/rag/types";
+import { getQueryIntent } from "../lib/llm/query-intent";
 
 const chunk: RetrievalChunk = {
   tier: "user",
@@ -47,5 +48,15 @@ describe("generated answer prompt policy", () => {
     const message = buildUserMessage("How are ISOs taxed?", [chunk], "email");
     expect(message).toContain("Format only the grounded answer content for insertion into a branded email template");
     expect(message).toContain("Do not include a subject line, greeting, sign-off, footer, or email framing");
+  });
+
+  it("requests adaptive technical depth without requiring unsupported padding", () => {
+    const query = "How are ISOs taxed, withheld, and reported after exercise and sale?";
+    const message = buildUserMessage(query, [chunk], "reference", getQueryIntent(query));
+
+    expect(SYSTEM_PROMPT).toContain("technically rigorous");
+    expect(message).toContain("Requested facets:");
+    expect(message).toContain("up to 1,500 words");
+    expect(message).toContain("shorter when the evidence is thin");
   });
 });

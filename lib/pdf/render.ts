@@ -1,8 +1,8 @@
 import React from "react";
 import fs from "node:fs";
 import path from "node:path";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { EquityBriefPDF } from "./template";
+import { Font, renderToBuffer } from "@react-pdf/renderer";
+import { DEFAULT_PDF_FONT_FAMILY, EquityBriefPDF, registerPdfFontFamily } from "./template";
 import type { Citation } from "@/lib/rag/types";
 import type { ComparisonData } from "@/lib/llm/types";
 import { normalizeComparison, normalizeGeneratedText } from "@/lib/llm/output-normalizer";
@@ -60,6 +60,13 @@ export type RenderArtifactPdfInput = {
   comparison?: ComparisonData;
 };
 
+let pdfRenderSequence = 0;
+
+function createRenderFontFamily(): string {
+  pdfRenderSequence += 1;
+  return `${DEFAULT_PDF_FONT_FAMILY}-${pdfRenderSequence}`;
+}
+
 /**
  * The single PDF rendering entry point for direct downloads and email
  * attachments. It accepts older positional calls for compatibility, but always
@@ -107,16 +114,26 @@ export async function renderArtifactPdf(
     day: "numeric",
     year: "numeric",
   });
-  return renderToBuffer(
-    React.createElement(EquityBriefPDF, {
-      title: normalized.title,
-      question: normalized.question || normalized.title,
-      bodyMarkdown: normalized.bodyMarkdown,
-      comparison: normalized.comparison,
-      blocks: parsePdfBlocks(normalized.bodyMarkdown),
-      date,
-      nasppLogoSrc: imageDataUrl(BRAND_ASSETS.naspp),
-      qapitaLogoSrc: imageDataUrl(BRAND_ASSETS.qapita),
-    })
-  );
+  const fontFamily = createRenderFontFamily();
+  registerPdfFontFamily(fontFamily);
+
+  try {
+    return await renderToBuffer(
+      React.createElement(EquityBriefPDF, {
+        title: normalized.title,
+        question: normalized.question || normalized.title,
+        bodyMarkdown: normalized.bodyMarkdown,
+        comparison: normalized.comparison,
+        blocks: parsePdfBlocks(normalized.bodyMarkdown),
+        date,
+        nasppLogoSrc: imageDataUrl(BRAND_ASSETS.naspp),
+        qapitaLogoSrc: imageDataUrl(BRAND_ASSETS.qapita),
+        fontFamily,
+      })
+    );
+  } finally {
+    // The document is fully buffered before this runs. Releasing the temporary
+    // family avoids retaining one parsed font object per warm-server request.
+    delete Font.getRegisteredFonts()[fontFamily];
+  }
 }

@@ -181,7 +181,9 @@ export class MockLLM implements LLMProvider {
       const topicCitations = distinctNodes(curated);
       const sourceCitations = distinctUserSources(user);
       const citations: Citation[] = [...topicCitations, ...sourceCitations];
-      const composed = composeWikiAnswer(query, [...curated, ...user], opts.queryIntent ?? { kind: "general" });
+      const composed = composeWikiAnswer(query, [...curated, ...user], opts.queryIntent ?? { kind: "general" }, {
+        profile: opts.evidenceProfile,
+      });
       if (!composed) return gracefulUnknown(query);
       return { title, bodyMarkdown: composed.bodyMarkdown, citations, quickShare: composed.quickShare };
     }
@@ -192,7 +194,9 @@ export class MockLLM implements LLMProvider {
     // to the graceful "I don't know" below instead of forcing a tangential
     // answer out of weak matches. ──
     if (curated.length > 0 && (bestCosine(curated) >= FALLBACK_THRESHOLD || hasGroundedEvidence(query, curated))) {
-      const composed = composeWikiAnswer(query, curated, opts.queryIntent ?? { kind: "general" });
+      const composed = composeWikiAnswer(query, curated, opts.queryIntent ?? { kind: "general" }, {
+        profile: opts.evidenceProfile,
+      });
       if (!composed) return gracefulUnknown(query);
       return { title, bodyMarkdown: composed.bodyMarkdown, citations: distinctNodes(curated), quickShare: composed.quickShare };
     }

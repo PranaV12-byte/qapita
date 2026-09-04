@@ -1,5 +1,6 @@
 import type { RetrievalChunk, Citation } from "@/lib/rag/types";
 import type { QueryIntent } from "./query-intent";
+import type { EvidenceProfile } from "./answer-composer";
 
 export type ComparisonRow = {
   feature: string;
@@ -32,6 +33,8 @@ export type GenerateOptions = {
   embedder?: import("@/lib/rag/types").Embedder;
   /** Internal intent metadata used to keep definition answers on-topic. */
   queryIntent?: QueryIntent;
+  /** Reviewed evidence used only to calibrate generated-answer depth. */
+  evidenceProfile?: EvidenceProfile;
 };
 
 export interface LLMProvider {

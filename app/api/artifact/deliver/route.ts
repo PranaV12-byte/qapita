@@ -6,6 +6,7 @@ import { buildArtifactEmail } from "@/lib/email/artifact-email";
 import { getEmailDeliveryConfig, maskEmail } from "@/lib/email/config";
 import { logArtifact } from "@/lib/log";
 import { renderArtifactPdf } from "@/lib/pdf/render";
+import { PDF_FILENAME } from "@/lib/pdf/constants";
 import { ComparisonDataSchema } from "@/lib/llm/comparison";
 
 export const runtime = "nodejs";
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
       text: message.text,
       attachments: [
         {
-          filename: "equityiq-draft.pdf",
+          filename: PDF_FILENAME,
           content: pdf,
         },
         ...message.inlineAttachments,

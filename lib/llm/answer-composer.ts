@@ -7,6 +7,22 @@ export type ComposedAnswer = {
   quickShare: string;
 };
 
+export type EvidenceTier = "thin" | "moderate" | "rich" | "very-rich";
+
+export type EvidenceProfile = {
+  relevantSections: RetrievalChunk[];
+  relevantWordCount: number;
+  coveredTopics: string[];
+  coveredFacets: QueryFacet[];
+  tier: EvidenceTier;
+};
+
+export type ComposeOptions = {
+  profile?: EvidenceProfile;
+  maxWords?: number;
+  targetWords?: number;
+};
+
 const FACET_HEADING_TERMS: Record<QueryFacet, string[]> = {
   process: ["process", "steps", "method", "election", "participate", "submission"],
   explanation: ["why", "purpose", "reason", "benefit", "used"],
@@ -149,14 +165,23 @@ function dedupeSections(chunks: RetrievalChunk[], intent: QueryIntent, query: st
     });
 }
 
-function sectionLimit(intent: QueryIntent): number {
-  if (intent.kind === "definition") return 3;
-  if ((intent.facets ?? []).length >= 2) return 4;
-  if ((intent.facets ?? []).length > 0) return 4;
-  return 3;
+function isMultiPartQuery(query: string, intent: QueryIntent): boolean {
+  const facets = intent.facets ?? [];
+  if (facets.length >= 4) return true;
+  const clauses = query.split(/[?;]|\b(?:and also|as well as)\b/i).filter((part) => part.trim().length > 0);
+  return clauses.length >= 2 && facets.length >= 2;
 }
 
-type AnswerLengthPolicy = {
+function sectionLimit(intent: QueryIntent, query: string): number {
+  if (intent.kind === "definition") return 6;
+  const facetCount = intent.facets?.length ?? 0;
+  if (isMultiPartQuery(query, intent) || facetCount >= 3) return 7;
+  if (facetCount >= 2) return 7;
+  if (facetCount === 1) return 6;
+  return 5;
+}
+
+export type AnswerLengthPolicy = {
   targetWords: number;
   maxWords: number;
   maxHeadings: number;
@@ -168,19 +193,36 @@ type AnswerLengthPolicy = {
  * narrow question does not turn into a copy of an entire article. The target
  * is a selection preference, not a padding requirement.
  */
-export function answerLengthPolicy(intent: QueryIntent): AnswerLengthPolicy {
-  if (intent.kind === "definition") {
-    return { targetWords: 160, maxWords: 220, maxHeadings: 3 };
-  }
+function evidenceRange(tier: EvidenceTier): Pick<AnswerLengthPolicy, "targetWords" | "maxWords"> {
+  if (tier === "thin") return { targetWords: 300, maxWords: 300 };
+  if (tier === "moderate") return { targetWords: 500, maxWords: 650 };
+  if (tier === "rich") return { targetWords: 850, maxWords: 1200 };
+  return { targetWords: 1100, maxWords: 1500 };
+}
 
-  const facetCount = intent.facets?.length ?? 0;
-  if (facetCount >= 2) {
-    return { targetWords: 300, maxWords: 400, maxHeadings: 3 };
+export function answerLengthPolicy(intent: QueryIntent, query = "", profile?: EvidenceProfile): AnswerLengthPolicy {
+  let base: AnswerLengthPolicy;
+  if (intent.kind === "definition") {
+    base = { targetWords: 500, maxWords: 650, maxHeadings: 5 };
+  } else {
+    const facetCount = intent.facets?.length ?? 0;
+    if (isMultiPartQuery(query, intent) || facetCount >= 4) {
+      base = { targetWords: 1100, maxWords: 1500, maxHeadings: 6 };
+    } else if (facetCount >= 2) {
+      base = { targetWords: 850, maxWords: 1200, maxHeadings: 6 };
+    } else if (facetCount > 0) {
+      base = { targetWords: 700, maxWords: 1100, maxHeadings: 5 };
+    } else {
+      base = { targetWords: 500, maxWords: 800, maxHeadings: 4 };
+    }
   }
-  if (facetCount > 0) {
-    return { targetWords: 240, maxWords: 350, maxHeadings: 3 };
-  }
-  return { targetWords: 180, maxWords: 250, maxHeadings: 3 };
+  if (!profile) return base;
+  const evidence = evidenceRange(profile.tier);
+  return {
+    ...base,
+    targetWords: Math.min(base.targetWords, evidence.targetWords),
+    maxWords: Math.min(base.maxWords, evidence.maxWords),
+  };
 }
 
 function isQuestionEcho(block: string, query: string, intent: QueryIntent): boolean {
@@ -194,6 +236,87 @@ function wordCount(value: string): number {
   return stripMarkdown(value).split(/\s+/).filter(Boolean).length;
 }
 
+export function isWithinAnswerLengthPolicy(
+  bodyMarkdown: string,
+  intent: QueryIntent,
+  query: string,
+  profile?: EvidenceProfile
+): boolean {
+  return wordCount(bodyMarkdown) <= answerLengthPolicy(intent, query, profile).maxWords;
+}
+
+function evidenceTier(words: number): EvidenceTier {
+  if (words < 300) return "thin";
+  if (words <= 800) return "moderate";
+  if (words <= 1800) return "rich";
+  return "very-rich";
+}
+
+function hasFacet(block: string, facet: QueryFacet): boolean {
+  const terms = new Set(relevanceTokens(stripMarkdown(block)));
+  return FACET_HEADING_TERMS[facet].some((term) => terms.has(term));
+}
+
+/** Profiles only the already-grounded, reviewed blocks that can safely make
+ * an answer longer. Total article size is deliberately not a signal. */
+export function createEvidenceProfile(
+  query: string,
+  chunks: RetrievalChunk[],
+  intent: QueryIntent,
+  maxSections = sectionLimit(intent, query)
+): EvidenceProfile {
+  const sections = dedupeSections(chunks, intent, query)
+    .slice(0, maxSections)
+    .sort(logicalSectionOrder);
+  const seenBlocks = new Set<string>();
+  const blocks: string[] = [];
+  for (const section of sections) {
+    for (const block of splitBlocks(section.parentText ?? section.text)) {
+      const key = plainKey(block);
+      if (!key || seenBlocks.has(key) || isQuestionEcho(block, query, intent)) continue;
+      seenBlocks.add(key);
+      blocks.push(block);
+    }
+  }
+  const relevantWordCount = blocks.reduce((total, block) => total + wordCount(block), 0);
+  const coveredFacets = (intent.facets ?? []).filter((facet) => blocks.some((block) => hasFacet(block, facet)));
+  return {
+    relevantSections: sections,
+    relevantWordCount,
+    coveredTopics: [...new Set(intent.topics ?? [])],
+    coveredFacets,
+    tier: evidenceTier(relevantWordCount),
+  };
+}
+
+function buildQuickShare(bodyMarkdown: string, maxWords = 240): string {
+  const plainBlocks = bodyMarkdown
+    .split(/\n{2,}/)
+    .map((block) => stripMarkdown(block).replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const selected: string[] = [];
+  let words = 0;
+
+  for (const block of plainBlocks) {
+    const blockWords = wordCount(block);
+    if (words + blockWords <= maxWords) {
+      selected.push(block);
+      words += blockWords;
+      continue;
+    }
+    for (const sentence of block.match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g) ?? []) {
+      const cleanSentence = sentence.trim();
+      const sentenceWords = wordCount(cleanSentence);
+      if (!sentenceWords || words + sentenceWords > maxWords) break;
+      selected.push(cleanSentence);
+      words += sentenceWords;
+    }
+    break;
+  }
+
+  return selected.join(" ").trim() || stripMarkdown(bodyMarkdown).replace(/\s+/g, " ").trim();
+}
+
 /**
  * Builds readable answer prose from complete reviewed sections. The composer is
  * intentionally extractive: it can improve structure and depth without making
@@ -202,12 +325,17 @@ function wordCount(value: string): number {
 export function composeWikiAnswer(
   query: string,
   chunks: RetrievalChunk[],
-  intent: QueryIntent
+  intent: QueryIntent,
+  options: ComposeOptions = {}
 ): ComposedAnswer | null {
-  const policy = answerLengthPolicy(intent);
-  const sections = dedupeSections(chunks, intent, query)
-    .slice(0, sectionLimit(intent))
-    .sort(logicalSectionOrder);
+  const profile = options.profile ?? createEvidenceProfile(query, chunks, intent);
+  const basePolicy = answerLengthPolicy(intent, query, profile);
+  const policy = {
+    ...basePolicy,
+    maxWords: Math.min(basePolicy.maxWords, options.maxWords ?? basePolicy.maxWords),
+    targetWords: Math.min(basePolicy.targetWords, options.targetWords ?? basePolicy.targetWords, options.maxWords ?? basePolicy.maxWords),
+  };
+  const sections = profile.relevantSections;
   const output: string[] = [];
   const seenBlocks = new Set<string>();
   let words = 0;
@@ -228,7 +356,6 @@ export function composeWikiAnswer(
       seenBlocks.add(key);
       selectedBlocks.push(block);
       words += nextWords;
-      if (words >= policy.targetWords) break;
     }
     if (selectedBlocks.length === 0) continue;
 
@@ -241,14 +368,10 @@ export function composeWikiAnswer(
     }
     output.push(...selectedBlocks);
 
-    // Once the answer has reached its target, do not add another section just
-    // because one happened to rank next. A single section can still be the
-    // complete answer when it is the only reliable evidence available.
-    if (words >= policy.targetWords) break;
   }
 
   const bodyMarkdown = output.join("\n\n").trim();
   if (!bodyMarkdown || wordCount(bodyMarkdown) < 12) return null;
-  const quickShare = stripMarkdown(bodyMarkdown).replace(/\s+/g, " ").trim();
+  const quickShare = buildQuickShare(bodyMarkdown);
   return { bodyMarkdown, quickShare };
 }

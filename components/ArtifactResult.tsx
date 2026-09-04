@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getCopyLabel } from "@/lib/generate-utils";
+import { buildArtifactCopyText, getCopyLabel } from "@/lib/generate-utils";
 import { getNode } from "@/lib/content/tree";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { deliverArtifactEmail, downloadArtifactPdf } from "@/lib/artifact/delivery-client";
@@ -156,7 +156,6 @@ export default function ArtifactResult({
   title,
   question,
   bodyMarkdown,
-  quickShare,
   citations,
   comparison,
 }: Props) {
@@ -169,6 +168,7 @@ export default function ArtifactResult({
   const [emailSubmittedTo, setEmailSubmittedTo] = useState("");
   const [emailError, setEmailError] = useState("");
   const quickShareRef = useRef<HTMLPreElement>(null);
+  const copyText = buildArtifactCopyText(question, bodyMarkdown);
 
   const topicCitations = citations.filter((citation) => {
     if (citation.kind === "source" || citation.kind === "user-node" || !citation.nodeId) return false;
@@ -192,7 +192,7 @@ export default function ArtifactResult({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(quickShare);
+      await navigator.clipboard.writeText(copyText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -380,7 +380,7 @@ export default function ArtifactResult({
         </SectionCard>
 
         <pre ref={quickShareRef} className="sr-only" aria-hidden="true">
-          {quickShare}
+          {copyText}
         </pre>
 
       </aside>

@@ -23,6 +23,7 @@ import { FALLBACK_THRESHOLD } from "../rag/config";
 import { hasGroundedEvidence } from "../rag/relevance";
 import { z } from "zod";
 import { normalizeArtifactTitle } from "./title";
+import { isWithinAnswerLengthPolicy } from "./answer-composer";
 
 const ArtifactResultSchema = z.object({
   title: z.string(),
@@ -117,7 +118,7 @@ export class GroqProvider implements LLMProvider {
     // The model receives only the exact grounded chunk set it is allowed to
     // use, with opaque indexes instead of internal IDs. Citation identity is
     // resolved by the server from trusted grounding metadata.
-    const sentChunks = rankAndCapChunks(chunks, comparisonRequested ? 8 : 6);
+    const sentChunks = rankAndCapChunks(chunks, 10);
 
     const callGroq = async (): Promise<ArtifactResult> => {
       const timeout = new AbortController();
@@ -135,10 +136,10 @@ export class GroqProvider implements LLMProvider {
             model,
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: buildUserMessage(query, sentChunks, options.format) },
+              { role: "user", content: buildUserMessage(query, sentChunks, options.format, options.queryIntent, options.evidenceProfile) },
             ],
             temperature: 0,
-            max_tokens: comparisonRequested ? 3500 : 2000,
+            max_tokens: comparisonRequested ? 3500 : 3600,
             response_format: {
               type: "json_schema",
               json_schema: {
@@ -187,9 +188,13 @@ export class GroqProvider implements LLMProvider {
         };
       }
 
+      const bodyMarkdown = cleanProseMarkdown(result.bodyMarkdown);
+      if (!isWithinAnswerLengthPolicy(bodyMarkdown, options.queryIntent ?? { kind: "general" }, query, options.evidenceProfile)) {
+        throw new Error("answer_length_exceeded");
+      }
       return {
         title: normalizeArtifactTitle(result.title, query),
-        bodyMarkdown: cleanProseMarkdown(result.bodyMarkdown),
+        bodyMarkdown,
         citations,
         // quickShare's contract is plaintext. Strip any markdown the model
         // left in despite the prompt, then apply the same tone cleanup.
