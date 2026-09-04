@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth0, isAuth0Configured } from "@/lib/auth0";
+import { getAuthenticationProvider } from "@/lib/auth-provider";
 import { getEmailDeliveryConfig, maskEmail } from "@/lib/email/config";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ export async function GET() {
         name: session.user.name,
         email: session.user.email,
         picture: session.user.picture,
+        provider: getAuthenticationProvider(session.user.sub),
       }
     : null;
   const email = getEmailDeliveryConfig();

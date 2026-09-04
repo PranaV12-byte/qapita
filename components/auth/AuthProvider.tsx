@@ -1,11 +1,13 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { AuthenticationProvider } from "@/lib/auth-provider";
 
 export type AuthUser = {
   name?: string;
   email?: string;
   picture?: string;
+  provider?: AuthenticationProvider;
 };
 
 type AuthState = {

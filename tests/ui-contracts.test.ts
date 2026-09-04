@@ -53,4 +53,10 @@ describe("restored UI contracts", () => {
     expect(css).toContain("grid-row: var(--detail-row-tablet)");
     expect(css).toContain("grid-row: var(--detail-row-mobile)");
   });
+
+  it("starts a fresh Auth0 interaction for each selected sign-in provider", () => {
+    const shell = read("components", "AppShell.tsx");
+    expect(shell).toContain("&prompt=login&returnTo=");
+    expect(shell).toContain("Signed in with {user.provider}");
+  });
 });

@@ -378,6 +378,7 @@ html, body { background: var(--v9-page); color: var(--v9-text); font-family: var
 .v9-account-avatar { width: 24px; height: 24px; display: inline-grid; place-items: center; flex: 0 0 24px; border-radius: 50%; background: var(--v9-yellow); color: var(--v9-ink); font-size: 11px; font-weight: 700; }
 .v9-account-menu { position: absolute; right: 12px; bottom: 64px; width: 170px; display: grid; gap: 5px; padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: #24213f; box-shadow: 0 18px 42px rgba(0,0,0,.35); color: white; font-size: 12px; }
 .v9-account-menu span { overflow: hidden; color: rgba(255,255,255,.6); text-overflow: ellipsis; white-space: nowrap; }
+.v9-account-menu .v9-account-provider { color: rgba(255,255,255,.82); font-size: 11px; }
 .v9-account-menu a { margin-top: 5px; color: white; text-decoration: none; }
 .v9-soon { margin-left: auto; padding: 1px 5px; border: 1px solid rgba(245,197,24,.3); border-radius: 6px; color: var(--v9-yellow); background: rgba(245,197,24,.15); font-size: 9px; font-weight: 500; }
 .v9-rail-link.is-disabled { opacity: .5; cursor: not-allowed; }
