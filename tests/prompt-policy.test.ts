@@ -56,7 +56,8 @@ describe("generated answer prompt policy", () => {
 
     expect(SYSTEM_PROMPT).toContain("technically rigorous");
     expect(message).toContain("Requested facets:");
-    expect(message).toContain("up to 1,500 words");
-    expect(message).toContain("shorter when the evidence is thin");
+    expect(message).toContain("Scope:");
+    expect(message).toContain("as much technically relevant detail as is available");
+    expect(message).not.toMatch(/\b(?:up to|roughly)\s+\d[\d,]*\s+words\b/i);
   });
 });

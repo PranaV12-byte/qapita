@@ -67,7 +67,7 @@ describe("Groq provider reliability contract", () => {
       response_format: { type: string; json_schema: { strict: boolean; schema: { additionalProperties: boolean } } };
     };
     expect(payload.model).toBe("openai/gpt-oss-20b");
-    expect(payload.max_tokens).toBe(3600);
+    expect(payload.max_tokens).toBe(12000);
     expect(payload.response_format.type).toBe("json_schema");
     expect(payload.response_format.json_schema.strict).toBe(true);
     expect(payload.response_format.json_schema.schema.additionalProperties).toBe(false);

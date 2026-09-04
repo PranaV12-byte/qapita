@@ -3,6 +3,8 @@ import path from "node:path";
 
 export type LogData = {
   mode?: string;
+  /** Retained for reading older entries; new generation calls intentionally
+   * omit the user's question and all generated content. */
   query?: string;
   scenarioId?: string;
   matchedNodeIds?: string[];
@@ -11,7 +13,12 @@ export type LogData = {
   emailTo?: string;
   fallbackUsed?: boolean;
   intent?: string;
+  scope?: string;
   facets?: string[];
+  evidenceTier?: string;
+  evidenceTiers?: string[];
+  relevantWordCount?: number;
+  partCount?: number;
   retrievedCount?: number;
   groundedCount?: number;
   answerWordCount?: number;

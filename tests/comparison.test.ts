@@ -77,4 +77,9 @@ describe("structured comparison contract", () => {
     expect(buildGroundedComparison("Compare company and employee.", chunks)).toBeNull();
     expect(extractComparisonSides("Compare ISOs, NSOs, RSUs, PSUs, and ESPPs.").tooMany).toBe(true);
   });
+
+  it("keeps a comparison qualifier out of the topic columns", () => {
+    expect(extractComparisonSides("Compare ISOs and NSOs; focus on tax and timing").sides)
+      .toEqual(["ISOs", "NSOs"]);
+  });
 });

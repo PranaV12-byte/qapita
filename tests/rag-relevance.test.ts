@@ -24,4 +24,12 @@ describe("retrieval evidence confidence", () => {
   it("rejects a planned topic when no evidence contains it", () => {
     expect(hasGroundedEvidence("Explain QSBS", equityChunks)).toBe(false);
   });
+
+  it("does not treat an uploaded filename as evidence", () => {
+    expect(hasGroundedEvidence("What is an ISO?", [{
+      ...chunk("ISO-notes.pdf", "This document covers general compensation administration."),
+      tier: "user",
+      sourceId: "upload-1",
+    }])).toBe(false);
+  });
 });

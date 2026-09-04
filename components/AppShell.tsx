@@ -7,14 +7,14 @@ import SearchOverlay from "@/components/search/SearchOverlay";
 import { BrandCluster } from "@/components/brand/Logos";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-type NavItem = { label: string; href: string; icon: string; disabled?: boolean };
+type NavItem = { label: string; href: string; icon: string; disabled?: boolean; badge?: string };
 
 const links: NavItem[] = [
   { label: "Home", href: "/", icon: "home" },
   { label: "Ask a question", href: "/generate", icon: "ask" },
   { label: "Knowledge Tree", href: "/browse", icon: "tree" },
   { label: "Wiki", href: "/wiki", icon: "book" },
-  { label: "Brain", href: "/brain", icon: "brain" },
+  { label: "Brain", href: "/brain", icon: "brain", badge: "Beta" },
   { label: "Archive", href: "#archive", icon: "archive", disabled: true },
   { label: "Learn", href: "#learn", icon: "learn", disabled: true },
 ];
@@ -100,7 +100,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <nav className="v9-rail-links" aria-label="Primary navigation">
         {links.map((link) => {
           const isCurrent = active(pathname, link.href);
-          const body = <><Icon name={link.icon} /><span className="v9-rail-label">{link.label}</span>{link.disabled && expanded && <span className="v9-soon">Coming soon</span>}</>;
+          const body = <><Icon name={link.icon} /><span className="v9-rail-label">{link.label}</span>{expanded && (link.badge || link.disabled) && <span className="v9-soon">{link.badge || "Coming soon"}</span>}</>;
           if (link.disabled) return <button key={link.label} type="button" disabled className="v9-rail-link is-disabled" title="Coming soon">{body}</button>;
           return <Link key={link.href} href={link.href} className={`v9-rail-link ${isCurrent ? "is-active" : ""}`} title={expanded ? undefined : link.label}>{body}</Link>;
         })}

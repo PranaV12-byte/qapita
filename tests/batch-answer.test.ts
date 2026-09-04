@@ -47,7 +47,8 @@ describe("multi-question composition", () => {
     expect(result.bodyMarkdown).toContain("## RSUs & RSAs");
     expect(result.bodyMarkdown).toContain("## Liquidity & exits");
     expect(result.citations.map((citation) => citation.nodeId)).toEqual(["1.1", "1.3", "6.1"]);
-    expect(stripMarkdown(result.bodyMarkdown).split(/\s+/).length).toBeLessThanOrEqual(2500);
+    expect(stripMarkdown(result.bodyMarkdown).split(/\s+/).length).toBeGreaterThan(0);
+    expect(result.bodyMarkdown).toMatch(/^##\s+/);
   });
 
   it("keeps a content-gap message inside an otherwise supported result", () => {
@@ -58,5 +59,14 @@ describe("multi-question composition", () => {
 
     expect(result.answerAvailable).toBe(true);
     expect(result.bodyMarkdown).toContain("does not have enough verified guidance to answer this part confidently yet");
+  });
+
+  it("does not impose a four-question composition limit", () => {
+    const parts = Array.from({ length: 5 }, (_, index) =>
+      supportedPart(`What is topic ${index}?`, `Topic ${index}`, `1.${index + 1}`)
+    );
+    const result = composeBatchAnswer(parts);
+    expect(result.answerAvailable).toBe(true);
+    expect(result.bodyMarkdown.match(/^##\s+/gm)).toHaveLength(5);
   });
 });

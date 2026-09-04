@@ -47,12 +47,21 @@ function normalizeToken(token: string): string {
 }
 
 export function relevanceTokens(text: string): string[] {
-  const raw = text.toLowerCase().replace(/w-2/g, "w2").match(/[a-z0-9]+/g) ?? [];
+  const raw = text
+    .toLowerCase()
+    .replace(/w-2/g, "w2")
+    .replace(/\b83\s*\(\s*b\s*\)|\b83\s*b\b/g, "83b")
+    .match(/[a-z0-9]+/g) ?? [];
   return [...new Set(raw.filter((token) => token.length > 1 && !STOP_WORDS.has(token)).map(normalizeToken))];
 }
 
 function chunkText(chunk: RetrievalChunk): string {
-  return [chunk.title, chunk.headingPath, chunk.text, chunk.parentText].filter(Boolean).join(" ");
+  // A user-uploaded filename is citation metadata, not evidence. Keeping it
+  // out of the confidence check prevents names such as "ISO-notes.pdf" from
+  // making unrelated extracted text look grounded.
+  return [chunk.tier === "user" ? undefined : chunk.title, chunk.headingPath, chunk.text, chunk.parentText]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function groundedEvidenceScore(query: string, chunk: RetrievalChunk): number {
@@ -74,7 +83,7 @@ export function hasGroundedEvidence(query: string, chunks: RetrievalChunk[]): bo
   const queryTerms = relevanceTokens(query);
   if (!queryTerms.length || !chunks.length) return false;
 
-  const allEvidence = new Set(relevanceTokens(chunks.slice(0, 8).map(chunkText).join(" ")));
+  const allEvidence = new Set(relevanceTokens(chunks.map(chunkText).join(" ")));
   const matches = queryTerms.filter((term) => allEvidence.has(term));
   if (!matches.length) return false;
 

@@ -23,7 +23,6 @@ import { FALLBACK_THRESHOLD } from "../rag/config";
 import { hasGroundedEvidence } from "../rag/relevance";
 import { z } from "zod";
 import { normalizeArtifactTitle } from "./title";
-import { isWithinAnswerLengthPolicy } from "./answer-composer";
 
 const ArtifactResultSchema = z.object({
   title: z.string(),
@@ -118,7 +117,7 @@ export class GroqProvider implements LLMProvider {
     // The model receives only the exact grounded chunk set it is allowed to
     // use, with opaque indexes instead of internal IDs. Citation identity is
     // resolved by the server from trusted grounding metadata.
-    const sentChunks = rankAndCapChunks(chunks, 10);
+    const sentChunks = rankAndCapChunks(chunks);
 
     const callGroq = async (): Promise<ArtifactResult> => {
       const timeout = new AbortController();
@@ -139,7 +138,10 @@ export class GroqProvider implements LLMProvider {
               { role: "user", content: buildUserMessage(query, sentChunks, options.format, options.queryIntent, options.evidenceProfile) },
             ],
             temperature: 0,
-            max_tokens: comparisonRequested ? 3500 : 3600,
+            // There is no editorial word ceiling. This is only the provider's
+            // response allowance; deterministic composition remains the
+            // deploy-safe fallback when a provider cannot satisfy the request.
+            max_tokens: comparisonRequested ? 3500 : 12000,
             response_format: {
               type: "json_schema",
               json_schema: {
@@ -189,9 +191,6 @@ export class GroqProvider implements LLMProvider {
       }
 
       const bodyMarkdown = cleanProseMarkdown(result.bodyMarkdown);
-      if (!isWithinAnswerLengthPolicy(bodyMarkdown, options.queryIntent ?? { kind: "general" }, query, options.evidenceProfile)) {
-        throw new Error("answer_length_exceeded");
-      }
       return {
         title: normalizeArtifactTitle(result.title, query),
         bodyMarkdown,

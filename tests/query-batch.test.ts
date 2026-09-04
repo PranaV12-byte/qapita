@@ -19,11 +19,29 @@ describe("independent question splitting", () => {
     ]);
   });
 
-  it("returns a refinement signal when more than four questions are supplied", () => {
+  it("keeps every independent definition within the input limit", () => {
     const batch = splitIndependentQuestions(
       "What is an ISO? What is an NSO? What is an RSU? What is a SAR? What is an ESPP?"
     );
-    expect(batch.parts).toHaveLength(4);
-    expect(batch.tooMany).toBe(true);
+    expect(batch.parts).toEqual([
+      "What is an ISO?",
+      "What is an NSO?",
+      "What is an RSU?",
+      "What is a SAR?",
+      "What is an ESPP?",
+    ]);
+  });
+
+  it("splits independent topic clauses but keeps inherited conditions together", () => {
+    expect(splitIndependentQuestions("How are ISOs taxed and what happens to RSUs after termination?").parts)
+      .toEqual(["How are ISOs taxed?", "what happens to RSUs after termination?"]);
+    expect(splitIndependentQuestions("What is an ISO and how is it taxed?").parts)
+      .toEqual(["What is an ISO and how is it taxed?"]);
+    expect(splitIndependentQuestions("Can exercising ISOs trigger AMT if the shares are not sold?").parts)
+      .toEqual(["Can exercising ISOs trigger AMT if the shares are not sold?"]);
+    expect(splitIndependentQuestions("What is an ISO? What happens if it is exercised?").parts)
+      .toEqual(["What is an ISO? What happens if it is exercised?"]);
+    expect(splitIndependentQuestions("Compare ISOs and NSOs; focus on tax and timing").parts)
+      .toEqual(["Compare ISOs and NSOs; focus on tax and timing?"]);
   });
 });

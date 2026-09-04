@@ -122,6 +122,13 @@ function topicList(value: string): string[] {
     .filter(Boolean);
 }
 
+function stripComparisonQualifier(value: string): string {
+  // Semicolon clauses such as “focus on tax” qualify the comparison; they do
+  // not name a third topic. Keep the parser from turning that qualifier into
+  // a column label while leaving commas available for the actual topic list.
+  return value.replace(/\s*;\s*(?:focus|focusing|consider|including|compare)\b.*$/i, "").trim();
+}
+
 /** Parse only explicit comparison sides. This prevents a related phrase such
  * as "tax treatment and eligibility" from becoming an invented column. */
 export function extractComparisonSides(query: string): ComparisonSideResult {
@@ -131,32 +138,38 @@ export function extractComparisonSides(query: string): ComparisonSideResult {
   const cleaned = query.split("?", 1)[0].replace(/\s+/g, " ").trim().replace(/[!.:;]+$/g, "");
   const between = cleaned.match(/\bbetween\s+(.+)$/i);
   if (between) {
-    const subject = between[1].split(/\b(?:for|on|with|regarding|in terms of|when)\b/i)[0];
+    const subject = stripComparisonQualifier(between[1]).split(/\b(?:for|on|with|regarding|in terms of|when)\b/i)[0];
     const sides = topicList(subject);
     return { sides, tooMany: sides.length > 4 };
   }
 
   const explicitVs = cleaned.match(/(.+?)\s+(?:vs\.?|versus)\s+(.+?)(?:\s+\b(?:for|on|with|regarding|in terms of)\b|$)/i);
   if (explicitVs) {
-    const sides = [cleanTopicText(explicitVs[1].replace(/^(?:compare|what\s+is\s+the\s+difference\s+between)\s+/i, "")), cleanTopicText(explicitVs[2])].filter(Boolean);
+    const sides = [cleanTopicText(stripComparisonQualifier(explicitVs[1]).replace(/^(?:compare|what\s+is\s+the\s+difference\s+between)\s+/i, "")), cleanTopicText(stripComparisonQualifier(explicitVs[2]))].filter(Boolean);
     return { sides, tooMany: sides.length > 4 };
   }
 
   const comparePair = cleaned.match(/\bcompare(?:\s+the)?\s+(.+?)\s+(?:to|with|against)\s+(.+)$/i);
   if (comparePair) {
-    const sides = [cleanTopicText(comparePair[1]), cleanTopicText(comparePair[2])].filter(Boolean);
+    const sides = [cleanTopicText(stripComparisonQualifier(comparePair[1])), cleanTopicText(stripComparisonQualifier(comparePair[2]))].filter(Boolean);
     return { sides, tooMany: sides.length > 4 };
   }
 
   const compareVerb = cleaned.match(/\b(.+?)\s+compares?\s+(?:to|with|against)\s+(.+)$/i);
   if (compareVerb) {
-    const sides = [cleanTopicText(compareVerb[1].replace(/^how\s+(?:do|does)\s+/i, "")), cleanTopicText(compareVerb[2])].filter(Boolean);
+    const sides = [cleanTopicText(stripComparisonQualifier(compareVerb[1]).replace(/^how\s+(?:do|does)\s+/i, "")), cleanTopicText(stripComparisonQualifier(compareVerb[2]))].filter(Boolean);
+    return { sides, tooMany: sides.length > 4 };
+  }
+
+  const compareQuestion = cleaned.match(/^how\s+(?:do|does)\s+(.+?)\s+compare$/i);
+  if (compareQuestion) {
+    const sides = topicList(compareQuestion[1]);
     return { sides, tooMany: sides.length > 4 };
   }
 
   const afterCompare = cleaned.match(/\bcompare(?:\s+the)?\s+(.+)$/i);
   if (afterCompare) {
-    const subject = afterCompare[1].split(/\b(?:for|on|with|regarding|in terms of|when)\b/i)[0];
+    const subject = stripComparisonQualifier(afterCompare[1]).split(/\b(?:for|on|with|regarding|in terms of|when)\b/i)[0];
     const sides = topicList(subject);
     return { sides, tooMany: sides.length > 4 };
   }
@@ -165,7 +178,10 @@ export function extractComparisonSides(query: string): ComparisonSideResult {
 }
 
 function displayLabel(chunk: RetrievalChunk): string {
-  return (chunk.nodeId && getNode(chunk.nodeId)?.title) || chunk.title || chunk.headingPath || "Relevant guidance";
+  const node = chunk.nodeId ? getNode(chunk.nodeId) : undefined;
+  if (node) return node.title;
+  if (chunk.tier === "user") return chunk.headingPath || "Your uploaded material";
+  return chunk.title || chunk.headingPath || "Relevant guidance";
 }
 
 function evidenceText(chunk: RetrievalChunk): string {
@@ -189,7 +205,18 @@ function candidateScore(side: string, chunk: RetrievalChunk): number {
   // requested topic. This blocks generic retrieval overlap from turning an
   // unrelated section into a comparison column.
   if (contentMatches === 0) return 0;
-  return exactMatch + labelMatches * 12 + contentMatches * 8 + allMatches * 2;
+  const label = `${displayLabel(chunk)} ${chunk.headingPath ?? ""}`.toLowerCase();
+  const sideAffinity = /cash[-\s]?settled|cash\s+(?:awards?|settlements?)/i.test(side)
+    ? (/\b(?:sar|phantom|cash[-\s]?settled|liability)\b/i.test(label) ? 36 :
+      /\b(?:acquisition|cash acquisition|job & life events)\b/i.test(label) ? -24 : 0)
+    : /\bstock\s+options?\b|\boptions?\b/i.test(side)
+      ? (/\b(?:option|iso|nso)\b/i.test(label) ? 30 :
+        /\b(?:rsu|rsa|sar|phantom)\b/i.test(label) ? -24 : 0)
+      : /\brsus?\b/i.test(side)
+        ? (/\b(?:rsu|rsa)\b/i.test(label) ? 30 :
+          /\b(?:sar|phantom|option|iso|nso)\b/i.test(label) ? -18 : 0)
+        : 0;
+  return sideAffinity + exactMatch + labelMatches * 12 + contentMatches * 8 + allMatches * 2;
 }
 
 function completeSentences(text: string, count: number): string[] {
@@ -225,6 +252,10 @@ function conciseEvidence(chunk: RetrievalChunk, side: string): string | null {
 
 function columnLabel(side: string, chunk: RetrievalChunk): string {
   const label = displayLabel(chunk);
+  if (/cash[-\s]?settled|cash\s+(?:awards?|settlements?)/i.test(side)) return cleanTopicText(side);
+  if (/\bstock\s+options?\b|\boptions?\b/i.test(side)) {
+    return /\b(?:option|iso|nso)\b/i.test(label) ? label : cleanTopicText(side);
+  }
   const requestedTerms = relevanceTokens(side).filter((term) => COMPARISON_TOPIC_TERMS.has(term));
   const labelTopicTerms = relevanceTokens(label).filter((term) => COMPARISON_TOPIC_TERMS.has(term));
   // Use the reviewed taxonomy label when it represents one topic. If the

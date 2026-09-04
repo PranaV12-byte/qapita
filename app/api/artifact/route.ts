@@ -8,11 +8,10 @@ import { brainStore } from "@/lib/brain/store";
 import { resolveCitations, retrieveForBrain } from "@/lib/brain/retrieval";
 import type { ArtifactFormat, ArtifactResult } from "@/lib/llm/types";
 import { isUsableGeneratedArtifact, normalizeGeneratedArtifact } from "@/lib/llm/output-normalizer";
-import { selectAnswerGrounding } from "@/lib/llm/grounding";
-import { createEvidenceProfile } from "@/lib/llm/answer-composer";
+import { isGeneratedBodyGrounded, selectAnswerGrounding } from "@/lib/llm/grounding";
+import { createEvidenceProfile, type EvidenceProfile } from "@/lib/llm/answer-composer";
 import { composeBatchAnswer, type AnswerPart } from "@/lib/llm/batch-answer";
-import { MULTI_QUESTION_LIMIT_MESSAGE, splitIndependentQuestions } from "@/lib/llm/query-batch";
-import { titleFromQuery } from "@/lib/llm/title";
+import { splitIndependentQuestions } from "@/lib/llm/query-batch";
 import {
   MockLLM,
   gracefulComparisonRefinement,
@@ -26,6 +25,32 @@ import { z } from "zod";
 import { primaryLegacyTopicId, toV9TopicId } from "@/lib/content/v9-taxonomy";
 
 export const runtime = "nodejs";
+
+const RETRIEVAL_CONCURRENCY = 4;
+
+function retrievalTopK(intent: ReturnType<typeof getQueryIntent>): number {
+  if (intent.kind === "definition" || intent.scope === "broad" || intent.scope === "vague") return 80;
+  if (intent.kind === "comparison" || (intent.facets?.length ?? 0) >= 2) return 48;
+  return 32;
+}
+
+async function mapWithConcurrency<T, R>(
+  values: T[],
+  concurrency: number,
+  mapper: (value: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const output = new Array<R>(values.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= values.length) return;
+      output[index] = await mapper(values[index], index);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, values.length) }, worker));
+  return output;
+}
 
 /**
  * Primary answer boundary. It validates the request, selects grounded evidence,
@@ -81,19 +106,18 @@ export async function POST(req: NextRequest) {
   // Several separate questions are composed deterministically from independent
   // grounding sets. A single provider call could let the strongest topic crowd
   // out the others, especially in serverless deployments.
-  if (questionBatch.tooMany || questionBatch.parts.length > 1) {
-    if (questionBatch.tooMany || format === "comparison") {
-      const generated = questionBatch.tooMany
-        ? { title: titleFromQuery(query), bodyMarkdown: MULTI_QUESTION_LIMIT_MESSAGE, citations: [], quickShare: MULTI_QUESTION_LIMIT_MESSAGE }
-        : gracefulComparisonRefinement(query);
+  if (questionBatch.parts.length > 1) {
+    if (format === "comparison") {
+      const generated = gracefulComparisonRefinement(query);
       const result = normalizeGeneratedArtifact(generated, query);
-      const reason = questionBatch.tooMany ? "content-gap" : "comparison-refinement";
+      const reason = "comparison-refinement";
       const { logged } = await logArtifact({
         mode: process.env.LLM_PROVIDER ?? "mock",
-        query,
         scenarioId,
         format,
         intent: "multi-question",
+        scope: "multi-question",
+        partCount: questionBatch.parts.length,
         retrievedCount: 0,
         groundedCount: 0,
         answerWordCount: 0,
@@ -114,25 +138,24 @@ export async function POST(req: NextRequest) {
 
     let parts: AnswerPart[];
     try {
-      parts = await Promise.all(questionBatch.parts.map(async (partQuery) => {
+      parts = await mapWithConcurrency(questionBatch.parts, RETRIEVAL_CONCURRENCY, async (partQuery) => {
         const intent = getQueryIntent(partQuery);
         const definitionTopic = intent.kind === "definition" ? getNode(intent.nodeId) : undefined;
         const queryIntent = intent.kind === "definition" && definitionTopic
-          ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title, facets: intent.facets, topics: intent.topics }
+          ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title, facets: intent.facets, topics: intent.topics, scope: intent.scope }
           : intent;
         const retrievalQuery = intent.kind === "definition" && definitionTopic
           ? buildDefinitionRetrievalQuery(partQuery, definitionTopic)
           : partQuery;
         const retrieval = await retrieveForBrain(retrievalQuery, brainId, {
-          topK: (queryIntent.facets?.length ?? 0) >= 2 ? 16 : 12,
+          topK: retrievalTopK(queryIntent),
         });
         const grounding = selectAnswerGrounding(partQuery, retrieval.chunks, {
           definitionNodeId: definitionTopic?.id,
           intent: queryIntent,
-          maxSections: 6,
         });
         const profile = grounding.answerable
-          ? createEvidenceProfile(partQuery, grounding.chunks, queryIntent, 6)
+          ? createEvidenceProfile(partQuery, grounding.chunks, queryIntent)
           : undefined;
         return {
           query: partQuery,
@@ -141,7 +164,7 @@ export async function POST(req: NextRequest) {
           profile,
           citations: grounding.answerable ? resolveCitations(grounding.chunks, brainId) : [],
         };
-      }));
+      });
     } catch {
       console.error("Artifact batch retrieval failed");
       return NextResponse.json({ error: "retrieval_unavailable" }, { status: 503 });
@@ -169,11 +192,14 @@ export async function POST(req: NextRequest) {
     const matchedNodeIds = [...new Set(allGroundedChunks.map((chunk) => chunk.nodeId).filter((id): id is string => Boolean(id)))];
     const { logged } = await logArtifact({
       mode: "deterministic-batch",
-      query,
       scenarioId,
       format,
       matchedNodeIds,
       intent: "multi-question",
+      scope: "multi-question",
+      partCount: parts.length,
+      evidenceTiers: parts.map((part) => part.profile?.tier ?? "none"),
+      relevantWordCount: parts.reduce((count, part) => count + (part.profile?.relevantWordCount ?? 0), 0),
       retrievedCount: parts.reduce((count, part) => count + part.chunks.length, 0),
       groundedCount: allGroundedChunks.length,
       answerWordCount: result.bodyMarkdown.split(/\s+/).filter(Boolean).length,
@@ -205,7 +231,7 @@ export async function POST(req: NextRequest) {
     : undefined;
   const definitionNodeId = definitionTopic?.id;
   const queryIntent = detectedIntent.kind === "definition" && definitionTopic
-    ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title, facets: detectedIntent.facets, topics: detectedIntent.topics }
+    ? { kind: "definition" as const, nodeId: definitionTopic.id, title: definitionTopic.title, facets: detectedIntent.facets, topics: detectedIntent.topics, scope: detectedIntent.scope }
     : detectedIntent;
   const retrievalQuery = detectedIntent.kind === "definition" && definitionTopic
     ? buildDefinitionRetrievalQuery(query, definitionTopic)
@@ -217,7 +243,7 @@ export async function POST(req: NextRequest) {
   try {
     retrieval = await retrieveForBrain(retrievalQuery, brainId, {
       nodeId: boostNodeId,
-      topK: queryIntent.kind === "comparison" || (queryIntent.facets?.length ?? 0) >= 2 || queryIntent.kind === "definition" ? 20 : 12,
+      topK: retrievalTopK(queryIntent),
     });
   } catch {
     console.error("Artifact retrieval failed");
@@ -227,15 +253,15 @@ export async function POST(req: NextRequest) {
   const grounding = selectAnswerGrounding(query, retrieval.chunks, {
     definitionNodeId,
     intent: queryIntent,
-    maxSections: 10,
   });
   let result: ArtifactResult & { answerAvailable?: boolean };
+  let evidenceProfile: EvidenceProfile | undefined;
   try {
     const provider = getLLMProvider();
     const trustedCitations = grounding.answerable ? resolveCitations(grounding.chunks, brainId) : [];
     const trustedIdentifiers = grounding.chunks.flatMap((chunk) => [chunk.nodeId, chunk.sourceId].filter((id): id is string => Boolean(id)));
-    const evidenceProfile = grounding.answerable
-      ? createEvidenceProfile(query, grounding.chunks, queryIntent, 10)
+    evidenceProfile = grounding.answerable
+      ? createEvidenceProfile(query, grounding.chunks, queryIntent)
       : undefined;
     const generateDeterministic = () => new MockLLM().generate(query, grounding.chunks, { format, queryIntent, evidenceProfile });
     let generated: ArtifactResult;
@@ -251,12 +277,34 @@ export async function POST(req: NextRequest) {
         generated = await generateDeterministic();
       }
     }
-    let normalized = normalizeGeneratedArtifact({ ...generated, citations: [] }, query, trustedIdentifiers);
-    if (!isUsableGeneratedArtifact(normalized) && grounding.answerable) {
+    const normalizeCandidate = (candidate: ArtifactResult): ArtifactResult | null => {
+      try {
+        return normalizeGeneratedArtifact({ ...candidate, citations: [] }, query, trustedIdentifiers);
+      } catch {
+        // A provider can satisfy its outer JSON shape while returning an
+        // invalid nested comparison or another value rejected by the final
+        // normalizer. Treat that as provider output failure and reuse the
+        // already-selected Wiki evidence instead of turning it into a 503.
+        return null;
+      }
+    };
+
+    let normalized = normalizeCandidate(generated);
+    const providerOutputIsGrounded = !normalized ? false : !grounding.answerable || isGeneratedBodyGrounded(
+      query,
+      normalized.bodyMarkdown,
+      grounding.chunks,
+      queryIntent,
+      evidenceProfile?.tier
+    );
+    if ((!normalized || !isUsableGeneratedArtifact(normalized) || !providerOutputIsGrounded) && grounding.answerable) {
+      if (!providerOutputIsGrounded) {
+        console.log(JSON.stringify({ event: "provider_fallback", reason: "ungrounded_or_too_short" }));
+      }
       generated = await generateDeterministic();
-      normalized = normalizeGeneratedArtifact({ ...generated, citations: [] }, query, trustedIdentifiers);
+      normalized = normalizeCandidate(generated);
     }
-    if (!isUsableGeneratedArtifact(normalized)) throw new Error("generated_artifact_invalid");
+    if (!normalized || !isUsableGeneratedArtifact(normalized)) throw new Error("generated_artifact_invalid");
     const unavailable = isGracefulUnknownArtifact(normalized);
     result = {
       ...normalized,
@@ -285,13 +333,15 @@ export async function POST(req: NextRequest) {
 
   const { logged } = await logArtifact({
     mode,
-    query,
     scenarioId,
     format,
     matchedNodeIds,
     fallbackUsed,
     intent: queryIntent.kind,
+    scope: queryIntent.scope,
     facets: queryIntent.facets,
+    evidenceTier: evidenceProfile?.tier,
+    relevantWordCount: evidenceProfile?.relevantWordCount,
     retrievedCount: retrieval.chunks.length,
     groundedCount: grounding.chunks.length,
     answerWordCount: result.bodyMarkdown.split(/\s+/).filter(Boolean).length,

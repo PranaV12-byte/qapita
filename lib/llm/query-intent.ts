@@ -22,17 +22,30 @@ export type QueryFacet =
   | "reporting"
   | "settlement";
 
-export type QueryIntent =
-  | DefinitionIntent
-  | { kind: "comparison"; facets?: QueryFacet[]; topics?: string[] }
-  | { kind: "general"; facets?: QueryFacet[]; topics?: string[] };
+/** Scope controls how much of the reviewed knowledge base belongs in an
+ * answer. It is intentionally separate from `kind`: a definition can be
+ * specific, while a general request can be broad or merely vague. */
+export type QueryScope = "specific" | "multi-facet" | "broad" | "vague" | "unsupported";
 
+type IntentMetadata = {
+  facets?: QueryFacet[];
+  topics?: string[];
+  scope?: QueryScope;
+};
+
+export type QueryIntent =
+  | (DefinitionIntent & IntentMetadata)
+  | ({ kind: "comparison" } & IntentMetadata)
+  | ({ kind: "general" } & IntentMetadata);
+
+// These are meaningful equity signals. Generic context words such as
+// "employee", "company", "share", "award", and "option" are deliberately
+// absent so they cannot turn an unrelated question into a broad wiki answer.
 const EQUITY_SCOPE_TERMS = new Set([
-  "equity", "compensation", "stock", "stocks", "share", "shares", "option", "options",
-  "award", "awards", "vesting", "vested", "exercise", "exercising", "iso", "nso", "rsu",
-  "rsa", "espp", "psu", "sar", "phantom", "tax", "amt", "409a", "83b", "withholding",
-  "payroll", "liquidity", "tender", "buyback", "ipo", "sale", "selling", "termination",
-  "grant", "grants", "employee", "employees", "employer", "private",
+  "equity", "compensation", "stock", "stocks", "vesting", "vested", "exercise", "exercising",
+  "iso", "nso", "rsu", "rsa", "espp", "psu", "sar", "phantom", "tax", "amt", "409a", "83b",
+  "withholding", "payroll", "liquidity", "tender", "buyback", "ipo", "sale", "selling", "termination",
+  "grant", "grants",
 ]);
 
 /** Used only to choose a friendly no-answer explanation. It does not qualify
@@ -70,9 +83,11 @@ const TOPIC_ALIASES: Array<[string, RegExp]> = [
   ["SAR", /\bsars?\b/i],
   ["83(b)", /\b83\s*\(?b\)?\b/i],
   ["409A", /\b409a\b/i],
+  ["ASC 718", /\basc\s*(?:topic\s*)?718\b/i],
   ["AMT", /\bamt\b/i],
   ["tender offer", /\btender\s+offer\b/i],
   ["liquidity", /\bliquidity\b|\bbuyback\b|\bsecondary sale/i],
+  ["sale", /\bsell(?:ing|s)?\b|\bsold\b|\bsale\b/i],
   ["vesting", /\bvest(?:ing|ed|s)?\b/i],
   ["exercise", /\bexercis(?:e|ed|ing|es)\b/i],
   ["termination", /\bterminat(?:e|ed|ion|ions|ing)\b/i],
@@ -80,6 +95,46 @@ const TOPIC_ALIASES: Array<[string, RegExp]> = [
 
 export function queryTopics(query: string): string[] {
   return TOPIC_ALIASES.filter(([, pattern]) => pattern.test(query)).map(([topic]) => topic);
+}
+
+const BROAD_SUBJECT_PATTERNS = [
+  /\bequity\s+compensation\b/i,
+  /\bequity\s+awards?\b/i,
+  /\bstock\s+options?\b/i,
+  /\bshare[-\s]?based\s+compensation\b/i,
+  /\b(?:explain|describe|tell\s+me\s+about|overview\s+of)\s+(?:equity|stock|share|option|award|iso|nso|rsu|rsa|espp|psu|sar|phantom)\b/i,
+  /\b(?:all|everything)\s+about\b/i,
+  /\b(?:overview|big picture|what should i know)\b/i,
+];
+
+function hasEquityScopeTerm(query: string): boolean {
+  return relevanceTokens(query).some((term) => EQUITY_SCOPE_TERMS.has(term));
+}
+
+/** Classifies breadth without making another model call. This is used by both
+ * retrieval and composition so broad prompts can be comprehensive while a
+ * narrow rule stays focused. */
+export function classifyQueryScope(
+  query: string,
+  metadata: { kind?: QueryIntent["kind"]; facets?: QueryFacet[]; topics?: string[] } = {}
+): QueryScope {
+  if (isClearlyOffTopicQuery(query)) return "unsupported";
+  const facets = metadata.facets ?? queryFacets(query);
+  const topics = metadata.topics ?? queryTopics(query);
+  if (metadata.kind === "comparison" || /\b(?:vs\.?|versus|compare|comparison|difference between)\b/i.test(query)) {
+    return "specific";
+  }
+  if (BROAD_SUBJECT_PATTERNS.some((pattern) => pattern.test(query))) return "broad";
+  if (facets.length >= 2) return "multi-facet";
+  if (topics.length > 0 || facets.length > 0) return "specific";
+  if (hasEquityScopeTerm(query)) return "vague";
+  return "unsupported";
+}
+
+/** Returns the scope attached to an intent, with a conservative fallback for
+ * callers that construct the older `{ kind, facets, topics }` shape directly. */
+export function queryScope(intent: QueryIntent, query = ""): QueryScope {
+  return intent.scope ?? classifyQueryScope(query, intent);
 }
 
 function normalizeSubject(value: string): string {
@@ -152,12 +207,27 @@ export function getQueryIntent(query: string): QueryIntent {
   const facets = queryFacets(query);
   const topics = queryTopics(query);
   if (/\b(?:vs\.?|versus|compare|comparison|difference between)\b/i.test(query)) {
-    return { kind: "comparison", facets, topics };
+    return { kind: "comparison", facets, topics, scope: classifyQueryScope(query, { kind: "comparison", facets, topics }) };
   }
   const definition = resolveDefinitionTopic(query);
-  return definition
-    ? { kind: "definition", nodeId: definition.id, title: definition.title, facets, topics }
-    : { kind: "general", facets, topics };
+  if (definition) {
+    return {
+      kind: "definition",
+      nodeId: definition.id,
+      title: definition.title,
+      facets,
+      topics,
+      scope: facets.length > 0
+        ? "multi-facet"
+        : BROAD_SUBJECT_PATTERNS.some((pattern) => pattern.test(query)) ? "broad" : "specific",
+    };
+  }
+  return {
+    kind: "general",
+    facets,
+    topics,
+    scope: classifyQueryScope(query, { kind: "general", facets, topics }),
+  };
 }
 
 export function buildDefinitionRetrievalQuery(query: string, topic: TreeNode): string {

@@ -8,6 +8,11 @@ describe("generated artifact normalizer", () => {
     expect(normalizeGeneratedText(text)).toBe("ISO rules also apply and here.");
   });
 
+  it("does not join words when a citation marker sits between them", () => {
+    expect(normalizeGeneratedText("ISO【nodeId=1.1】options and tax(sourceId=upload-1)basis."))
+      .toBe("ISO options and tax basis.");
+  });
+
   it("removes known identifier wrappers without removing legitimate legal numbers", () => {
     expect(normalizeGeneratedText("See (node 1.1), [Node ID: 1.2], and (sourceId=upload-1). IRC Section 409A still applies.", ["1.1", "1.2", "upload-1"]))
       .toBe("See. IRC Section 409A still applies.");
@@ -50,7 +55,7 @@ describe("generated artifact normalizer", () => {
     expect(normalizeGeneratedArtifact(normalized)).toEqual(normalized);
     expect(normalized.title).toBe("Tax treatment:");
     expect(normalized.bodyMarkdown).toBe("See.");
-    expect(normalized.quickShare).toBe("Tax treatment: See.");
+    expect(normalized.quickShare).toBe("See.");
   });
 
   it("removes only an exact leading title or question echo", () => {
@@ -62,7 +67,7 @@ describe("generated artifact normalizer", () => {
     };
     const normalized = normalizeGeneratedArtifact(artifact, "What is an ISO?");
     expect(normalized.bodyMarkdown).toBe("An incentive stock option is an employee stock option that may receive statutory tax treatment.");
-    expect(normalized.quickShare).toBe("An incentive stock option may receive statutory tax treatment.");
+    expect(normalized.quickShare).toBe(normalized.bodyMarkdown);
     expect(normalizeGeneratedArtifact(normalized, "What is an ISO?")).toEqual(normalized);
   });
 
@@ -100,7 +105,7 @@ describe("generated artifact normalizer", () => {
   });
 
   it("rejects empty, unsafe, or structurally broken provider output", () => {
-    const base: ArtifactResult = { title: "Answer", bodyMarkdown: "A complete answer.", quickShare: "A complete answer.", citations: [] };
+    const base: ArtifactResult = { title: "Answer", bodyMarkdown: "## Answer\n\nA complete answer.", quickShare: "A complete answer.", citations: [] };
     expect(isUsableGeneratedArtifact(base)).toBe(true);
     expect(isUsableGeneratedArtifact({ ...base, bodyMarkdown: "" })).toBe(false);
     expect(isUsableGeneratedArtifact({ ...base, bodyMarkdown: "Answer【nodeId=1.1】" })).toBe(false);
